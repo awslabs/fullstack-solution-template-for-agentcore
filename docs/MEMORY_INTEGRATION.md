@@ -72,6 +72,21 @@ new iam.PolicyStatement({
 })
 ```
 
+### Understanding Memory Configuration
+
+**Memory Parameters**
+- **EventExpiryDuration**: 7-365 days
+- **MemoryStrategies**: Empty for short-term, array for long-term
+- **actor_id**: User identifier
+- **session_id/thread_id**: Conversation identifier
+
+**Memory Strategies** 
+| Strategy | Purpose | Namespace |
+|----------|---------|-----------|
+| `summaryMemoryStrategy` | Auto-summarize sessions | `/summaries/{actorId}/{sessionId}` |
+| `userPreferenceMemoryStrategy` | Learn preferences | `/preferences/{actorId}` |
+| `semanticMemoryStrategy` | Extract facts | `/facts/{actorId}` |
+
 ---
 
 ## Step 2: Integrate with Your Framework
@@ -130,7 +145,7 @@ config = AgentCoreMemoryConfig(
 
 **💡 Example:** See this approach implemented in `patterns/strands-single-agent/basic_agent.py`
 
-**📚 Reference:** [Strands Memory Integration](https://agentcore.manager.aws.dev/sdk-python/latest/documentation/docs/community/session-managers/agentcore-memory/)
+**📚 Reference:** [Strands Memory Integration](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/strands-sdk-memory.html)
 
 #### Alternative: Hook-Based Approach
 
@@ -265,27 +280,6 @@ graph = create_react_agent(
 
 ---
 
-## Memory Strategies
-
-| Strategy | Purpose | Namespace |
-|----------|---------|-----------|
-| `summaryMemoryStrategy` | Auto-summarize sessions | `/summaries/{actorId}/{sessionId}` |
-| `userPreferenceMemoryStrategy` | Learn preferences | `/preferences/{actorId}` |
-| `semanticMemoryStrategy` | Extract facts | `/facts/{actorId}` |
-
-Empty array = short-term only.
-
----
-
-## Quick Reference
-
-- **EventExpiryDuration**: 7-365 days
-- **MemoryStrategies**: Empty for short-term, array for long-term
-- **actor_id**: User identifier
-- **session_id/thread_id**: Conversation identifier
-
----
-
 ## Resources
 
 ### Documentation
@@ -295,10 +289,8 @@ Empty array = short-term only.
 
 ### Code Examples
 - [AgentCore Samples Repository](https://github.com/awslabs/amazon-bedrock-agentcore-samples)
-- [LangChain AWS Integration](https://github.com/langchain-ai/langchain-aws)
-- [Strands Documentation](https://agentcore.manager.aws.dev/sdk-python/latest/)
+- [LangChain AWS Integration](https://github.com/langchain-ai/langchain-aws/tree/main/samples/memory)
+- [Strands Integration](https://strandsagents.com/latest/documentation/docs/community/session-managers/agentcore-memory/)
 
 ### Community
 - Slack: `#bedrock-agentcore-memory-interest`
-- [AgentCore Workshop](https://w.amazon.com/bin/view/AgentCoreWorkshop/)
-- [Genesis Memory Wiki](https://w.amazon.com/bin/view/GenesisMemory/)
