@@ -322,6 +322,55 @@ export class BackendStack extends cdk.NestedStack {
     // Create AgentCore execution role
     const agentRole = new AgentCoreRole(this, "AgentCoreRole")
 
+    // Handle memory: either use existing or create new
+    let memoryId: string | undefined
+    let memoryArn: string | undefined
+
+    if (config.backend?.memory_id) {
+      // Use existing memory ID from config
+      memoryId = config.backend.memory_id
+      memoryArn = `arn:aws:bedrock-agentcore:${this.region}:${this.account}:memory/${memoryId}`
+    } else {
+      // Create new memory resource using CloudFormation 
+      const memory = new cdk.CfnResource(this, "AgentMemory", {
+        type: "AWS::BedrockAgentCore::Memory",
+        properties: {
+          Name: `${config.stack_name_base.replace(/-/g, "_")}_${this.agentName.valueAsString}_Memory`,
+          EventExpiryDuration: 7,
+          Description: `Memory for ${config.stack_name_base} agent`,
+          MemoryStrategies: [],
+          MemoryExecutionRoleArn: agentRole.roleArn,
+          Tags: {
+            Name: `${config.stack_name_base}_Memory`,
+            ManagedBy: "CDK",
+          },
+        },
+      })
+      memoryId = memory.getAtt("MemoryId").toString()
+      memoryArn = memory.getAtt("MemoryArn").toString()
+    }
+
+    // Add memory-specific permissions to agent role
+    if (memoryArn) {
+      agentRole.addToPolicy(
+        new iam.PolicyStatement({
+          sid: "MemoryResourceAccess",
+          effect: iam.Effect.ALLOW,
+          actions: [
+            "bedrock-agentcore:GetMemory",
+            "bedrock-agentcore:ListMemories",
+            "bedrock-agentcore:CreateMemorySession",
+            "bedrock-agentcore:GetMemorySession",
+            "bedrock-agentcore:DeleteMemorySession",
+            "bedrock-agentcore:CreateEvent",
+            "bedrock-agentcore:GetEvent",
+            "bedrock-agentcore:ListEvents",
+          ],
+          resources: [memoryArn],
+        })
+      )
+    }
+
     // Create AgentCore Runtime with JWT authorizer using CloudFormation resource
     const agentRuntime = new cdk.CfnResource(this, "AgentRuntime", {
       type: "AWS::BedrockAgentCore::Runtime",
@@ -342,6 +391,7 @@ export class BackendStack extends cdk.NestedStack {
         Description: `${pattern} agent runtime for ${config.stack_name_base}`,
         EnvironmentVariables: {
           AWS_DEFAULT_REGION: this.region,
+          MEMORY_ID: memoryId,
         },
         // Add JWT authorizer with Cognito configuration
         AuthorizerConfiguration: {
@@ -379,6 +429,14 @@ export class BackendStack extends cdk.NestedStack {
       description: "Cognito User Pool ID - create users manually in AWS Console",
       value: this.userPool.userPoolId,
     })
+
+    // Memory ARN output
+    if (memoryArn) {
+      new cdk.CfnOutput(this, "MemoryArn", {
+        description: "ARN of the agent memory resource",
+        value: memoryArn,
+      })
+    }
 
     // Ensure the custom resource depends on the build project
     triggerBuild.node.addDependency(this.buildProject)

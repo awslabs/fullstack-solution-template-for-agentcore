@@ -29,6 +29,9 @@ export const invokeAgentCore = async (query, sessionId, onStreamUpdate) => {
     // Get Amplify auth session to extract access token
     const session = await fetchAuthSession();
     const accessToken = session.tokens?.accessToken?.toString();
+    
+    // Extract userId from the ID token (sub is the unique user identifier)
+    const userId = session.tokens?.idToken?.payload?.sub;
 
     if (!accessToken) {
       throw new Error('No valid access token found. Please ensure you are authenticated.');
@@ -62,6 +65,7 @@ export const invokeAgentCore = async (query, sessionId, onStreamUpdate) => {
     const payload = {
       prompt: query,
       runtimeSessionId: sessionId,
+      userId: userId,
     };
 
     // Make HTTP request with streaming
