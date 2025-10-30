@@ -1,0 +1,17 @@
+{
+  "name": "feedback-lambda",
+  "version": "1.0.0",
+  "description": "Lambda function for handling user feedback",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.700.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^22.10.1",
+    "typescript": "^5.7.2"
+  }
+}
