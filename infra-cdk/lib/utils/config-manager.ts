@@ -7,7 +7,6 @@ export interface AppConfig {
   admin_user_email?: string | null
   backend: {
     pattern: string
-    memory_id?: string | null
   }
 }
 
@@ -28,7 +27,6 @@ export class ConfigManager {
         admin_user_email: null,
         backend: {
           pattern: "strands-single-agent",
-          memory_id: null,
         },
       }
     }
@@ -43,7 +41,6 @@ export class ConfigManager {
         admin_user_email: parsedConfig.admin_user_email || null,
         backend: {
           pattern: parsedConfig.backend?.pattern || "strands-single-agent",
-          memory_id: parsedConfig.backend?.memory_id || null,
         },
       }
     } catch (error) {
