@@ -21,20 +21,12 @@ def create_basic_agent(user_id, session_id) -> Agent:
     if not memory_id:
         raise ValueError("MEMORY_ID environment variable is required")
     
-    # Configure AgentCore Memory with long-term strategies
-    # Retrieval config enables the agent to leverage summaries, preferences, and facts
+    # Configure AgentCore Memory with short-term memory (conversation history only)
+    # To enable long-term strategies (summaries, preferences, facts), see docs/MEMORY_INTEGRATION.md
     agentcore_memory_config = AgentCoreMemoryConfig(
         memory_id=memory_id,
         session_id=session_id,
-        actor_id=user_id,
-        retrieval_config={
-            # User preferences: High relevance threshold for accurate preference matching
-            "/preferences/{actorId}": RetrievalConfig(top_k=5, relevance_score=0.7),
-            # Facts: Lower threshold to capture more contextual information
-            "/facts/{actorId}": RetrievalConfig(top_k=10, relevance_score=0.3),
-            # Session summaries: Moderate threshold for conversation context
-            "/summaries/{actorId}/{sessionId}": RetrievalConfig(top_k=3, relevance_score=0.5)
-        }
+        actor_id=user_id
     )
     
     session_manager = AgentCoreMemorySessionManager(

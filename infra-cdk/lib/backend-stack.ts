@@ -322,33 +322,15 @@ export class BackendStack extends cdk.NestedStack {
     // Create AgentCore execution role
     const agentRole = new AgentCoreRole(this, "AgentCoreRole")
 
-    // Create new memory resource with long-term strategies using CloudFormation
+    // Create memory resource with short-term memory (conversation history) as default
+    // To enable long-term strategies (summaries, preferences, facts), see docs/MEMORY_INTEGRATION.md
     const memory = new cdk.CfnResource(this, "AgentMemory", {
       type: "AWS::BedrockAgentCore::Memory",
       properties: {
         Name: cdk.Names.uniqueResourceName(this, { maxLength: 48 }),
         EventExpiryDuration: 30,
-        Description: `Long-term memory for ${config.stack_name_base} agent with intelligent extraction`,
-        MemoryStrategies: [
-          {
-            SummaryMemoryStrategy: {
-              Name: "SessionSummarizer",
-              Namespaces: ["/summaries/{actorId}/{sessionId}"],
-            },
-          },
-          {
-            UserPreferenceMemoryStrategy: {
-              Name: "PreferenceLearner",
-              Namespaces: ["/preferences/{actorId}"],
-            },
-          },
-          {
-            SemanticMemoryStrategy: {
-              Name: "FactExtractor",
-              Namespaces: ["/facts/{actorId}"],
-            },
-          },
-        ],
+        Description: `Short-term memory for ${config.stack_name_base} agent`,
+        MemoryStrategies: [], // Empty array = short-term only (conversation history)
         MemoryExecutionRoleArn: agentRole.roleArn,
         Tags: {
           Name: `${config.stack_name_base}_Memory`,
@@ -368,7 +350,7 @@ export class BackendStack extends cdk.NestedStack {
           "bedrock-agentcore:CreateEvent",
           "bedrock-agentcore:GetEvent",
           "bedrock-agentcore:ListEvents",
-          "bedrock-agentcore:RetrieveMemoryRecords",
+          "bedrock-agentcore:RetrieveMemoryRecords", // Only needed for long-term strategies
         ],
         resources: [memoryArn],
       })
