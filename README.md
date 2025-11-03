@@ -13,7 +13,7 @@ If you are a delivery scientist or engineer who wants to use GASP to build a ful
 TODO: write this section, including stuff like:
 * describe how to set up their coding assistant with the right context and/or recommended MCP servers, make sure it describes the method for all common assistants (Q CLI, Cline, Kiro at a minimum). 
 * start by forking this repo
-* recommend looking at the samples repository and optionally cloning one or two if it has characteristics that align with what they are trying to do
+* recommend looking at the [samples repository](https://code.aws.dev/proserve/genaiid/reusable-assets/genaiid-agentcore-starter-pack-samples) and optionally cloning one or two if it has characteristics that align with what they are trying to do
 * deploy GASP out-of-the-box to make sure that works
 * point users towards development best practice READMEs which e.g. explain to deploy the UI locally for quick UI development
   
@@ -89,6 +89,11 @@ genaiid-agentcore-starter-pack/
 └── README.md
 ```
 
+# 👥 Team
+
+| ![badge](https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=kaleko) | ![badge](https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=privisaa) | ![badge](https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=razken) | ![badge](https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=zambb) |![badge](https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=dmonraj) |
+| -- | -- | -- | -- | -- |
+| kaleko@amazon.com | privisaa@amazon.com | razken@amazon.com | zambb@amazon.com | dmonraj@amazon.com | 
 
 
 
