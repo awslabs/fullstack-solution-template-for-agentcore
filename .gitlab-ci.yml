@@ -30,3 +30,7 @@ developer_tests:
 
   script:
       - make lint-cicd
+
+# Override ASH job to depend on developer_tests passing
+ash-sast:
+  needs: ["developer_tests"]
