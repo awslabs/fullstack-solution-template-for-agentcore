@@ -1,6 +1,6 @@
 # Deployment and Test Scripts
 
-This directory contains scripts for deploying and testing the GenAI AgentCore Starter Pack
+This directory contains scripts for deploying and testing the GenAIIC AgentCore Starter Pack
 infrastructure and frontend.
 
 ## Main Deployment Workflow
