@@ -1,8 +1,12 @@
-stack_name_base: "genaiid-agentcore-starter-pack"
+stack_name_base: genaiid-agentcore-starter-pack
 
 # Optional: Set to automatically create an admin user and email credentials
 # If not provided, you'll need to manually create users via AWS Console
-admin_user_email: "null"
+admin_user_email: null # Example: admin@example.com
+
+frontend:
+  domain_name: null # Optional: Set to your custom domain
+  certificate_arn: null # Optional: Set to your ACM certificate ARN
 
 backend:
-  pattern: "strands-single-agent" # Available patterns: strands-single-agent
+  pattern: strands-single-agent # Available patterns: strands-single-agent
