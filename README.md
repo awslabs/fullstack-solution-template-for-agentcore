@@ -37,9 +37,7 @@ What comes next? That's up to you, the developer. With your requirements in mind
 
 ## Architecture
 
-**TODO: ARCHITECTURE DIAGRAM NEEDS UPDATING WITH AMPLIFY HOSTING, AND SAMPLE TOOL WITH LAMBDA, AND REMOVAL OF IDENTITY.**
-
-![Architecture Diagram](docs/img/GASP-architecture-20251029.png)
+![Architecture Diagram](docs/architecture-diagram/GASP-architecture-20251113.png)
 The out-of-the-box architecture is shown above.
 
 ### Tech Stack

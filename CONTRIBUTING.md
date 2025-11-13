@@ -65,18 +65,24 @@ This section describes how _GASP contributors_ should get started. If you are a 
    TODO
 
 3. **Install Dependencies and test local build**:
-
-TODO
+   See the [Deployment Guide](docs/DEPLOYMENT.md) for prerequisites and setup instructions.
+   
+   For frontend-specific development, see [Frontend README](frontend/README.md).
+   
+   For infrastructure development, see [Infrastructure README](infra-cdk/README.md).
 
 ## Project Structure
 
 Familiarize yourself with the project structure:
 
 - `docs/`: Documentation files
-- `infra-cdk/`: Infrastructure as Code (IaC) lives here (CDK)
+- `frontend/`: Web UI components (React/Next.js)
+- `gateway/`: Shared utilities and tools for AgentCore Gateway integration
+- `infra-cdk/`: Infrastructure as Code (CDK)
 - `patterns/`: Implementation of Agentic patterns to be deployed into AgentCore
 - `scripts/`: Utility scripts for development, testing, and deployment
-- `frontend/`: Web UI components (React)
+- `tests/`: Unit and integration tests
+- `vibe-context/`: AI coding assistant context and rules
 
 # Development Workflow
 
@@ -103,12 +109,16 @@ Familiarize yourself with the project structure:
 
 1. **Local Testing**:
    ```bash
-   TODO
-
-   # Verify UI code passes linting checks
-   cd src/ui/
+   # Run linting and formatting checks
+   make all
+   
+   # For frontend-specific testing
+   cd frontend
    npm run lint
+   cd ..
    ```
+   
+   For comprehensive testing procedures, see [Scripts README](scripts/README.md).
 
 2. **Integration Testing**:
    TODO
@@ -117,7 +127,7 @@ Familiarize yourself with the project structure:
 
 1. **Update Documentation**: Ensure all documentation affected by your changes is updated
 2. **Run Tests**: Verify that your changes pass all tests
-3. **Create a Pull Request**: Submit a PR with a clear description of:
+3. **Create a Pull Request**: Submit a PR to the `develop` branch with a clear description of:
    - What the changes do
    - Why the changes are needed
    - Any relevant context or considerations
