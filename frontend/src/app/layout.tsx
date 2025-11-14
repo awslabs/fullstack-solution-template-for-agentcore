@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "GenAIIC AgentCore Starter Pack",
+  title: "GenAIID AgentCore Starter Pack",
   description: "A starter kit for building GenAI applications with AgentCore",
 }
 

@@ -25,7 +25,7 @@ export function ChatHeader({ title, onNewChat, canStartNewChat }: ChatHeaderProp
   return (
     <header className="flex items-center justify-between p-4 border-b w-full">
       <div className="flex items-center">
-        <h1 className="text-xl font-bold">{title || "GenAIIC AgentCore Starter Pack"}</h1>
+        <h1 className="text-xl font-bold">{title || "GenAIID AgentCore Starter Pack"}</h1>
       </div>
       <div className="flex items-center gap-2">
         <Button onClick={onNewChat} variant="outline" className="gap-2" disabled={!canStartNewChat}>

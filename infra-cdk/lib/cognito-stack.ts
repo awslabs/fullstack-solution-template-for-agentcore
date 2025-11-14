@@ -55,7 +55,7 @@ export class CognitoStack extends cdk.NestedStack {
 <p>Please use this temporary password to log in and set your permanent password.</p>
 <p>The CloudFront URL to your application is stored as an output in the "${config.stack_name_base}" stack, and will be printed to your terminal once the deployment process completes.</p>
 <p>Thanks,</p>
-<p>AWS GENAIIC Team</p>`,
+<p>AWS GENAIID Team</p>`,
       },
     })
 

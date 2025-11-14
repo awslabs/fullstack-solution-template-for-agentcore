@@ -15,7 +15,7 @@ export class AmplifyHostingStack extends cdk.NestedStack {
   public readonly stagingBucket: s3.Bucket
 
   constructor(scope: Construct, id: string, props: AmplifyStackProps) {
-    const description = "GenAIIC AgentCore Starter Pack - Amplify Hosting Stack"
+    const description = "GenAIID AgentCore Starter Pack - Amplify Hosting Stack"
     super(scope, id, { ...props, description })
 
     // Create staging bucket for Amplify deployments with dynamic name
