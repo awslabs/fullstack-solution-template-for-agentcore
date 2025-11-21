@@ -6,6 +6,7 @@ import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager"
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb"
 import * as apigateway from "aws-cdk-lib/aws-apigateway"
 import * as logs from "aws-cdk-lib/aws-logs"
+import * as kms from "aws-cdk-lib/aws-kms"
 import * as agentcore from "@aws-cdk/aws-bedrock-agentcore-alpha"
 import * as bedrockagentcore from "aws-cdk-lib/aws-bedrockagentcore"
 import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha"
@@ -286,6 +287,10 @@ export class BackendStack extends cdk.NestedStack {
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,
+      },
+      encryption: dynamodb.TableEncryption.AWS_MANAGED,
     })
 
     // Add GSI for querying by feedbackType with timestamp sorting
@@ -381,6 +386,19 @@ export class BackendStack extends cdk.NestedStack {
         stageName: "prod",
         throttlingRateLimit: 100,
         throttlingBurstLimit: 200,
+        cachingEnabled: true,
+        cacheClusterEnabled: true,
+        cacheClusterSize: "0.5",
+        cacheTtl: cdk.Duration.minutes(5),
+        accessLogDestination: new apigateway.LogGroupLogDestination(
+          new logs.LogGroup(this, "FeedbackApiAccessLogGroup", {
+            logGroupName: `/aws/apigateway/${config.stack_name_base}-api-access`,
+            retention: logs.RetentionDays.ONE_WEEK,
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+          })
+        ),
+        accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields(),
+        tracingEnabled: true,
       },
     })
 
@@ -416,6 +434,11 @@ export class BackendStack extends cdk.NestedStack {
       handler: "sample_tool_lambda.handler",
       code: lambda.Code.fromAsset(path.join(__dirname, "../../gateway/tools/sample_tool")),
       timeout: cdk.Duration.seconds(30),
+      logGroup: new logs.LogGroup(this, "SampleToolLambdaLogGroup", {
+        logGroupName: `/aws/lambda/${config.stack_name_base}-sample-tool`,
+        retention: logs.RetentionDays.ONE_WEEK,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
     })
 
     // Create comprehensive IAM role for gateway
