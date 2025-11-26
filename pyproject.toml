@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "genaiid-agentcore-starter-pack"
-version = "0.1.0"
+version = "0.1.1"
 description = "GenAIID AgentCore Starter Pack - A template for building AgentCore applications"
 readme = "README.md"
 license = {text = "MIT-0"}
