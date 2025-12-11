@@ -21,14 +21,7 @@ export class ConfigManager {
     const configPath = path.join(__dirname, "..", "..", configFile)
 
     if (!fs.existsSync(configPath)) {
-      // Return default configuration if file doesn't exist
-      return {
-        stack_name_base: "fullstack-agentcore-solution-template",
-        admin_user_email: null,
-        backend: {
-          pattern: "strands-single-agent",
-        },
-      }
+      throw new Error(`Configuration file ${configPath} does not exist. Please create config.yaml file.`)
     }
 
     try {
@@ -37,7 +30,7 @@ export class ConfigManager {
 
       // Validate required fields and provide defaults
       return {
-        stack_name_base: parsedConfig.stack_name_base || "fullstack-agentcore-solution-template",
+        stack_name_base: parsedConfig.stack_name_base,
         admin_user_email: parsedConfig.admin_user_email || null,
         backend: {
           pattern: parsedConfig.backend?.pattern || "strands-single-agent",

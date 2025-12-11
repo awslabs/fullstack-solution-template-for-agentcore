@@ -1,4 +1,4 @@
-stack_name_base: fullstack-agentcore-solution-template
+stack_name_base: FAST-stack
 
 # Optional: Set to automatically create an admin user and email credentials
 # If not provided, you'll need to manually create users via AWS Console
