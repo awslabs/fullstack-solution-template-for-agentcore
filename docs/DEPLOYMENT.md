@@ -7,7 +7,7 @@ This guide walks you through deploying the Fullstack AgentCore Solution Template
 Before deploying, ensure you have:
 
 - **Node.js 20+** installed (see [AWS guide for installing Node.js on EC2](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-up-node-on-ec2-instance.html))
-- **AWS CLI** configured with appropriate permissions
+- **AWS CLI** configured with credentials (`aws configure`) - see [AWS CLI Configuration guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
 - **AWS CDK CLI** installed: `npm install -g aws-cdk` (see [CDK Getting Started guide](https://docs.aws.amazon.com/cdk/v2/guide/getting-started.html))
 - **Python 3.8+** (standard library only - no virtual environment needed for deployment)
 - **Docker** installed. (see [Install Docker Engine](https://docs.docker.com/engine/install/)). See below if you have a non-ARM machine (e.g. you are deploying from ubuntu)

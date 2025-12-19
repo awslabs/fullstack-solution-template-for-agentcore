@@ -382,6 +382,17 @@ def main() -> int:
             return 1
     log_success("All prerequisites found")
 
+    # Verify AWS credentials are configured
+    log_info("Verifying AWS credentials...")
+    try:
+        run_command(["aws", "sts", "get-caller-identity"], capture_output=True)
+        log_success("AWS credentials configured")
+    except subprocess.CalledProcessError:
+        log_error("AWS credentials not configured or invalid")
+        log_info("Run 'aws configure' to set up your AWS credentials")
+        log_info("Or set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables")
+        return 1
+
     # Get stack name
     stack_name = sys.argv[1] if len(sys.argv) > 1 else os.environ.get('STACK_NAME')
 
