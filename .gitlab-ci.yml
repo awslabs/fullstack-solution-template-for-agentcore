@@ -36,16 +36,18 @@ developer_tests:
 ash-sast:
   needs: ["developer_tests"]
 
+# GitLab Pages deployment job - must be named "pages" to trigger Pages deployment
+# Builds MkDocs documentation and publishes to https://<namespace>.gitlab.io/<project-name>/
 pages:
-  stage: deploy
-  image: public.ecr.aws/docker/library/python:3.13-bookworm
+  stage: deploy  # Runs after tests pass
+  image: public.ecr.aws/docker/library/python:3.13-bookworm  # Python required for mkdocs
   before_script:
-    - pip install -r docs/requirements.txt
+    - pip install -r docs/requirements.txt  # Install mkdocs, material theme, and plugins
   script:
     - cd docs
-    - mkdocs build --site-dir ../public
+    - mkdocs build --site-dir ../public  # Build to public/ (required by GitLab Pages)
   artifacts:
     paths:
-      - public
+      - public  # GitLab Pages serves content from this directory
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH  # Deploy only on main/master branch
