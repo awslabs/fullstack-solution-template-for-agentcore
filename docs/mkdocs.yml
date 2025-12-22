@@ -15,7 +15,7 @@ theme:
     - navigation.sections
     - navigation.top
     - search.highlight
-    - content.code.copy
+    - search.highlight
 
 markdown_extensions:
   - admonition
@@ -36,7 +36,7 @@ markdown_extensions:
 
 plugins:
    - search
-   - awesome-nav  
+   - awesome-nav
 
 extra_javascript:
   # Workaround for site_url breaking mermaid rendering; see the following for more info:

@@ -1,4 +1,4 @@
-# Makefile for Stickler Documentation
+# Makefile for FAST Documentation
 #
 # This Makefile provides targets for managing the MkDocs-based documentation site.
 # The site uses Material theme, mkdocstrings for API docs, and awesome-nav for
