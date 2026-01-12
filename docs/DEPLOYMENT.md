@@ -26,7 +26,7 @@ Before deploying, ensure you have:
 Edit `infra-cdk/config.yaml` to customize your deployment:
 
 ```yaml
-stack_name_base: your-project-name # Change this to your preferred stack name
+stack_name_base: your-project-name # Change this to your preferred stack name (max 35 chars)
 
 admin_user_email: null # Optional: admin@example.com (auto-creates user & emails credentials)
 
@@ -35,7 +35,9 @@ backend:
   deployment_type: docker # Available deployment types: docker (default), zip
 ```
 
-**Important**: Change `stack_name_base` to a unique name for your project to avoid conflicts.
+**Important**: 
+- Change `stack_name_base` to a unique name for your project to avoid conflicts
+- Maximum length is 35 characters (due to AWS AgentCore runtime naming constraints)
 
 ### Deployment Types
 

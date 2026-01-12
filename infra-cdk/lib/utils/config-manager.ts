@@ -2,6 +2,8 @@ import * as fs from "fs"
 import * as path from "path"
 import * as yaml from "yaml"
 
+const MAX_STACK_NAME_BASE_LENGTH = 35
+
 export type DeploymentType = "docker" | "zip"
 
 export interface AppConfig {
@@ -36,8 +38,19 @@ export class ConfigManager {
         throw new Error(`Invalid deployment_type '${deploymentType}'. Must be 'docker' or 'zip'.`)
       }
 
+      const stackNameBase = parsedConfig.stack_name_base
+      if (!stackNameBase) {
+        throw new Error("stack_name_base is required in config.yaml")
+      }
+      if (stackNameBase.length > MAX_STACK_NAME_BASE_LENGTH) {
+        throw new Error(
+          `stack_name_base '${stackNameBase}' is too long (${stackNameBase.length} chars). ` +
+            `Maximum length is ${MAX_STACK_NAME_BASE_LENGTH} characters due to AWS AgentCore runtime naming constraints.`
+        )
+      }
+
       return {
-        stack_name_base: parsedConfig.stack_name_base,
+        stack_name_base: stackNameBase,
         admin_user_email: parsedConfig.admin_user_email || null,
         backend: {
           pattern: parsedConfig.backend?.pattern || "strands-single-agent",
