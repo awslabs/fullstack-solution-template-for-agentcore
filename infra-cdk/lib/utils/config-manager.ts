@@ -13,6 +13,12 @@ export interface AppConfig {
     pattern: string
     deployment_type: DeploymentType
   }
+  idp_agent?: {
+    url: string
+    region: string
+    cognito_domain?: string
+    client_id?: string
+  }
 }
 
 export class ConfigManager {
@@ -56,6 +62,7 @@ export class ConfigManager {
           pattern: parsedConfig.backend?.pattern || "strands-single-agent",
           deployment_type: deploymentType,
         },
+        idp_agent: parsedConfig.idp_agent,
       }
     } catch (error) {
       throw new Error(`Failed to parse configuration file ${configPath}: ${error}`)

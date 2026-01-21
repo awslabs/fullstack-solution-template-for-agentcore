@@ -1,0 +1,11 @@
+# Core agent framework
+strands-agents>=1.16.0
+
+# MCP protocol support
+mcp>=1.23.1
+
+# Bedrock AgentCore integration
+bedrock-agentcore[strands-agents]>=1.0.6
+
+# AWS SDK
+boto3>=1.35.0

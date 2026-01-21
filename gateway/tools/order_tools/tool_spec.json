@@ -1,0 +1,37 @@
+[
+  {
+    "name": "check_inventory",
+    "description": "指定された商品コードの在庫数を確認します。各商品の利用可能数、予約数、純利用可能数を返します。在庫がない場合や商品が見つからない場合はステータスで通知します。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "product_codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "確認する商品コードのリスト（例: [\"PRD-001\", \"PRD-002\"]）"
+        }
+      },
+      "required": [
+        "product_codes"
+      ]
+    }
+  },
+  {
+    "name": "query_order_backlog",
+    "description": "顧客の注残（未納分）情報を問い合わせます。過去の未完了注文、合計金額、期限超過の有無などを確認できます。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "customer_id": {
+          "type": "string",
+          "description": "発注元の顧客ID（例: \"CUST-001\"）"
+        }
+      },
+      "required": [
+        "customer_id"
+      ]
+    }
+  }
+]

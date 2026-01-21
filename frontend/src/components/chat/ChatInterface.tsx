@@ -5,6 +5,7 @@ import { ChatHeader } from "./ChatHeader"
 import { ChatInput } from "./ChatInput"
 import { ChatMessages } from "./ChatMessages"
 import { Message } from "./types"
+import { OrderUpload } from "@/components/order/OrderUpload"
 
 import { useGlobal } from "@/app/context/GlobalContext"
 import { invokeAgentCore, generateSessionId, setAgentConfig } from "@/services/agentCoreService"
@@ -17,6 +18,8 @@ export default function ChatInterface() {
   const [input, setInput] = useState("")
   const [sessionId] = useState(() => generateSessionId())
   const [error, setError] = useState<string | null>(null)
+  const [showUpload, setShowUpload] = useState(true)
+  const [apiBaseUrl, setApiBaseUrl] = useState<string>("")
 
   const { isLoading, setIsLoading } = useGlobal()
   const auth = useAuth()
@@ -39,6 +42,13 @@ export default function ChatInterface() {
         }
 
         await setAgentConfig(config.agentRuntimeArn, config.awsRegion || "us-east-1", config.agentPattern)
+
+        // Set API base URL for order upload
+        if (config.feedbackApiUrl) {
+          // Extract base URL from feedback API URL (e.g., "https://xxx.execute-api.region.amazonaws.com/prod/")
+          const baseUrl = config.feedbackApiUrl.replace(/feedback\/?$/, "")
+          setApiBaseUrl(baseUrl)
+        }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Unknown error"
         setError(`Configuration error: ${errorMessage}`)
@@ -176,8 +186,20 @@ export default function ChatInterface() {
     setMessages([])
     setInput("")
     setError(null)
+    setShowUpload(true)
     // Note: sessionId stays the same for the component lifecycle
     // If you want a new session ID, you'd need to remount the component
+  }
+
+  // Handle order upload completion
+  const handleUploadComplete = (presignedUrl: string, fileName: string) => {
+    setShowUpload(false)
+
+    const message = `注文書「${fileName}」がアップロードされました。
+以下のPresigned URLから注文書を取得して監査してください:
+${presignedUrl}`
+
+    sendMessage(message)
   }
 
   // Check if this is the initial state (no messages)
@@ -200,16 +222,38 @@ export default function ChatInterface() {
 
       {/* Conditional layout based on whether there are messages */}
       {isInitialState ? (
-        // Initial state - input in the middle
+        // Initial state - upload and input in the middle
         <>
           {/* Empty space above */}
           <div className="grow" />
 
           {/* Centered welcome message */}
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Welcome to FAST Chat</h2>
-            <p className="text-gray-600 mt-2">Ask me anything to get started</p>
+            <h2 className="text-2xl font-bold text-gray-800">発注監査エージェント</h2>
+            <p className="text-gray-600 mt-2">
+              注文書をアップロードして監査を開始、または質問を入力してください
+            </p>
           </div>
+
+          {/* Order upload section */}
+          {showUpload && apiBaseUrl && auth.user?.id_token && (
+            <div className="px-4 mb-6 max-w-lg mx-auto w-full">
+              <OrderUpload
+                onUploadComplete={handleUploadComplete}
+                idToken={auth.user.id_token}
+                apiBaseUrl={apiBaseUrl}
+              />
+            </div>
+          )}
+
+          {/* Divider */}
+          {showUpload && apiBaseUrl && (
+            <div className="flex items-center mb-6 max-w-lg mx-auto w-full px-4">
+              <div className="flex-1 border-t border-gray-200"></div>
+              <span className="px-4 text-sm text-gray-400">または</span>
+              <div className="flex-1 border-t border-gray-200"></div>
+            </div>
+          )}
 
           {/* Centered input */}
           <div className="px-4 mb-16 max-w-4xl mx-auto w-full">

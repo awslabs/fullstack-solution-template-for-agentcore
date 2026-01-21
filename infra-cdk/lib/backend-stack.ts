@@ -27,6 +27,12 @@ export interface BackendStackProps extends cdk.NestedStackProps {
   frontendUrl: string
 }
 
+// Gateway instance reference for adding multiple targets
+interface GatewayResources {
+  gateway: bedrockagentcore.CfnGateway
+  gatewayRole: iam.Role
+}
+
 export class BackendStack extends cdk.NestedStack {
   public readonly userPoolId: string
   public readonly userPoolClientId: string
@@ -39,6 +45,9 @@ export class BackendStack extends cdk.NestedStack {
   private userPool: cognito.IUserPool
   private machineClient: cognito.UserPoolClient
   private agentRuntime: agentcore.Runtime
+  private gatewayResources: GatewayResources
+  private api: apigateway.RestApi
+  private cognitoAuthorizer: apigateway.CognitoUserPoolsAuthorizer
 
   constructor(scope: Construct, id: string, props: BackendStackProps) {
     super(scope, id, props)
@@ -92,6 +101,12 @@ export class BackendStack extends cdk.NestedStack {
     // Create API Gateway Feedback API resources (example of best-practice API Gateway + Lambda
     // pattern)
     this.createFeedbackApi(props.config, props.frontendUrl, feedbackTable)
+
+    // Create Order Upload API (presigned URL generation)
+    this.createOrderApi(props.config, props.frontendUrl)
+
+    // Create Order Tools Gateway Target (inventory check, backlog query)
+    this.createOrderToolsGatewayTarget(props.config)
   }
 
   private createAgentCoreRuntime(config: AppConfig): void {
@@ -279,6 +294,18 @@ export class BackendStack extends cdk.NestedStack {
       })
     )
 
+    // Add Secrets Manager permissions for IDP agent credentials
+    agentRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "SecretsManagerAccess",
+        effect: iam.Effect.ALLOW,
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: [
+          `arn:aws:secretsmanager:${this.region}:${this.account}:secret:/${config.stack_name_base}/*`,
+        ],
+      })
+    )
+
     // Add Code Interpreter permissions
     agentRole.addToPolicy(
       new iam.PolicyStatement({
@@ -299,6 +326,17 @@ export class BackendStack extends cdk.NestedStack {
       AWS_DEFAULT_REGION: stack.region,
       MEMORY_ID: memoryId,
       STACK_NAME: config.stack_name_base, // Required for agent to find SSM parameters
+    }
+
+    // Add IDP Agent settings if configured (for document extraction)
+    if (config.idp_agent?.url) {
+      envVars.IDP_AGENT_URL = config.idp_agent.url
+    }
+    if (config.idp_agent?.cognito_domain) {
+      envVars.IDP_COGNITO_DOMAIN = config.idp_agent.cognito_domain
+    }
+    if (config.idp_agent?.client_id) {
+      envVars.IDP_CLIENT_ID = config.idp_agent.client_id
     }
 
     // Create the runtime using L2 construct
@@ -484,7 +522,7 @@ export class BackendStack extends cdk.NestedStack {
      * API Gateway defaultCorsPreflightOptions below only handles OPTIONS preflight requests.
      * See detailed explanation and fix options in: infra-cdk/lambdas/feedback/index.py
      */
-    const api = new apigateway.RestApi(this, "FeedbackApi", {
+    this.api = new apigateway.RestApi(this, "FeedbackApi", {
       restApiName: `${config.stack_name_base}-api`,
       description: "API for user feedback and future endpoints",
       defaultCorsPreflightOptions: {
@@ -517,34 +555,34 @@ export class BackendStack extends cdk.NestedStack {
 
     // Add request validator for API security
     const requestValidator = new apigateway.RequestValidator(this, "FeedbackApiRequestValidator", {
-      restApi: api,
+      restApi: this.api,
       requestValidatorName: `${config.stack_name_base}-request-validator`,
       validateRequestBody: true,
       validateRequestParameters: true,
     })
 
     // Create Cognito authorizer
-    const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, "FeedbackApiAuthorizer", {
+    this.cognitoAuthorizer = new apigateway.CognitoUserPoolsAuthorizer(this, "FeedbackApiAuthorizer", {
       cognitoUserPools: [this.userPool],
       identitySource: "method.request.header.Authorization",
       authorizerName: `${config.stack_name_base}-authorizer`,
     })
 
     // Create /feedback resource and POST method
-    const feedbackResource = api.root.addResource("feedback")
+    const feedbackResource = this.api.root.addResource("feedback")
     feedbackResource.addMethod("POST", new apigateway.LambdaIntegration(feedbackLambda), {
-      authorizer,
+      authorizer: this.cognitoAuthorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
       requestValidator: requestValidator,
     })
 
     // Store the API URL for access from main stack
-    this.feedbackApiUrl = api.url
+    this.feedbackApiUrl = this.api.url
 
     // Store API URL in SSM for frontend
     new ssm.StringParameter(this, "FeedbackApiUrlParam", {
       parameterName: `/${config.stack_name_base}/feedback-api-url`,
-      stringValue: api.url,
+      stringValue: this.api.url,
       description: "Feedback API Gateway URL",
     })
   }
@@ -706,6 +744,9 @@ export class BackendStack extends cdk.NestedStack {
       description: "ARN of the sample tool Lambda",
       value: toolLambda.functionArn,
     })
+
+    // Store gateway resources for adding more targets
+    this.gatewayResources = { gateway, gatewayRole }
   }
 
   private createMachineAuthentication(config: AppConfig): void {
@@ -811,5 +852,158 @@ export class BackendStack extends cdk.NestedStack {
   private hashContent(content: string): string {
     const crypto = require("crypto")
     return crypto.createHash("sha256").update(content).digest("hex").slice(0, 16)
+  }
+
+  /**
+   * Creates Order Upload API for generating presigned URLs.
+   *
+   * This API allows the frontend to upload Excel order files securely using
+   * presigned URLs. The Lambda handles file validation, generates presigned URLs,
+   * and uploads files to a temporary S3 bucket with automatic cleanup.
+   *
+   * API Contract - POST /orders/presigned-url
+   * Authorization: Bearer <cognito-id-token> (required)
+   *
+   * Request Body:
+   *   fileName: string (required) - Original file name
+   *   fileContent: string (required) - Base64-encoded file content
+   *
+   * Success Response (200):
+   *   { presignedUrl: string, tempKey: string, contentMd5: string, originalFileName: string }
+   */
+  private createOrderApi(config: AppConfig, frontendUrl: string): void {
+    // Create temporary upload bucket with lifecycle policy
+    // Note: S3 lifecycle expiration requires whole days (minimum 1 day)
+    const tempBucket = new s3.Bucket(this, "TempUploadBucket", {
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+      lifecycleRules: [
+        {
+          id: "DeleteTempFiles",
+          prefix: "temp/",
+          expiration: cdk.Duration.days(1), // 1 day auto-delete (S3 minimum)
+          abortIncompleteMultipartUploadAfter: cdk.Duration.days(1),
+        },
+      ],
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+    })
+
+    // Create Presigned URL Lambda
+    const presignedUrlLambda = new PythonFunction(this, "PresignedUrlLambda", {
+      functionName: `${config.stack_name_base}-presigned-url`,
+      runtime: lambda.Runtime.PYTHON_3_13,
+      entry: path.join(__dirname, "..", "lambdas", "presigned-url"),
+      handler: "handler",
+      environment: {
+        TEMP_BUCKET: tempBucket.bucketName,
+        CORS_ALLOWED_ORIGINS: `${frontendUrl},http://localhost:3000`,
+      },
+      timeout: cdk.Duration.seconds(30),
+      tracing: lambda.Tracing.ACTIVE, // X-Ray enabled
+      logGroup: new logs.LogGroup(this, "PresignedUrlLambdaLogGroup", {
+        logGroupName: `/aws/lambda/${config.stack_name_base}-presigned-url`,
+        retention: logs.RetentionDays.ONE_WEEK,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
+    })
+
+    // Grant Lambda permissions: temp/* prefix only (least privilege)
+    tempBucket.grantPut(presignedUrlLambda, "temp/*")
+    tempBucket.grantRead(presignedUrlLambda, "temp/*")
+
+    // Add API Gateway endpoint: POST /orders/presigned-url
+    const ordersResource = this.api.root.addResource("orders")
+    const presignedUrlResource = ordersResource.addResource("presigned-url")
+
+    presignedUrlResource.addMethod("POST", new apigateway.LambdaIntegration(presignedUrlLambda), {
+      authorizer: this.cognitoAuthorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    })
+
+    // Store bucket name in SSM for reference
+    new ssm.StringParameter(this, "TempUploadBucketParam", {
+      parameterName: `/${config.stack_name_base}/temp-upload-bucket`,
+      stringValue: tempBucket.bucketName,
+      description: "Temporary upload bucket for order files",
+    })
+
+    // Outputs
+    new cdk.CfnOutput(this, "TempUploadBucketName", {
+      value: tempBucket.bucketName,
+      description: "Temporary upload bucket name",
+    })
+
+    new cdk.CfnOutput(this, "PresignedUrlLambdaArn", {
+      value: presignedUrlLambda.functionArn,
+      description: "Presigned URL Lambda ARN",
+    })
+  }
+
+  /**
+   * Creates Order Tools Gateway Target for inventory check and backlog query.
+   *
+   * This adds a new Lambda target to the existing AgentCore Gateway with two tools:
+   * - check_inventory: Check stock levels for product codes
+   * - query_order_backlog: Query customer backlog information
+   *
+   * These tools are called by the order audit agent to validate order requests.
+   */
+  private createOrderToolsGatewayTarget(config: AppConfig): void {
+    // Create Order Tools Lambda
+    const orderToolsLambda = new lambda.Function(this, "OrderToolsLambda", {
+      runtime: lambda.Runtime.PYTHON_3_13,
+      handler: "order_tools_lambda.handler",
+      code: lambda.Code.fromAsset(path.join(__dirname, "../../gateway/tools/order_tools")),
+      timeout: cdk.Duration.seconds(30),
+      logGroup: new logs.LogGroup(this, "OrderToolsLambdaLogGroup", {
+        logGroupName: `/aws/lambda/${config.stack_name_base}-order-tools`,
+        retention: logs.RetentionDays.ONE_WEEK,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
+    })
+
+    // Grant Gateway role permission to invoke the Lambda
+    orderToolsLambda.grantInvoke(this.gatewayResources.gatewayRole)
+
+    // Load Order Tools specification from JSON file
+    const orderToolsSpecPath = path.join(__dirname, "../../gateway/tools/order_tools/tool_spec.json")
+    const orderToolsSpec = JSON.parse(fs.readFileSync(orderToolsSpecPath, "utf8"))
+
+    // Create Gateway Target for Order Tools
+    const orderToolsTarget = new bedrockagentcore.CfnGatewayTarget(this, "OrderToolsGatewayTarget", {
+      gatewayIdentifier: this.gatewayResources.gateway.attrGatewayIdentifier,
+      name: "order-tools-target",
+      description: "Order Tools Lambda target (inventory check, backlog query)",
+      targetConfiguration: {
+        mcp: {
+          lambda: {
+            lambdaArn: orderToolsLambda.functionArn,
+            toolSchema: {
+              inlinePayload: orderToolsSpec,
+            },
+          },
+        },
+      },
+      credentialProviderConfigurations: [
+        {
+          credentialProviderType: "GATEWAY_IAM_ROLE",
+        },
+      ],
+    })
+
+    // Ensure proper creation order
+    orderToolsTarget.addDependency(this.gatewayResources.gateway)
+
+    // Outputs
+    new cdk.CfnOutput(this, "OrderToolsLambdaArn", {
+      value: orderToolsLambda.functionArn,
+      description: "Order Tools Lambda ARN",
+    })
+
+    new cdk.CfnOutput(this, "OrderToolsTargetId", {
+      value: orderToolsTarget.ref,
+      description: "Order Tools Gateway Target ID",
+    })
   }
 }
