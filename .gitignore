@@ -32,3 +32,4 @@ frontend/public/aws-exports.json
 scripts/zip-artifact/
 public/
 .mkdocs/public/
+.claude/settings.local.json
