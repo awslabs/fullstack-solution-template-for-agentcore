@@ -1,0 +1,5 @@
+# Boto3 is included in the Python Lambda runtime, so it's unnecessary to include it here.
+#
+# For local development: pip install "aws-lambda-powertools[all]"
+# Lambda PowerTools is installed as a layer in the deployed Lambda.
+pydantic

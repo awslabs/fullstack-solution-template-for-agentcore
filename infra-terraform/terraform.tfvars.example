@@ -1,0 +1,81 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+# =============================================================================
+# Terraform Configuration Example
+# =============================================================================
+# Copy this file to terraform.tfvars and customize the values.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Required Variables
+# -----------------------------------------------------------------------------
+
+# Base name for all resources
+stack_name_base = "FAST-Demo-stack"
+
+# AWS region for deployment
+aws_region = "us-east-1"
+
+# -----------------------------------------------------------------------------
+# Optional: Admin User
+# -----------------------------------------------------------------------------
+# Set to automatically create an admin user and email credentials
+# If not provided (null), you'll need to manually create users via AWS Console
+
+admin_user_email = null  # Example: "admin@example.com"
+
+# -----------------------------------------------------------------------------
+# Backend Configuration
+# -----------------------------------------------------------------------------
+
+# Agent pattern to deploy
+# Available patterns: strands-single-agent, langgraph-single-agent
+backend_pattern = "strands-single-agent"
+
+# Name for the agent runtime
+agent_name = "StrandsAgent"
+
+# Network mode for AgentCore resources
+# PUBLIC: Uses public internet (default)
+# PRIVATE: Requires VPC configuration below
+network_mode = "PUBLIC"
+
+# -----------------------------------------------------------------------------
+# VPC Configuration (Required only if network_mode = "PRIVATE")
+# -----------------------------------------------------------------------------
+# Uncomment and configure if using PRIVATE network mode
+
+# vpc_id             = "vpc-xxxxxxxxxxxxxxxxx"
+# private_subnet_ids = ["subnet-xxxxxxxxxxxxxxxxx", "subnet-yyyyyyyyyyyyyyyyy"]
+# security_group_ids = ["sg-xxxxxxxxxxxxxxxxx"]
+
+# -----------------------------------------------------------------------------
+# Cognito Configuration
+# -----------------------------------------------------------------------------
+
+# OAuth callback URLs (localhost included for development)
+callback_urls = ["http://localhost:3000", "https://localhost:3000"]
+
+# Minimum password length for Cognito User Pool
+password_minimum_length = 8
+
+# -----------------------------------------------------------------------------
+# Memory Configuration
+# -----------------------------------------------------------------------------
+
+# Number of days after which memory events expire (7-365)
+memory_event_expiry_days = 30
+
+# -----------------------------------------------------------------------------
+# Environment and Tagging
+# -----------------------------------------------------------------------------
+
+# Environment name
+environment = "dev"
+
+# Additional tags to apply to all resources
+tags = {
+  # Team = "YourTeam"
+  # CostCenter = "12345"
+}
