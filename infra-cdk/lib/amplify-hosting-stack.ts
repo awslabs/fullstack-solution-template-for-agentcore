@@ -5,18 +5,17 @@ import * as iam from "aws-cdk-lib/aws-iam"
 import { Construct } from "constructs"
 import { AppConfig } from "./utils/config-manager"
 
-export interface AmplifyStackProps extends cdk.NestedStackProps {
+export interface AmplifyConstructProps {
   config: AppConfig
 }
 
-export class AmplifyHostingStack extends cdk.NestedStack {
+export class AmplifyHostingConstruct extends Construct {
   public readonly amplifyApp: amplify.App
   public readonly amplifyUrl: string
   public readonly stagingBucket: s3.Bucket
 
-  constructor(scope: Construct, id: string, props: AmplifyStackProps) {
-    const description = "Fullstack AgentCore Solution Template - Amplify Hosting Stack"
-    super(scope, id, { ...props, description })
+  constructor(scope: Construct, id: string, props: AmplifyConstructProps) {
+    super(scope, id)
 
     // Create access logs bucket for staging bucket
     const accessLogsBucket = new s3.Bucket(this, "StagingBucketAccessLogs", {
