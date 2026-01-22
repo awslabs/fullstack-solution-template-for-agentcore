@@ -327,7 +327,10 @@ export class BackendStack extends cdk.NestedStack {
           sid: "IDPAgentInvoke",
           effect: iam.Effect.ALLOW,
           actions: ["bedrock-agentcore:InvokeAgentRuntime"],
-          resources: [config.idp_agent.runtime_arn],
+          resources: [
+            config.idp_agent.runtime_arn,
+            `${config.idp_agent.runtime_arn}/*`,  // Runtime Endpoint も含める
+          ],
         })
       )
     }
