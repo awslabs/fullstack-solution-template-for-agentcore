@@ -7,3 +7,5 @@ admin_user_email: null # Example: admin@example.com
 backend:
   pattern: strands-single-agent # Available patterns: strands-single-agent, langgraph-single-agent
   deployment_type: docker # Available deployment types: docker (default), zip
+  agent_name: StrandsAgent
+  network_mode: PUBLIC # Available: PUBLIC, PRIVATE (PRIVATE requires VPC configuration)

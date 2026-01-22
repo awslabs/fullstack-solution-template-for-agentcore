@@ -93,8 +93,8 @@ export class BackendConstruct extends Construct {
 
   private createAgentCoreRuntime(config: AppConfig): void {
     const pattern = config.backend?.pattern || "strands-single-agent"
-    const agentName = "StrandsAgent"
-    const networkMode: string = "PUBLIC"
+    const agentName = config.backend.agent_name
+    const networkMode = config.backend.network_mode
 
     const stack = cdk.Stack.of(this)
     const deploymentType = config.backend.deployment_type
