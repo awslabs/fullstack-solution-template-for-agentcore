@@ -57,7 +57,11 @@ frontend:
   certificate_arn: null  # Optional: Set to your ACM certificate ARN
 
 backend:
-  pattern: "strands-single-agent"  # Available patterns: strands-single-agent
+  pattern: strands-single-agent  # Available: strands-single-agent, langgraph-single-agent
+  deployment_type: docker  # Available: docker, zip
+  agent_name: StrandsAgent
+  network_mode: PUBLIC  # Available: PUBLIC, PRIVATE
+  memory_expiration_days: 30  # How long AgentCore Memory retains conversation history
 ```
 
 ## Project Structure
@@ -67,9 +71,10 @@ infra-cdk/
 ├── bin/
 │   └── fast-cdk.ts          # CDK app entry point
 ├── lib/
-│   ├── fast-cdk-stack.ts    # Main orchestrator stack
-│   ├── backend-stack.ts     # Backend/AgentCore stack
-│   ├── frontend-stack.ts    # Frontend/CloudFront stack
+│   ├── fast-main-stack.ts   # Main orchestrator stack
+│   ├── backend-stack.ts     # BackendConstruct
+│   ├── cognito-stack.ts     # CognitoConstruct
+│   ├── amplify-hosting-stack.ts  # AmplifyHostingConstruct
 │   └── utils/               # Utility functions and constructs
 ├── test/
 │   └── fast-cdk.test.ts     # Unit tests
@@ -93,35 +98,29 @@ npm run watch
 
 ## Deployment Details
 
-The CDK deployment creates multiple stacks with a specific deployment order:
+The CDK deployment creates a single CloudFormation stack containing all resources, organized into logical Constructs.
 
-### Stack Architecture & Deployment Order
+### Architecture
 
-1. **Cognito Stack** (CognitoStack):
-   - Cognito User Pool for user authentication
-   - User Pool Client for frontend OAuth flows
+The main stack (`FASTStack`) composes three Constructs:
+
+1. **CognitoConstruct**: User authentication
+   - Cognito User Pool and Client
    - User Pool Domain for hosted UI
+   - Machine Client for service-to-service auth
 
-2. **Backend Stack** (BackendStack):
-   - **Machine Client & Resource Server**: OAuth2 client credentials for service-to-service auth
-   - **AgentCore Gateway**: API gateway for tool integration with Lambda targets
-   - **AgentCore Runtime**: Bedrock AgentCore runtime for agent execution
-   - **Supporting Resources**: IAM roles, DynamoDB tables, API Gateway for feedback
+2. **BackendConstruct**: AgentCore infrastructure
+   - AgentCore Gateway with Lambda tool targets
+   - AgentCore Runtime for agent execution
+   - AgentCore Memory for conversation history
+   - ECR repository and CodeBuild for container builds
+   - DynamoDB table for feedback
+   - API Gateway for feedback endpoints
 
-3. **Amplify Hosting Stack** (AmplifyHostingStack):
-   - Amplify app for frontend hosting
+3. **AmplifyHostingConstruct**: Frontend hosting
+   - Amplify app for React frontend
    - Branch configuration for deployments
    - Custom domain setup (if configured)
-
-### Component Dependencies
-
-Within the Backend Stack, components are created in this order:
-1. **Cognito Integration**: Import user pool from Cognito stack
-2. **Machine Client**: Create OAuth2 client for M2M authentication
-3. **Gateway**: Create AgentCore Gateway (depends on machine client)
-4. **Runtime**: Create AgentCore Runtime (independent of gateway)
-
-This order ensures authentication components are available before services that depend on them, while keeping the runtime deployment separate since it doesn't directly depend on the gateway.
 
 ### Docker Build Configuration
 
@@ -169,21 +168,13 @@ This approach scales to multiple agent patterns without code duplication while m
 
 ### Key Resources Created
 
-1. **Backend Stack**: 
-   - Cognito User Pool integration and machine client
-   - AgentCore Gateway with Lambda tool targets
-   - AgentCore Runtime for agent execution
-   - ECR repository for agent container images
-   - CodeBuild project for container builds
-   - DynamoDB table for application data
-   - API Gateway for feedback endpoints
-   - IAM roles and policies
-
-2. **Amplify Hosting Stack**:
-   - Amplify app for frontend deployment
-   - Automatic builds from Git branches
-   - Custom domain and SSL certificate integration
-   - Environment-specific deployments
+- **Authentication**: Cognito User Pool, Client, Domain, Machine Client
+- **AgentCore**: Gateway, Runtime, Memory
+- **Compute**: Lambda functions, ECR repository, CodeBuild project
+- **Storage**: DynamoDB tables
+- **Frontend**: Amplify app with custom domain support
+- **APIs**: API Gateway for feedback endpoints
+- **Security**: IAM roles and policies
 
 ## Troubleshooting
 
