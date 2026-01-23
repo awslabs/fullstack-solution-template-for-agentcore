@@ -9,3 +9,4 @@ backend:
   deployment_type: docker # Available deployment types: docker (default), zip
   agent_name: StrandsAgent
   network_mode: PUBLIC # Available: PUBLIC, PRIVATE (PRIVATE requires VPC configuration)
+  memory_expiration_days: 30 # How long AgentCore Memory retains conversation history

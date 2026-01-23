@@ -219,7 +219,7 @@ export class BackendConstruct extends Construct {
     // To enable long-term strategies (summaries, preferences, facts), see docs/MEMORY_INTEGRATION.md
     const memory = new agentcore.Memory(this, "AgentMemory", {
       memoryName: cdk.Names.uniqueResourceName(this, { maxLength: 48 }),
-      expirationDuration: cdk.Duration.days(30),
+      expirationDuration: cdk.Duration.days(config.backend.memory_expiration_days),
       description: `Short-term memory for ${config.stack_name_base} agent`,
       executionRole: agentRole,
     })

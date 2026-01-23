@@ -15,6 +15,7 @@ export interface AppConfig {
     deployment_type: DeploymentType
     agent_name: string
     network_mode: NetworkMode
+    memory_expiration_days: number
   }
 }
 
@@ -60,6 +61,7 @@ export class ConfigManager {
           deployment_type: deploymentType,
           agent_name: parsedConfig.backend?.agent_name || "StrandsAgent",
           network_mode: parsedConfig.backend?.network_mode || "PUBLIC",
+          memory_expiration_days: parsedConfig.backend?.memory_expiration_days || 30,
         },
       }
     } catch (error) {
