@@ -1,6 +1,6 @@
-"use client"
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
-import React from "react"
 import ChatInterface from "@/components/chat/ChatInterface"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/useAuth"

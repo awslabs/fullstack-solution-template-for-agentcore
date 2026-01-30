@@ -1,5 +1,3 @@
-"use client"
-
 import { FormEvent, KeyboardEvent, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"

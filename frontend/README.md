@@ -1,6 +1,6 @@
 # Frontend - Local Development Guide
 
-This is the React/Next.js frontend for the Fullstack AgentCore Solution Template (FAST). This README focuses on local development setup and workflows.
+This is the React + Vite frontend for the Fullstack AgentCore Solution Template (FAST). This README focuses on local development setup and workflows.
 
 For full stack deployment instructions, see the [top-level README](../README.md) and [deployment documentation](../docs/DEPLOYMENT.md).
 
@@ -45,7 +45,7 @@ By default, the app uses Cognito authentication. To test this locally:
 2. Set the redirect URI for local development:
 
 ```bash
-export NEXT_PUBLIC_COGNITO_REDIRECT_URI=http://localhost:3000
+export VITE_COGNITO_REDIRECT_URI=http://localhost:3000
 npm run dev
 ```
 
@@ -53,18 +53,18 @@ npm run dev
 
 For faster local development without needing to deploy Cognito, you can disable authentication:
 
-**⚠️ IMPORTANT: Remove the AuthProvider wrapper from `src/app/layout.tsx`**
+**⚠️ IMPORTANT: Remove the AuthProvider wrapper from `src/App.tsx`**
 
 Change this:
 
 ```tsx
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function App() {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>{children}</AuthProvider>
-      </body>
-    </html>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
 ```
@@ -72,11 +72,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 To this:
 
 ```tsx
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function App() {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
-    </html>
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   )
 }
 ```
@@ -139,22 +139,47 @@ Popular icons include Camera, Search, Menu, User, Settings, Download, Upload, an
 ```
 frontend/
 ├── src/
-│   ├── app/                 # Next.js app router
+│   ├── main.tsx            # Application entry point
+│   ├── App.tsx             # Root component with routing
+│   ├── routes/             # Route components
 │   ├── components/
 │   │   ├── ui/             # shadcn components
 │   │   └── auth/           # Authentication components
 │   ├── lib/                # Utilities and configurations
-│   └── services/           # API service layers
+│   ├── services/           # API service layers
+│   └── styles/             # Global styles
 ├── public/                 # Static assets
+├── index.html              # HTML entry point
 └── package.json
 ```
 
+## Environment Variables
+
+The application uses Vite environment variables with the `VITE_` prefix:
+
+- `VITE_COGNITO_USER_POOL_ID` - Cognito User Pool ID
+- `VITE_COGNITO_CLIENT_ID` - Cognito Client ID
+- `VITE_COGNITO_REGION` - AWS Region
+- `VITE_COGNITO_REDIRECT_URI` - Redirect URI after authentication
+- `VITE_COGNITO_POST_LOGOUT_REDIRECT_URI` - Redirect URI after logout
+
+These can be set in a `.env` file or as environment variables. The application will fall back to `aws-exports.json` if environment variables are not set.
+
+## Available Scripts
+
+- `npm run dev` - Start the Vite development server
+- `npm run build` - Build for production (runs TypeScript check + Vite build)
+- `npm run preview` - Preview the production build locally
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Run ESLint with auto-fix
+- `npm run clean` - Clean build artifacts and dependencies
+
 ## Development Tips
 
-- **Hot Reload**: Changes auto-reload in the browser
-- **TypeScript**: Full type safety with AI assistant support
-- **Tailwind CSS**: Utility-first styling
+- **Hot Reload**: Changes auto-reload in the browser with Vite's fast HMR
+- **TypeScript**: Full type safety with strict mode enabled
 - **Vibe Coding**: Optimized for AI-assisted development
+- **Tailwind CSS**: Utility-first styling with Tailwind CSS 4
 
 ## Building with AI Assistants
 

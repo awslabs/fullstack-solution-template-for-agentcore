@@ -25,7 +25,7 @@ This script automatically:
 
 - Generates fresh `aws-exports.json` from CDK stack outputs
 - Installs/updates npm dependencies if needed
-- Builds the Next.js frontend
+- Builds the frontend
 - Deploys to AWS Amplify Hosting
 
 ## Individual Scripts

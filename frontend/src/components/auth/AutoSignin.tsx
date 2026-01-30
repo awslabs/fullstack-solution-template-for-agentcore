@@ -1,5 +1,3 @@
-"use client"
-
 import { ReactNode, useEffect, useState, PropsWithChildren } from "react"
 import { useAuth } from "react-oidc-context"
 import { Button } from "@/components/ui/button"

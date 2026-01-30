@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { ThumbsUp, ThumbsDown } from "lucide-react"
 import { Message } from "./types"
@@ -11,7 +9,7 @@ interface ChatMessageProps {
   onFeedbackSubmit: (feedbackType: "positive" | "negative", comment: string) => Promise<void>
 }
 
-export function ChatMessage({ message, sessionId, onFeedbackSubmit }: ChatMessageProps) {
+export function ChatMessage({ message, sessionId: _sessionId, onFeedbackSubmit }: ChatMessageProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedFeedbackType, setSelectedFeedbackType] = useState<"positive" | "negative">(
     "positive"
