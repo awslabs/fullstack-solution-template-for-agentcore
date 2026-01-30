@@ -3,18 +3,18 @@ import * as cognito from "aws-cdk-lib/aws-cognito"
 import { Construct } from "constructs"
 import { AppConfig } from "./utils/config-manager"
 
-export interface CognitoStackProps extends cdk.NestedStackProps {
+export interface CognitoConstructProps {
   config: AppConfig
   callbackUrls?: string[]
 }
 
-export class CognitoStack extends cdk.NestedStack {
+export class CognitoConstruct extends Construct {
   public userPoolId: string
   public userPoolClientId: string
   public userPoolDomain: cognito.UserPoolDomain
 
-  constructor(scope: Construct, id: string, props: CognitoStackProps) {
-    super(scope, id, props)
+  constructor(scope: Construct, id: string, props: CognitoConstructProps) {
+    super(scope, id)
 
     this.createCognitoUserPool(props.config, props.callbackUrls)
   }
