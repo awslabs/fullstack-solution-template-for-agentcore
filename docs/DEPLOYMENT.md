@@ -123,7 +123,7 @@ This script automatically:
 
 - Generates fresh `aws-exports.json` from CDK stack outputs (see below for more information about `aws-exports.json`)
 - Installs/updates npm dependencies if needed
-- Builds the Next.js frontend
+- Builds the frontend
 - Deploys to AWS Amplify Hosting
 
 You will see the URL for application in the script's output, which will look similar to this:

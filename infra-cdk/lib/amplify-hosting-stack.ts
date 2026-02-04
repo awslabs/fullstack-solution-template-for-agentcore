@@ -84,7 +84,7 @@ export class AmplifyHostingStack extends cdk.NestedStack {
     // Create the Amplify app
     this.amplifyApp = new amplify.App(this, "AmplifyApp", {
       appName: `${props.config.stack_name_base}-frontend`,
-      description: `${props.config.stack_name_base} - React/Next.js Frontend`,
+      description: `${props.config.stack_name_base} - React Frontend`,
       platform: amplify.Platform.WEB,
     })
 

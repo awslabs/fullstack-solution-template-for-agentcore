@@ -7,7 +7,6 @@ exclude-paths:
   - "node_modules/"
   - ".git/"
   - ".ruff_cache/"
-  - "frontend/.next/"
   - "infra-cdk/cdk.out/"
   - "public/"
   - "*.pyc"

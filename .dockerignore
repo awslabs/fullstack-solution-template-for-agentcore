@@ -2,7 +2,6 @@
 node_modules/
 .git/
 frontend/node_modules/
-frontend/.next/
 frontend/dist/
 infra-cdk/node_modules/
 infra-cdk/cdk.out/

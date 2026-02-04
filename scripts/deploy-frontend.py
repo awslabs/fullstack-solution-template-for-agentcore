@@ -5,7 +5,7 @@
 """
 Cross-platform frontend deployment script for FAST.
 
-Deploys the Next.js frontend to AWS Amplify by:
+Deploys the React frontend to AWS Amplify by:
 1. Fetching configuration from CDK stack outputs
 2. Generating aws-exports.json
 3. Building the frontend
@@ -475,7 +475,7 @@ def main() -> int:
         log_success("Dependencies are up to date")
 
     # Build frontend
-    log_info("Building Next.js app...")
+    log_info("Building React app...")
     try:
         run_command(["npm", "run", "build"], capture_output=False)
         log_success("Build completed")

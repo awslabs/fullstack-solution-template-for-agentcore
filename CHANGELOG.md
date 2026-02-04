@@ -5,6 +5,34 @@ All notable changes to the Fullstack AgentCore Solution Template (FAST) will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-02-02
+
+### Added
+- Vite as build tool with optimized development server and production builds
+- React Router (react-router-dom v6) for client-side routing
+- Comprehensive test suite with unit tests and property-based tests using Vitest
+- New application entry points: `main.tsx`, `App.tsx`, and route components
+- Vite configuration with code splitting and optimized chunk strategy
+- TypeScript configuration optimized for Vite bundler
+- Environment variable type definitions for Vite (`vite-env.d.ts`)
+
+### Changed
+- Migrated frontend from Next.js 16 (App Router) to Vite + React + React Router stack
+- Replaced Next.js build system with Vite for faster builds and simpler configuration
+- Updated environment variable prefix from `NEXT_PUBLIC_*` to `VITE_*`
+- Migrated environment variable access from `process.env` to `import.meta.env`
+- Restructured application entry points from Next.js layout/page pattern to explicit React rendering
+- Moved global styles from `app/globals.css` to `src/styles/globals.css`
+- Updated npm scripts: `dev` now runs Vite, `build` runs TypeScript check + Vite build
+- Updated ESLint configuration to remove Next.js-specific rules
+- Updated frontend README with Vite-specific instructions and development workflow
+
+### Removed
+- Next.js framework and dependencies (`next`, `eslint-config-next`)
+- Next.js configuration file (`next.config.ts`)
+- Next.js App Router file structure (`app/layout.tsx`, `app/page.tsx`)
+- Next.js-specific build artifacts and references
+
 ## [0.3.0] - 2026-01-15
 
 ### Changed

@@ -60,7 +60,7 @@ The out-of-the-box architecture is shown above. Note that Amazon Cognito is used
 
 ### Tech Stack
 
-- **Frontend**: React with Next.js, TypeScript, Tailwind CSS, and shadcn components - infinitely flexible and ready for coding assistants
+- **Frontend**: React with TypeScript, Vite, Tailwind CSS, and shadcn components - infinitely flexible and ready for coding assistants
 - **Agent Providers**: Multiple agent providers supported (Strands, LangGraph, etc.) running within AgentCore Runtime
 - **Authentication**: AWS Cognito User Pool with OAuth support for easy swapping out Cognito
 - **Infrastructure**: CDK deployment with Amplify Hosting for frontend and AgentCore backend
@@ -69,9 +69,9 @@ The out-of-the-box architecture is shown above. Note that Amazon Cognito is used
 
 ```
 fullstack-agentcore-solution-template/
-├── frontend/                 # Next.js React frontend application
+├── frontend/                 # React frontend application
 │   ├── src/
-│   │   ├── app/            # Next.js app router pages
+│   │   ├── app/            # app router pages
 │   │   ├── components/     # React components (shadcn/ui)
 │   │   ├── hooks/          # Custom React hooks
 │   │   ├── lib/            # Utility libraries

@@ -7,13 +7,13 @@ import { WebStorageStateStore } from "oidc-client-ts"
 import { AutoSignin } from "./AutoSignin"
 
 interface CognitoAuthConfig {
-  authority: string
-  client_id: string | undefined
-  redirect_uri: string | undefined
-  post_logout_redirect_uri: string | undefined
-  response_type: string
-  scope: string
-  automaticSilentRenew: boolean
+  authority?: string
+  client_id?: string
+  redirect_uri?: string
+  post_logout_redirect_uri?: string
+  response_type?: string
+  scope?: string
+  automaticSilentRenew?: boolean
   userStore?: WebStorageStateStore
 }
 

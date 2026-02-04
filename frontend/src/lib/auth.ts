@@ -14,7 +14,7 @@ type AwsExportsConfig = {
 
 /**
  * Configuration Priority (highest to lowest):
- * 1. Environment variables (NEXT_PUBLIC_COGNITO_*)
+ * 1. Environment variables (VITE_COGNITO_*)
  * 2. aws-exports.json file
  * 3. Default values
  */
@@ -60,14 +60,14 @@ export async function createCognitoAuthConfig(): Promise<AwsExportsConfig> {
   }
 
   // Get environment variables
-  const userPoolId = process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID
-  const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID
-  const region = process.env.NEXT_PUBLIC_COGNITO_REGION
-  const redirectUri = process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI
-  const postLogoutRedirectUri = process.env.NEXT_PUBLIC_COGNITO_POST_LOGOUT_REDIRECT_URI
-  const responseType = process.env.NEXT_PUBLIC_COGNITO_RESPONSE_TYPE
-  const scope = process.env.NEXT_PUBLIC_COGNITO_SCOPE
-  const automaticSilentRenew = process.env.NEXT_PUBLIC_COGNITO_AUTOMATIC_SILENT_RENEW
+  const userPoolId = import.meta.env.VITE_COGNITO_USER_POOL_ID
+  const clientId = import.meta.env.VITE_COGNITO_CLIENT_ID
+  const region = import.meta.env.VITE_COGNITO_REGION
+  const redirectUri = import.meta.env.VITE_COGNITO_REDIRECT_URI
+  const postLogoutRedirectUri = import.meta.env.VITE_COGNITO_POST_LOGOUT_REDIRECT_URI
+  const responseType = import.meta.env.VITE_COGNITO_RESPONSE_TYPE
+  const scope = import.meta.env.VITE_COGNITO_SCOPE
+  const automaticSilentRenew = import.meta.env.VITE_COGNITO_AUTOMATIC_SILENT_RENEW
 
   // Build authority from environment variables if region and userPoolId are provided
   const envAuthority =
@@ -96,10 +96,10 @@ export async function createCognitoAuthConfig(): Promise<AwsExportsConfig> {
 
 // Synchronous version for backwards compatibility (uses env vars as fallback)
 export const cognitoAuthConfig = {
-  authority: `https://cognito-idp.${process.env.NEXT_PUBLIC_COGNITO_REGION}.amazonaws.com/${process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID}`,
-  client_id: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID,
-  redirect_uri: process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI,
-  post_logout_redirect_uri: process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI,
+  authority: `https://cognito-idp.${import.meta.env.VITE_COGNITO_REGION}.amazonaws.com/${import.meta.env.VITE_COGNITO_USER_POOL_ID}`,
+  client_id: import.meta.env.VITE_COGNITO_CLIENT_ID,
+  redirect_uri: import.meta.env.VITE_COGNITO_REDIRECT_URI,
+  post_logout_redirect_uri: import.meta.env.VITE_COGNITO_REDIRECT_URI,
   response_type: "code",
   scope: "email openid profile",
   automaticSilentRenew: true,
