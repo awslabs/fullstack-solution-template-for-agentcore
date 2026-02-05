@@ -140,6 +140,49 @@ uv run scripts/test-agent.py --local --pattern strands-single-agent
 
 ---
 
+### test-agent-docker.py
+
+Test the agent by building and running the actual Docker image locally. This validates the production artifact before deployment.
+
+**Usage:**
+
+```bash
+# Build and run (uses pattern from config.yaml)
+python scripts/test-agent-docker.py
+
+# Build only (verify Dockerfile)
+python scripts/test-agent-docker.py --build-only
+
+# Skip build, use existing image
+python scripts/test-agent-docker.py --skip-build
+
+# Test specific pattern
+python scripts/test-agent-docker.py --pattern langgraph-single-agent
+```
+
+**What it tests:**
+
+- Dockerfile builds correctly
+- Dependencies install properly in container
+- Container starts and responds to health checks
+- Agent works in containerized environment (same as production)
+
+**Prerequisites:**
+
+- Docker installed and running
+- Deployed stack (for Memory ID, Gateway, SSM parameters)
+- AWS credentials in environment
+
+**Note:** On x86/amd64 machines, you may need to enable ARM64 emulation:
+
+```bash
+docker run --privileged --rm tonistiigi/binfmt --install all
+```
+
+See [Local Docker Testing Guide](../docs/LOCAL_DOCKER_TESTING.md) for detailed documentation.
+
+---
+
 ### test-memory.py
 
 Tests AgentCore Memory operations (create, list, get events and pagination).
