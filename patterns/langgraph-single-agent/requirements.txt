@@ -5,3 +5,4 @@ langchain-mcp-adapters==0.1.13
 langgraph-checkpoint-aws==1.0.1
 mcp==1.23.1
 bedrock-agentcore==1.0.6
+PyJWT[crypto]>=2.10.1

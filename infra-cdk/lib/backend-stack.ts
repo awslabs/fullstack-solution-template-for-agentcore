@@ -302,6 +302,9 @@ export class BackendStack extends cdk.NestedStack {
     }
 
     // Create the runtime using L2 construct
+    // requestHeaderConfiguration allows the agent to read the Authorization header
+    // from RequestContext.request_headers, which is needed to securely extract the
+    // user ID from the validated JWT token (sub claim) instead of trusting the payload body.
     this.agentRuntime = new agentcore.Runtime(this, "Runtime", {
       runtimeName: `${config.stack_name_base.replace(/-/g, "_")}_${this.agentName.valueAsString}`,
       agentRuntimeArtifact: agentRuntimeArtifact,
@@ -310,6 +313,9 @@ export class BackendStack extends cdk.NestedStack {
       protocolConfiguration: agentcore.ProtocolType.HTTP,
       environmentVariables: envVars,
       authorizerConfiguration: authorizerConfiguration,
+      requestHeaderConfiguration: {
+        allowlistedHeaders: ["Authorization"],
+      },
       description: `${pattern} agent runtime for ${config.stack_name_base}`,
     })
 

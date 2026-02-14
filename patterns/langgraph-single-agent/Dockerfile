@@ -8,7 +8,9 @@ WORKDIR /app
 # Configure UV for container environment
 ENV UV_SYSTEM_PYTHON=1 \
     UV_COMPILE_BYTECODE=1 \
-    DOCKER_CONTAINER=1
+    DOCKER_CONTAINER=1 \
+    OTEL_PYTHON_LOG_CORRELATION=true \
+    PYTHONUNBUFFERED=1
 
 # Copy pyproject.toml and gateway package for FAST installation
 COPY pyproject.toml .
@@ -31,6 +33,7 @@ EXPOSE 8080
 
 # Copy only the agent code
 COPY patterns/langgraph-single-agent/langgraph_agent.py .
+COPY patterns/utils/ utils/
 
 # Healthcheck using Python (no extra dependencies needed)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

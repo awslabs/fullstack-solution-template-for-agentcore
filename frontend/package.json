@@ -18,6 +18,7 @@
     "@radix-ui/react-progress": "^1.1.7",
     "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-slot": "^1.2.4",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "aws-amplify": "^6.16.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -26,9 +27,12 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-dropzone": "^14.3.8",
+    "react-markdown": "^10.1.0",
     "react-oidc-context": "^3.3.0",
     "react-router-dom": "^6.21.0",
     "react-spinners": "^0.17.0",
+    "react-syntax-highlighter": "^16.1.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.2.0"
   },
   "devDependencies": {
@@ -52,6 +56,6 @@
     "tw-animate-css": "^1.2.9",
     "typescript": "^5",
     "vite": "^7.3.1",
-    "vitest": "^1.0.4"
+    "vitest": "^4.0.18"
   }
 }

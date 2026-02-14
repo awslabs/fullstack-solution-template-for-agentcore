@@ -198,7 +198,6 @@ def invoke_agent(
     url: str,
     prompt: str,
     session_id: str,
-    user_id: str,
     headers: Optional[Dict[str, str]] = None
 ) -> None:
     """
@@ -208,13 +207,11 @@ def invoke_agent(
         url (str): Agent endpoint URL
         prompt (str): User prompt/query
         session_id (str): Session ID for conversation continuity
-        user_id (str): User ID
         headers (Optional[Dict[str, str]]): Optional HTTP headers
     """
     payload = {
         "prompt": prompt,
         "runtimeSessionId": session_id,
-        "userId": user_id,
     }
     
     if headers is None:
@@ -275,7 +272,6 @@ def run_chat(local_mode: bool, config: Dict[str, str]) -> None:
                     url="http://localhost:8080/invocations",
                     prompt=prompt,
                     session_id=session_id,
-                    user_id="local-test-user"
                 )
             else:
                 # Remote mode
@@ -293,8 +289,7 @@ def run_chat(local_mode: bool, config: Dict[str, str]) -> None:
                     url=url,
                     prompt=prompt,
                     session_id=session_id,
-                    user_id=config["user_id"],
-                    headers=headers
+                    headers=headers,
                 )
             
             elapsed = time.time() - start_time
@@ -427,7 +422,6 @@ def main():
         
         # Use access token for AgentCore runtime (JWT authorizer)
         config["access_token"] = access_token
-        config["user_id"] = user_id
         config["runtime_arn"] = runtime_arn
         config["region"] = region
         

@@ -75,6 +75,7 @@ fullstack-agentcore-solution-template/
 │   │   ├── components/     # React components (shadcn/ui)
 │   │   ├── hooks/          # Custom React hooks
 │   │   ├── lib/            # Utility libraries
+│   │   │   └── agentcore-client/ # AgentCore streaming client
 │   │   ├── services/       # API service layers
 │   │   └── types/          # TypeScript type definitions
 │   ├── public/             # Static assets and aws-exports.json

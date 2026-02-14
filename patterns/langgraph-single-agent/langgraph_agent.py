@@ -6,33 +6,16 @@ from langchain_aws import ChatBedrock
 from langchain_mcp_adapters.client import MultiServerMCPClient
 import os
 import boto3
-from bedrock_agentcore.runtime import BedrockAgentCoreApp
+from bedrock_agentcore.runtime import BedrockAgentCoreApp, RequestContext
 import traceback
 
 # Use official LangGraph AWS integration for memory
 from langgraph_checkpoint_aws import AgentCoreMemorySaver
 
-from gateway.utils.gateway_access_token import get_gateway_access_token
+from utils.auth import extract_user_id_from_context, get_gateway_access_token
+from utils.ssm import get_ssm_parameter
 
 app = BedrockAgentCoreApp()
-
-
-def get_ssm_parameter(parameter_name: str) -> str:
-    """
-    Fetch parameter from SSM Parameter Store.
-    
-    SSM Parameter Store is AWS's service for storing configuration values securely.
-    This function retrieves values like Gateway URLs that are set during deployment.
-    """
-    region = os.environ.get('AWS_REGION', os.environ.get('AWS_DEFAULT_REGION', 'us-east-1'))
-    ssm = boto3.client('ssm', region_name=region)
-    try:
-        response = ssm.get_parameter(Name=parameter_name)
-        return response['Parameter']['Value']
-    except ssm.exceptions.ParameterNotFound:
-        raise ValueError(f"SSM parameter not found: {parameter_name}")
-    except Exception as e:
-        raise ValueError(f"Failed to retrieve SSM parameter {parameter_name}: {e}")
 
 
 async def create_gateway_mcp_client(access_token: str) -> MultiServerMCPClient:
@@ -122,27 +105,32 @@ async def create_langgraph_agent(user_id: str, session_id: str, tools: list):
 
 
 @app.entrypoint
-async def agent_stream(payload):
+async def agent_stream(payload, context: RequestContext):
     """
     Main entrypoint for the LangGraph agent using streaming with Gateway integration.
     
     This is the function that AgentCore Runtime calls when the agent receives a request.
-    It extracts the user's query from the payload, creates a LangGraph agent with Gateway
+    It extracts the user's query from the payload, securely obtains the user ID from
+    the validated JWT token in the request context, creates a LangGraph agent with Gateway
     tools and memory, and streams the response back. This function handles the complete
-    request lifecycle with token-level streaming.
+    request lifecycle with token-level streaming. The user ID is extracted from the 
+    JWT token (via RequestContext).
     """
     user_query = payload.get("prompt")
-    user_id = payload.get("userId")
     session_id = payload.get("runtimeSessionId")
     
-    if not all([user_query, user_id, session_id]):
+    if not all([user_query, session_id]):
         yield {
             "status": "error",
-            "error": "Missing required fields: prompt, userId, or runtimeSessionId"
+            "error": "Missing required fields: prompt or runtimeSessionId"
         }
         return
     
     try:
+        # Extract user ID securely from the validated JWT token
+        # instead of trusting the payload body (which could be manipulated)
+        user_id = extract_user_id_from_context(context)
+
         print(f"[STREAM] Starting streaming invocation for user: {user_id}, session: {session_id}")
         print(f"[STREAM] Query: {user_query}")
         
@@ -179,7 +167,7 @@ async def agent_stream(payload):
         ):
             # event is a tuple: (message_chunk, metadata)
             message_chunk, metadata = event
-            yield message_chunk
+            yield message_chunk.model_dump()
         
         print("[STREAM] Streaming completed successfully")
             

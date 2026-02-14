@@ -7,12 +7,14 @@ Your agent sends streaming events in SSE format. This guide explains how to inte
 ## Integration Steps
 
 1. **Your agent sends streaming events** (SSE format)
-2. **Update the appropriate parser file** to handle your agent's events:
-   - For **Strands agents**: Modify `frontend/src/services/strandsParser.js`
-   - For **LangGraph agents**: Modify `frontend/src/services/langgraphParser.js`
-   - For **other agent frameworks**: Create a new parser file and import it in `agentCoreService.js`
-3. **Update `ChatInterface.tsx`** (optional) to display additional info like tool usage
-4. **UI displays the parsed text** in real-time
+2. **The `agentcore-client` library** reads the SSE stream and routes it to the appropriate parser:
+   - For **Strands agents (default)**: `frontend/src/lib/agentcore-client/parsers/strands.ts` — parses Strands schema events
+   - For **LangGraph agents**: `frontend/src/lib/agentcore-client/parsers/langgraph.ts`
+   - For **Bedrock Converse (generic)**: `frontend/src/lib/agentcore-client/parsers/converse.ts` — parses raw Bedrock Converse stream events
+   - For **other agent frameworks**: Create a new parser and register it in `frontend/src/lib/agentcore-client/client.ts`
+3. **Parsers emit typed `StreamEvent`s** (text, tool_use_start, tool_use_delta, tool_result, message, result, lifecycle)
+4. **`ChatInterface.tsx`** handles events and builds message segments (interleaved text + tool calls)
+5. **`ChatMessage.tsx`** renders segments inline with markdown formatting and tool call components
 
 ---
 
@@ -22,187 +24,178 @@ Your agent sends streaming events in SSE format. This guide explains how to inte
 
 **File:** `patterns/strands-single-agent/basic_agent.py`
 
-The backend yields all raw Strands streaming events without filtering:
+The backend yields all raw Strands streaming events, serialized to JSON-safe dicts:
 
 ```python
 async for event in agent.stream_async(user_query):
-    yield event
+    yield json.loads(json.dumps(dict(event), default=str))
 ```
+
+**Note:** Strands events can contain non-JSON-serializable Python objects (agent instances, UUIDs, `ModelStopReason` tuples, etc.). The `json.dumps(default=str)` call converts these to strings, ensuring all events are safe to send over SSE.
 
 ### Frontend: Event Parser
 
-**File:** `frontend/src/services/agentCoreService.js`
+**File:** `frontend/src/lib/agentcore-client/parsers/strands.ts`
 
-The parser extracts text from nested Bedrock Converse events in the `event` key:
+The default parser for `strands-single-agent` handles Strands schema events:
 
-```javascript
-const parseStreamingChunk = (line, currentCompletion, updateCallback) => {
-  if (!line?.trim() || !line.startsWith('data: ')) {
-    return currentCompletion;
+```typescript
+export const parseStrandsChunk: ChunkParser = (line, callback) => {
+  if (!line.startsWith("data: ")) return;
+  const json = JSON.parse(line.substring(6).trim());
+
+  // Text token: {"data": "Hello"}
+  if (typeof json.data === "string") {
+    callback({ type: "text", content: json.data });
   }
 
-  const data = line.substring(6).trim();
-  if (!data) return currentCompletion;
+  // Tool use: {"current_tool_use": {...}, "delta": {"toolUse": {"input": "..."}}}
+  if (json.current_tool_use) {
+    // First delta (empty input) → tool_use_start
+    // Subsequent deltas → tool_use_delta
+  }
 
-  try {
-    const json = JSON.parse(data);
+  // Tool result: {"message": {"role": "user", "content": [{"toolResult": {...}}]}}
+  if (json.message?.role === "user") {
+    // Extract toolResult blocks → callback({ type: "tool_result", ... })
+  }
 
-    // Extract streaming text from contentBlockDelta event
-    if (json.event?.contentBlockDelta?.delta?.text) {
-      const newCompletion = currentCompletion + json.event.contentBlockDelta.delta.text;
-      updateCallback(newCompletion);
-      return newCompletion;
+  // Completion: {"result": {"stop_reason": "end_turn"}}
+  if (json.result) {
+    callback({ type: "result", stopReason: "end_turn" });
+  }
+
+  // Lifecycle: {"init_event_loop": true}
+  if (json.init_event_loop || json.start_event_loop) { ... }
+};
+```
+
+See the full implementation in the source file for edge cases.
+
+### Event Structure
+
+Strands provides these event types:
+
+- `data`: Text chunks (accumulate as they arrive)
+- `current_tool_use`: Tool name, ID, and input parameters (with `delta` for streaming)
+- `message`: Final structured message with full content (assistant with `toolUse`, user with `toolResult`)
+- `result`: AgentResult with stop reason and metrics
+- `init_event_loop`, `start_event_loop`, `complete`: Lifecycle markers
+- `tool_stream_event`: Events streamed from tool execution
+- `event`: Raw Bedrock Converse events (used by the alternative converse parser below)
+
+```javascript
+// Text streaming
+data: {"data": "Hello"}
+data: {"data": " there"}
+
+// Tool use start — first delta has empty input
+data: {"current_tool_use": {"toolUseId": "tool_abc123", "name": "text_analysis"}, "delta": {"toolUse": {"input": ""}}}
+
+// Tool input streaming
+data: {"current_tool_use": {"toolUseId": "tool_abc123", "name": "text_analysis"}, "delta": {"toolUse": {"input": "{\"text\": \"hello\"}"}}}
+
+// Complete assistant message
+data: {"message": {"role": "assistant", "content": [{"toolUse": {"toolUseId": "tool_abc123", "name": "text_analysis", "input": {"text": "hello"}}}]}}
+
+// Tool result (user message with toolResult blocks)
+data: {"message": {"role": "user", "content": [{"toolResult": {"toolUseId": "tool_abc123", "content": [{"text": "Analysis complete: 1 word"}]}}]}}
+
+// Final result
+data: {"result": {"stop_reason": "end_turn"}}
+
+// Lifecycle events
+data: {"init_event_loop": true}
+data: {"start_event_loop": true}
+```
+
+**Reference:** [Strands Streaming Documentation](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/streaming/overview/)
+
+---
+
+## Alternative: Using Raw Converse Events
+
+Instead of parsing Strands schema events, you can parse the raw Bedrock Converse events nested under the `event` key. This gives you lower-level access to the Converse stream API structures.
+
+**Note:** Tool results are not emitted as Converse stream events — they are an input to the next `converse_stream` call. Strands handles this internally and emits tool results as `message` events. The converse parser does not handle tool results; instead, `ChatInterface.tsx` marks tools as complete when the next text segment starts streaming.
+
+### Frontend Parser
+
+**File:** `frontend/src/lib/agentcore-client/parsers/converse.ts`
+
+To use this parser instead of the default strands parser, update `client.ts`:
+
+```typescript
+import { parseConverseChunk } from "./parsers/converse";
+
+const PARSERS: Record<AgentPattern, ChunkParser> = {
+  "strands-single-agent": parseConverseChunk,  // Switch to Converse parser
+  ...
+};
+```
+
+The parser handles raw Bedrock Converse events:
+
+```typescript
+export const parseConverseChunk: ChunkParser = (line, callback) => {
+  if (!line.startsWith("data: ")) return;
+  const json = JSON.parse(line.substring(6).trim());
+
+  const event = json.event;
+  if (event) {
+    // Text streaming
+    if (event.contentBlockDelta?.delta?.text) {
+      callback({ type: "text", content: event.contentBlockDelta.delta.text });
     }
 
-    return currentCompletion;
-  } catch (error) {
-    console.debug('Failed to parse streaming event:', data);
-    return currentCompletion;
+    // Tool use start
+    if (event.contentBlockStart?.start?.toolUse) {
+      const toolUse = event.contentBlockStart.start.toolUse;
+      callback({ type: "tool_use_start", toolUseId: toolUse.toolUseId, name: toolUse.name });
+    }
+
+    // Tool use input streaming
+    if (event.contentBlockDelta?.delta?.toolUse?.input) {
+      callback({ type: "tool_use_delta", toolUseId: currentToolUseId, input: ... });
+    }
+
+    // Message stop
+    if (event.messageStop?.stopReason) {
+      callback({ type: "result", stopReason: event.messageStop.stopReason });
+    }
   }
 };
 ```
 
+See the full implementation in the source file for edge cases.
+
 ### Event Structure
 
-Strands emits raw Bedrock Converse events nested in the `event` key:
+Converse events are nested under the `event` key:
 
 ```javascript
 // Message lifecycle
-data: {"event": {"messageStart": {"role": "assistant"}}}  // Handled: adds newline for separation
+data: {"event": {"messageStart": {"role": "assistant"}}}
 
 // Text streaming
-data: {"event": {"contentBlockDelta": {"delta": {"text": "Hello"}}}}
-data: {"event": {"contentBlockDelta": {"delta": {"text": " there"}}}}
+data: {"event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "Hello"}}}}
+data: {"event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " there"}}}}
 
-// Message completion
+// Tool use start
+data: {"event": {"contentBlockStart": {"contentBlockIndex": 1, "start": {"toolUse": {"toolUseId": "tool_abc123", "name": "text_analysis"}}}}}
+
+// Tool use input streaming
+data: {"event": {"contentBlockDelta": {"contentBlockIndex": 1, "delta": {"toolUse": {"input": "{\"text\": \"hello\"}"}}}}}
+
+// Content block and message completion
 data: {"event": {"contentBlockStop": {"contentBlockIndex": 0}}}
-data: {"event": {"messageStop": {"stopReason": "end_turn"}}}  // or "tool_use"
+data: {"event": {"messageStop": {"stopReason": "end_turn"}}}
 
 // Metadata
 data: {"event": {"metadata": {"usage": {"inputTokens": 88, "outputTokens": 30}}}}
 ```
 
-**Current parser handles:**
-- `messageStart`: Adds double newline (`\n\n`) when there's previous content for visual separation
-- `contentBlockDelta.delta.text`: Accumulates text chunks for display
-
 **Reference:** [Bedrock Converse Stream API](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/bedrock-runtime/client/converse_stream.html)
-
----
-
-## Enhanced Approach: Using Strands Schema Events
-
-Strands provides these event types:
-
-- `init_event_loop`, `start_event_loop`, `complete`: Lifecycle markers
-- `data`: Text chunks (accumulate as they arrive)
-- `message`: Final structured message with full content
-- `result`: AgentResult with stop reason and metrics
-- `current_tool_use`: Tool name, ID, and input parameters
-- `tool_stream_event`: Events streamed from tool execution
-- `event`: Raw Bedrock Converse events (current implementation uses this)
-
-**Note:** Some events contain non-JSON-serializable Python objects (agent instances, UUIDs, etc.) and require filtering before yielding.
-
-**Reference:** [Strands Streaming Documentation](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/streaming/overview/)
-
-### Customizing: Pick Events to Stream
-
-You control which events get sent (backend) and how they're displayed (frontend).
-
-#### Step 1: Backend - Filter Events
-
-**File:** `patterns/strands-single-agent/basic_agent.py`
-
-Replace the event loop to filter specific events:
-
-```python
-async for event in agent.stream_async(user_query):
-    # Send text chunks for display
-    if 'data' in event and isinstance(event.get('data'), str):
-        yield {'data': event['data']}
-
-    # Send tool usage info
-    if 'current_tool_use' in event and event['current_tool_use'].get('name'):
-        yield {'tool': event['current_tool_use']['name']}
-    
-    # Send metadata (token usage) from raw Converse events
-    if 'event' in event and event['event'].get('metadata'):
-        yield {'metadata': event['event']['metadata']}
-```
-
-#### Step 2: Frontend Service - Parse Events
-
-**File:** `frontend/src/services/agentCoreService.js`
-
-Update the parser to handle filtered events. Add optional callbacks for tool and metadata events:
-
-```javascript
-const parseStreamingChunk = (line, currentCompletion, updateCallback, onToolUpdate, onMetadataUpdate) => {
-  const json = JSON.parse(data);
-
-  // Accumulate text chunks
-  if (json.data && typeof json.data === 'string') {
-    const newCompletion = currentCompletion + json.data;
-    updateCallback(newCompletion);
-    return newCompletion;
-  }
-
-  // Tool usage - could pass to callback for UI display
-  if (json.tool) {
-    console.log(`[Tool] Using: ${json.tool}`);
-    // Optional: callback to update UI
-    // onToolUpdate?.(json.tool);
-  }
-
-  // Token usage - could pass to callback for UI display
-  if (json.metadata?.usage) {
-    console.log(`[Usage] ${json.metadata.usage.totalTokens} tokens`);
-    // Optional: callback to update UI
-    // onMetadataUpdate?.(json.metadata.usage);
-  }
-
-return currentCompletion;
-```
-
-#### Step 3 (Optional): UI Component - Display Status
-
-**File:** `frontend/src/components/chat/ChatInterface.tsx`
-
-Add state and pass callbacks to display tool usage and token counts:
-
-```javascript
-const [toolStatus, setToolStatus] = useState('');
-const [tokenUsage, setTokenUsage] = useState(null);
-
-// Get auth tokens
-const auth = useAuth()
-const accessToken = auth.user?.access_token
-const userId = auth.user?.profile?.sub
-
-// In invokeAgentCore call, pass auth tokens and additional callbacks
-const response = await invokeAgentCore(
-  message,
-  sessionId,
-  (text) => {
-    setMessages(prev => [...prev.slice(0, -1), 
-      { role: 'assistant', content: text }
-    ]);
-  },
-  accessToken,
-  userId,
-  // Optional tool callback
-  (tool) => setToolStatus(`Using tool: ${tool}`),
-  // Optional metadata callback
-  (metadata) => setTokenUsage(metadata)
-);
-
-// Display in JSX
-{toolStatus && <Box>{toolStatus}</Box>}
-{tokenUsage && <Box>Tokens: {tokenUsage.totalTokens}</Box>}
-```
-
-**Note:** You'll need to update `agentCoreService.js` to accept and call these additional callbacks.
 
 ---
 
@@ -222,7 +215,7 @@ async for event in graph.astream(
     stream_mode="messages"
 ):
     message_chunk, metadata = event
-    yield message_chunk  # Yields AIMessageChunk, ToolMessage, etc.
+    yield message_chunk.model_dump()  # Serialize to JSON-safe dict
 ```
 
 ### Event Structure
@@ -234,63 +227,68 @@ LangGraph emits LangChain message objects that serialize to JSON with content as
 data: {"content": [{"type": "text", "text": "Hello", "index": 0}], "type": "AIMessageChunk", ...}
 data: {"content": [{"type": "text", "text": " there", "index": 0}], "type": "AIMessageChunk", ...}
 
-// Tool call
-data: {"content": "", "type": "AIMessageChunk", "tool_calls": [{"name": "tool_name", "args": {...}}], ...}
+// Tool use start — content block has id and name
+data: {"content": [{"type": "tool_use", "id": "tool_abc123", "name": "text_analysis", "input": {}, "index": 1}], "type": "AIMessageChunk", ...}
 
-// Tool response
-data: {"content": "Tool result", "type": "ToolMessage", "tool_call_id": "call_123", ...}
+// Tool input streaming — partial_json carries incremental input
+data: {"content": [{"type": "tool_use", "partial_json": "{\"text\":", "index": 1}], "type": "AIMessageChunk", ...}
+data: {"content": [{"type": "tool_use", "partial_json": " \"hello\"}", "index": 1}], "type": "AIMessageChunk", ...}
+
+// Tool response (ToolMessage — separate message type)
+data: {"content": "Tool result text", "type": "tool", "name": "text_analysis", "tool_call_id": "tool_abc123", ...}
+
+// Stop reason
+data: {"content": [], "type": "AIMessageChunk", "response_metadata": {"stop_reason": "end_turn"}, ...}
 
 // Final chunk with usage metadata
-data: {"content": "", "type": "AIMessageChunk", "chunk_position": "last", "usage_metadata": {...}}
+data: {"content": [], "type": "AIMessageChunk", "chunk_position": "last", "usage_metadata": {"input_tokens": 88, "output_tokens": 30}}
 ```
+
+**Current parser handles:**
+- `AIMessageChunk` with `content[].type === "text"`: Text tokens for display
+- `AIMessageChunk` with `content[].type === "tool_use"` + `id` + `name`: Tool call start
+- `AIMessageChunk` with `content[].type === "tool_use"` + `partial_json`: Streaming tool input
+- `type === "tool"` (ToolMessage): Tool execution result
+- `response_metadata.stop_reason`: Stream completion
+
+**Key difference from Strands:** LangGraph's `content` is always an array of typed blocks (text, tool_use), not a flat string. Tool results come as separate `ToolMessage` objects, not nested in user messages.
 
 ### Frontend Parser
 
-**File:** `frontend/src/services/agentCoreService.js`
+**File:** `frontend/src/lib/agentcore-client/parsers/langgraph.ts`
 
-The parser handles LangGraph's content array format and filters by message type:
+Same pattern — parses SSE lines and emits typed events. LangGraph uses LangChain message types:
 
-```javascript
-const parseStreamingChunk = (line, currentCompletion, updateCallback) => {
-  const data = line.substring(6).trim();
-  if (!data) return currentCompletion;
-  
-  try {
-    const json = JSON.parse(data);
-    
-    // Handle LangGraph AIMessageChunk format (content is array)
-    // Only process AIMessageChunk - filter out ToolMessage and other internal messages
-    if (json.type === 'AIMessageChunk' && Array.isArray(json.content)) {
-      // Handle empty content array (message start)
-      if (json.content.length === 0) {
-        if (currentCompletion) {
-          const newCompletion = currentCompletion + '\n\n';
-          updateCallback(newCompletion);
-          return newCompletion;
-        }
-        return currentCompletion;
+```typescript
+export const parseLanggraphChunk: ChunkParser = (line, callback) => {
+  if (!line.startsWith("data: ")) return;
+  const json = JSON.parse(line.substring(6).trim());
+
+  // Tool result: {"type": "tool", "tool_call_id": "...", "content": "result"}
+  if (json.type === "tool") {
+    callback({ type: "tool_result", toolUseId: json.tool_call_id, result: json.content });
+  }
+
+  // AIMessageChunk — content is an array of blocks
+  if (json.type === "AIMessageChunk" && Array.isArray(json.content)) {
+    for (const block of json.content) {
+      if (block.type === "text" && block.text) {
+        callback({ type: "text", content: block.text });
       }
-      
-      // Extract text from content blocks
-      const textContent = json.content
-        .filter(block => block.type === 'text' && block.text)
-        .map(block => block.text)
-        .join('');
-      
-      if (textContent) {
-        const newCompletion = currentCompletion + textContent;
-        updateCallback(newCompletion);
-        return newCompletion;
+      if (block.type === "tool_use" && block.id && block.name) {
+        callback({ type: "tool_use_start", toolUseId: block.id, name: block.name });
       }
     }
-    
-    return currentCompletion;
-  } catch (error) {
-    console.debug('Failed to parse streaming event:', data);
-    return currentCompletion;
+
+    // Stop reason from response metadata
+    if (json.response_metadata?.stop_reason) {
+      callback({ type: "result", stopReason: json.response_metadata.stop_reason });
+    }
   }
 };
 ```
+
+See the full implementation for tool input delta streaming and edge cases.
 
 **Key Points:**
 - Filter by `type === 'AIMessageChunk'` to only process assistant responses
@@ -306,6 +304,16 @@ LangChain uses content blocks to support multimodal messages (text, images, tool
 **References:**
 - [LangGraph Streaming](https://docs.langchain.com/oss/python/langgraph/streaming)
 - [LangChain Streaming](https://docs.langchain.com/oss/python/langchain/streaming)
+
+---
+
+## Adding a New Agent Pattern
+
+1. Create `patterns/my-pattern/` with your agent code
+2. Create a parser: `frontend/src/lib/agentcore-client/parsers/my-pattern.ts`
+   - Export a `ChunkParser` function that converts SSE lines into `StreamEvent`s via `callback()`
+3. Register it in `frontend/src/lib/agentcore-client/client.ts` (add to the parser map in the constructor)
+4. Set `pattern: my-pattern` in `infra-cdk/config.yaml`
 
 ---
 

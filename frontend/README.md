@@ -144,8 +144,11 @@ frontend/
 │   ├── routes/             # Route components
 │   ├── components/
 │   │   ├── ui/             # shadcn components
+│   │   ├── chat/           # Chat UI
 │   │   └── auth/           # Authentication components
+│   ├── hooks/              # Custom hooks (useToolRenderer)
 │   ├── lib/                # Utilities and configurations
+│   │   └── agentcore-client/ # AgentCore streaming client, parsers, types
 │   ├── services/           # API service layers
 │   └── styles/             # Global styles
 ├── public/                 # Static assets

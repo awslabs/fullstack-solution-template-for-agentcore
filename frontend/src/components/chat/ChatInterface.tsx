@@ -4,19 +4,22 @@ import { useEffect, useRef, useState } from "react"
 import { ChatHeader } from "./ChatHeader"
 import { ChatInput } from "./ChatInput"
 import { ChatMessages } from "./ChatMessages"
-import { Message } from "./types"
+import { Message, MessageSegment, ToolCall } from "./types"
 
 import { useGlobal } from "@/app/context/GlobalContext"
-import { invokeAgentCore, generateSessionId, setAgentConfig } from "@/services/agentCoreService"
+import { AgentCoreClient } from "@/lib/agentcore-client"
+import type { AgentPattern } from "@/lib/agentcore-client"
 import { submitFeedback } from "@/services/feedbackService"
 import { useAuth } from "react-oidc-context"
+import { useDefaultTool } from "@/hooks/useToolRenderer"
+import { ToolCallDisplay } from "./ToolCallDisplay"
 
 export default function ChatInterface() {
-  // State for chat messages and user input
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
-  const [sessionId] = useState(() => generateSessionId())
   const [error, setError] = useState<string | null>(null)
+  const [client, setClient] = useState<AgentCoreClient | null>(null)
+  const [sessionId] = useState(() => crypto.randomUUID())
 
   const { isLoading, setIsLoading } = useGlobal()
   const auth = useAuth()
@@ -24,7 +27,12 @@ export default function ChatInterface() {
   // Ref for message container to enable auto-scrolling
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Load agent configuration on mount
+  // Register default tool renderer (wildcard "*")
+  useDefaultTool(({ name, args, status, result }) => (
+    <ToolCallDisplay name={name} args={args} status={status} result={result} />
+  ))
+
+  // Load agent configuration and create client on mount
   useEffect(() => {
     async function loadConfig() {
       try {
@@ -38,7 +46,13 @@ export default function ChatInterface() {
           throw new Error("Agent Runtime ARN not found in configuration")
         }
 
-        await setAgentConfig(config.agentRuntimeArn, config.awsRegion || "us-east-1", config.agentPattern)
+        const agentClient = new AgentCoreClient({
+          runtimeArn: config.agentRuntimeArn,
+          region: config.awsRegion || "us-east-1",
+          pattern: (config.agentPattern || "strands-single-agent") as AgentPattern,
+        })
+
+        setClient(agentClient)
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Unknown error"
         setError(`Configuration error: ${errorMessage}`)
@@ -49,18 +63,12 @@ export default function ChatInterface() {
     loadConfig()
   }, [])
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom()
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
-  // Send message to AgentCore backend with streaming support
   const sendMessage = async (userMessage: string) => {
-    if (!userMessage.trim()) return
+    if (!userMessage.trim() || !client) return
 
     // Clear any previous errors
     setError(null)
@@ -86,31 +94,102 @@ export default function ChatInterface() {
     setMessages((prev) => [...prev, assistantResponse])
 
     try {
-      // Get auth tokens from react-oidc-context
+      // Get auth token from react-oidc-context
       const accessToken = auth.user?.access_token
-      const userId = auth.user?.profile?.sub
 
-      if (!accessToken || !userId) {
+      if (!accessToken) {
         throw new Error("Authentication required. Please log in again.")
       }
 
-      // Invoke AgentCore with streaming
-      await invokeAgentCore(
+      const segments: MessageSegment[] = [];
+      const toolCallMap = new Map<string, ToolCall>();
+
+      const updateMessage = () => {
+        // Build content from text segments for backward compat
+        const content = segments
+          .filter((s): s is Extract<MessageSegment, { type: "text" }> => s.type === "text")
+          .map((s) => s.content)
+          .join("");
+
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            ...updated[updated.length - 1],
+            content,
+            segments: [...segments],
+          };
+          return updated;
+        });
+      };
+
+      // User identity is extracted server-side from the validated JWT token,
+      // not passed as a parameter — prevents impersonation via prompt injection.
+      await client.invoke(
         userMessage,
         sessionId,
-        (streamedContent: string) => {
-          // Update the last message (assistant response) with streamed content
-          setMessages((prev) => {
-            const updated = [...prev]
-            updated[updated.length - 1] = {
-              ...updated[updated.length - 1],
-              content: streamedContent,
-            }
-            return updated
-          })
-        },
         accessToken,
-        userId
+        (event) => {
+          switch (event.type) {
+            case "text": {
+              // If text arrives after a tool segment, mark all pending tools as complete
+              const prev = segments[segments.length - 1];
+              if (prev && prev.type === "tool") {
+                for (const tc of toolCallMap.values()) {
+                  if (tc.status === "streaming" || tc.status === "executing") {
+                    tc.status = "complete";
+                  }
+                }
+              }
+              // Append to last text segment, or create new one
+              const last = segments[segments.length - 1];
+              if (last && last.type === "text") {
+                last.content += event.content;
+              } else {
+                segments.push({ type: "text", content: event.content });
+              }
+              updateMessage();
+              break;
+            }
+            case "tool_use_start": {
+              const tc: ToolCall = {
+                toolUseId: event.toolUseId,
+                name: event.name,
+                input: "",
+                status: "streaming",
+              };
+              toolCallMap.set(event.toolUseId, tc);
+              segments.push({ type: "tool", toolCall: tc });
+              updateMessage();
+              break;
+            }
+            case "tool_use_delta": {
+              const tc = toolCallMap.get(event.toolUseId);
+              if (tc) {
+                tc.input += event.input;
+              }
+              updateMessage();
+              break;
+            }
+            case "tool_result": {
+              const tc = toolCallMap.get(event.toolUseId);
+              if (tc) {
+                tc.result = event.result;
+                tc.status = "complete";
+              }
+              updateMessage();
+              break;
+            }
+            case "message": {
+              if (event.role === "assistant") {
+                for (const tc of toolCallMap.values()) {
+                  if (tc.status === "streaming") tc.status = "executing";
+                }
+                updateMessage();
+              }
+              break;
+            }
+          }
+        }
       )
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error"
