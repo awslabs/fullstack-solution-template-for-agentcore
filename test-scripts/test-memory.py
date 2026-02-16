@@ -24,15 +24,16 @@ API References:
 
 """
 
+import argparse
 import sys
 import time
-import argparse
-from typing import Tuple
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Tuple
+
+import boto3
 from botocore.exceptions import ClientError
 from colorama import Fore, Style
-import boto3
 
 # Add scripts directory to path for reliable imports
 scripts_dir = Path(__file__).parent.parent / "scripts"
@@ -41,9 +42,9 @@ if str(scripts_dir) not in sys.path:
 
 # Import shared utilities
 from utils import (
-    get_stack_config,
     create_bedrock_client,
     generate_session_id,
+    get_stack_config,
     print_msg,
     print_section,
 )
@@ -274,10 +275,10 @@ def test_session_id_validation(
         print(f"  UUID length: {len(uuid_session_id)} characters")
         return True
             
-    except ClientError as e:
+    except ClientError:
         print_msg("Test 5 failed - UUID session ID rejected", "error")
         return False
-    except Exception as e:
+    except Exception:
         print_msg("Test 5 failed - Unexpected error", "error")
         return False
 
@@ -309,7 +310,7 @@ def test_invalid_memory_id(client: boto3.client) -> bool:
                 print(f"  Error code: {error_code}")
                 return True
                 
-    except Exception as e:
+    except Exception:
         print_msg("Test 6 failed - Unexpected error", "error")
         return False
 

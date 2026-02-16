@@ -3,11 +3,12 @@
 Test script for Feedback API
 """
 
-import sys
-import json
 import getpass
+import json
+import sys
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+
 import requests
 from colorama import Fore, Style
 
@@ -18,9 +19,8 @@ if str(scripts_dir) not in sys.path:
 
 # Import shared utilities
 from utils import (
-    get_stack_config,
-    get_ssm_params,
     authenticate_cognito,
+    get_stack_config,
     print_msg,
     print_section,
 )

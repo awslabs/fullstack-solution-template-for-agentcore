@@ -10,20 +10,20 @@ Usage:
     uv run scripts/test-gateway.py
 """
 
-import sys
 import json
-import getpass
-import requests
-import boto3
 import os
+import sys
 from pathlib import Path
+
+import boto3
+import requests
 
 # Add scripts directory to path for reliable imports
 scripts_dir = Path(__file__).parent.parent / "scripts"
 if str(scripts_dir) not in sys.path:
     sys.path.insert(0, str(scripts_dir))
 
-from utils import get_stack_config, get_ssm_params, authenticate_cognito, print_msg, print_section
+from utils import get_ssm_params, get_stack_config, print_msg, print_section
 
 
 def get_secret(secret_name: str) -> str:
@@ -139,7 +139,7 @@ def main():
     
     # Fetch SSM parameters
     print("Fetching configuration...")
-    params = get_ssm_params(
+    get_ssm_params(
         stack_cfg['stack_name'],
         'cognito-user-pool-id',
         'cognito-user-pool-client-id'

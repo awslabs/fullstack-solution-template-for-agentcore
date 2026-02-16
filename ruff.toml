@@ -2,7 +2,7 @@
 extend-exclude = [
     "patterns",
     "src",
-    "scripts",
+    
 ]
 
 # Exclude a variety of commonly ignored directories.
@@ -61,6 +61,8 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 [lint.per-file-ignores]
 # Let's ignore some annoying rules in notebooks
 "notebooks/*" = ["F401"]
+# Allow imports after sys.path modification in test scripts
+"test-scripts/*.py" = ["E402"]
 
 [format]
 # Like Black, use double quotes for strings.

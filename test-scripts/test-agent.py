@@ -22,16 +22,17 @@ Usage:
     uv run scripts/test-agent.py --pattern strands-single-agent
 """
 
+import argparse
+import atexit
+import getpass
+import signal
+import socket
+import subprocess  # nosec B404 - subprocess used securely with explicit parameters
 import sys
 import time
-import socket
-import argparse
-import getpass
-import subprocess  # nosec B404 - subprocess used securely with explicit parameters
-import signal
-import atexit
 from pathlib import Path
 from typing import Dict, Optional
+
 import requests
 from colorama import Fore, Style
 
@@ -42,9 +43,9 @@ if str(scripts_dir) not in sys.path:
 
 # Import shared utilities
 from utils import (
-    get_stack_config,
     authenticate_cognito,
     generate_session_id,
+    get_stack_config,
     print_msg,
     print_section,
 )
