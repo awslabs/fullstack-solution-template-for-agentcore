@@ -43,6 +43,12 @@ export const parseLanggraphChunk: ChunkParser = (line, callback) => {
 
     // AIMessageChunk
     if (json.type === "AIMessageChunk") {
+      // Content as plain string (when model responds without tool use)
+      if (typeof json.content === "string" && json.content) {
+        callback({ type: "text", content: json.content });
+      }
+
+      // Content as array of blocks (when model uses tools)
       if (Array.isArray(json.content)) {
         for (const block of json.content) {
           // Text token
