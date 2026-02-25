@@ -5,6 +5,29 @@ All notable changes to the Fullstack AgentCore Solution Template (FAST) will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Migrated Gateway authentication from manual OAuth2 implementation to AgentCore SDK `@requires_access_token` decorator
+- Replaced manual OAuth2 client credentials flow with managed OAuth2 Credential Provider through AgentCore Identity
+- Moved Secrets Manager permissions from base AgentCoreRole to backend-stack.ts for better separation of concerns
+- Updated both Strands and LangGraph agent patterns to use decorator-based authentication
+
+### Removed
+
+- Manual OAuth2 token fetching logic from `patterns/utils/auth.py
+- Direct Secrets Manager access from agent code
+- Manual token caching and refresh logic
+- Dependencies on `requests` and `base64` libraries for OAuth2 operations
+
+### Security
+
+- Enhanced security by delegating OAuth2 token management to AgentCore Identity service
+- Restricted secret access to AgentCore service principal only via resource policies
+- Eliminated direct agent access to OAuth2 client secrets
+- Improved token lifecycle management with automatic refresh and error handling
+
 ## [0.3.1] - 2026-02-11
 
 ### Added

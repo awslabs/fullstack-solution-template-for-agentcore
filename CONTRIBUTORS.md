@@ -10,3 +10,4 @@
 # Contributors
 
 - Davide Merlin
+- Mingce Bi

@@ -38,6 +38,8 @@ export class BackendStack extends cdk.NestedStack {
   private networkMode: cdk.CfnParameter
   private userPool: cognito.IUserPool
   private machineClient: cognito.UserPoolClient
+  private machineClientSecret: secretsmanager.Secret
+  private runtimeCredentialProvider: cr.AwsCustomResource
   private agentRuntime: agentcore.Runtime
 
   constructor(scope: Construct, id: string, props: BackendStackProps) {
@@ -293,12 +295,44 @@ export class BackendStack extends cdk.NestedStack {
       })
     )
 
+    // Add OAuth2 Credential Provider access
+    // The @requires_access_token decorator performs a two-stage process:
+    // 1. GetOauth2CredentialProvider - Looks up provider metadata (ARN, vendor config, grant types)
+    // 2. GetResourceOauth2Token - Uses metadata to fetch the actual access token from Token Vault
+    agentRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "OAuth2CredentialProviderAccess",
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "bedrock-agentcore:GetOauth2CredentialProvider",
+          "bedrock-agentcore:GetResourceOauth2Token",
+        ],
+        resources: [
+          `arn:aws:bedrock-agentcore:${this.region}:${this.account}:oauth2-credential-provider/*`,
+          `arn:aws:bedrock-agentcore:${this.region}:${this.account}:token-vault/*`,
+          `arn:aws:bedrock-agentcore:${this.region}:${this.account}:workload-identity-directory/*`,
+        ],
+      })
+    )
+
+    // Add Secrets Manager access for OAuth2
+    // Runtime needs to read OAuth2 client secrets when fetching tokens
+    agentRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "SecretsManagerOAuth2Access",
+        effect: iam.Effect.ALLOW,
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      })
+    )
+
     // Environment variables for the runtime
     const envVars: { [key: string]: string } = {
       AWS_REGION: stack.region,
       AWS_DEFAULT_REGION: stack.region,
       MEMORY_ID: memoryId,
-      STACK_NAME: config.stack_name_base, // Required for agent to find SSM parameters
+      STACK_NAME: config.stack_name_base,
+      GATEWAY_CREDENTIAL_PROVIDER_NAME: `${config.stack_name_base}-runtime-gateway-auth`, // Used by @requires_access_token decorator to look up the correct provider
     }
 
     // Create the runtime using L2 construct
@@ -377,12 +411,6 @@ export class BackendStack extends cdk.NestedStack {
       parameterName: `/${config.stack_name_base}/machine_client_id`,
       stringValue: this.machineClient.userPoolClientId,
       description: "Machine Client ID for M2M authentication",
-    })
-
-    new secretsmanager.Secret(this, "MachineClientSecret", {
-      secretName: `/${config.stack_name_base}/machine_client_secret`,
-      secretStringValue: cdk.SecretValue.unsafePlainText(this.machineClient.userPoolClientSecret.unsafeUnwrap()),
-      description: "Machine Client Secret for M2M authentication",
     })
 
     // Use the correct Cognito domain format from the passed domain
@@ -621,6 +649,30 @@ export class BackendStack extends cdk.NestedStack {
       })
     )
 
+    // OAuth2 Token Fetch Permissions
+    // Gateway needs these permissions to fetch OAuth2 tokens from the Credential Provider
+    // when making authenticated requests to external APIs
+    gatewayRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "bedrock-agentcore:GetWorkloadAccessToken",
+          "bedrock-agentcore:GetResourceOauth2Token",
+        ],
+        resources: ["*"],
+      })
+    )
+
+    // Secrets Manager Access
+    // Gateway needs to read OAuth2 client secrets from Secrets Manager
+    gatewayRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      })
+    )
+
     // Load tool specification from JSON file
     const toolSpecPath = path.join(__dirname, "../../gateway/tools/sample_tool/tool_spec.json")
     const apiSpec = JSON.parse(require("fs").readFileSync(toolSpecPath, "utf8"))
@@ -628,6 +680,67 @@ export class BackendStack extends cdk.NestedStack {
     // Cognito OAuth2 configuration for gateway
     const cognitoIssuer = `https://cognito-idp.${this.region}.amazonaws.com/${this.userPool.userPoolId}`
     const cognitoDiscoveryUrl = `${cognitoIssuer}/.well-known/openid-configuration`
+
+    // Create OAuth2 Credential Provider for Runtime to authenticate with Gateway
+    const providerName = `${config.stack_name_base}-runtime-gateway-auth`
+    const runtimeCredentialProvider = new cr.AwsCustomResource(
+      this,
+      "RuntimeCredentialProvider",
+      {
+        installLatestAwsSdk: true,
+        onCreate: {
+          service: "@aws-sdk/client-bedrock-agentcore-control",
+          action: "createOauth2CredentialProvider",
+          parameters: {
+            name: providerName,
+            credentialProviderVendor: 'CustomOauth2',
+            oauth2ProviderConfigInput: {
+              customOauth2ProviderConfig: {
+                oauthDiscovery: {
+                  discoveryUrl: cognitoDiscoveryUrl,
+                },
+                clientId: this.machineClient.userPoolClientId,
+                clientSecret: this.machineClient.userPoolClientSecret.unsafeUnwrap(),
+                grantType: 'CLIENT_CREDENTIALS',
+              },
+            },
+          },
+          physicalResourceId: cr.PhysicalResourceId.of(providerName),
+        },
+        onDelete: {
+          service: "@aws-sdk/client-bedrock-agentcore-control",
+          action: "deleteOauth2CredentialProvider",
+          parameters: {
+            name: providerName,
+          },
+        },
+        policy: cr.AwsCustomResourcePolicy.fromStatements([
+          new iam.PolicyStatement({
+            actions: [
+              "bedrock-agentcore:CreateOauth2CredentialProvider",
+              "bedrock-agentcore:DeleteOauth2CredentialProvider",
+              "bedrock-agentcore:GetOauth2CredentialProvider",
+              "bedrock-agentcore:CreateTokenVault",
+              "bedrock-agentcore:GetTokenVault",
+              "bedrock-agentcore:DeleteTokenVault",
+            ],
+            resources: ["*"],
+          }),
+          new iam.PolicyStatement({
+            actions: [
+              "secretsmanager:CreateSecret",
+              "secretsmanager:DeleteSecret",
+              "secretsmanager:DescribeSecret",
+              "secretsmanager:PutSecretValue",
+            ],
+            resources: ["*"],
+          }),
+        ]),
+      }
+    )
+
+    // Store for use in createAgentCoreRuntime()
+    this.runtimeCredentialProvider = runtimeCredentialProvider
 
     // Create Gateway using L1 construct (CfnGateway)
     // This replaces the Custom Resource approach with native CloudFormation support
@@ -782,6 +895,27 @@ export class BackendStack extends cdk.NestedStack {
 
     // Machine client must be created after resource server
     this.machineClient.node.addDependency(resourceServer)
+
+    // Store machine client secret in Secrets Manager for testing and external access.
+    // This secret is used by test scripts and potentially other external tools.
+    this.machineClientSecret = new secretsmanager.Secret(this, "MachineClientSecret", {
+      secretName: `/${config.stack_name_base}/machine_client_secret`,
+      secretStringValue: cdk.SecretValue.unsafePlainText(
+        this.machineClient.userPoolClientSecret.unsafeUnwrap()
+      ),
+      description: "Machine Client Secret for M2M authentication",
+    })
+
+    // Restrict secret access to AgentCore service only
+    this.machineClientSecret.addToResourcePolicy(
+      new iam.PolicyStatement({
+        sid: "AllowAgentCoreIdentityToReadSecret",
+        effect: iam.Effect.ALLOW,
+        principals: [new iam.ServicePrincipal("bedrock-agentcore.amazonaws.com")],
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      })
+    )
   }
 
   /**

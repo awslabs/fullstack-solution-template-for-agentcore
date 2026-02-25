@@ -4,22 +4,16 @@ Authentication utilities for agent patterns.
 Provides:
 - Secure user identity extraction from JWT tokens in the AgentCore Runtime
   RequestContext (prevents impersonation via prompt injection).
-- OAuth2 client credentials flow for machine-to-machine Gateway authentication.
 """
 
-import base64
 import logging
 import os
 
 import boto3
 import jwt
-import requests
 from bedrock_agentcore.runtime import RequestContext
 
-from utils.ssm import get_ssm_parameter
-
 logger = logging.getLogger(__name__)
-
 
 def extract_user_id_from_context(context: RequestContext) -> str:
     """
@@ -125,75 +119,4 @@ def get_secret(secret_name: str) -> str:
         raise RuntimeError(
             f"Unexpected error retrieving secret {secret_name}: {str(e)}"
         )
-
-
-def get_gateway_access_token() -> str:
-    """
-    Get an OAuth2 access token using the client credentials flow.
-
-    This implements machine-to-machine authentication where the agent acts as
-    a client that needs to authenticate with Cognito to get permission to call
-    the Gateway. The client credentials flow is used for server-to-server
-    communication without user login.
-
-    Returns:
-        str: A valid OAuth2 access token for Gateway authentication.
-
-    Raises:
-        KeyError: If the STACK_NAME environment variable is not set.
-        Exception: If the token request fails or the response is invalid.
-    """
-    stack_name = os.environ["STACK_NAME"]
-    region = os.environ.get(
-        "AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
-    )
-
-    logger.info("Getting access token for stack: %s, region: %s", stack_name, region)
-
-    # Get Cognito configuration from SSM and Secrets Manager
-    cognito_domain = get_ssm_parameter(f"/{stack_name}/cognito_provider")
-    client_id = get_ssm_parameter(f"/{stack_name}/machine_client_id")
-    client_secret = get_secret(f"/{stack_name}/machine_client_secret")
-
-    logger.info("Cognito domain: %s", cognito_domain)
-    logger.info("Client ID: %s...", client_id[:10])
-
-    # Prepare OAuth2 token request
-    token_url = f"https://{cognito_domain}/oauth2/token"
-
-    # Create Basic Auth header (base64-encoded client_id:client_secret)
-    credentials = f"{client_id}:{client_secret}"
-    b64_credentials = base64.b64encode(credentials.encode()).decode()
-
-    headers = {
-        "Authorization": f"Basic {b64_credentials}",
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
-
-    data = {
-        "grant_type": "client_credentials",
-        "scope": f"{stack_name}-gateway/read {stack_name}-gateway/write",
-    }
-
-    logger.info("Requesting token from: %s", token_url)
-    logger.info("Scopes: %s", data["scope"])
-
-    # Request access token from Cognito
-    response = requests.post(url=token_url, headers=headers, data=data, timeout=30)
-
-    if response.status_code != 200:
-        logger.error("Token request failed: %s", response.status_code)
-        logger.error("Response: %s", response.text)
-        raise Exception(
-            f"Failed to get access token: {response.status_code} - {response.text}"
-        )
-
-    token_data = response.json()
-    access_token = token_data.get("access_token")
-
-    if not access_token:
-        logger.error("No access_token in response: %s", token_data)
-        raise Exception("No access_token in Cognito response")
-
-    logger.info("Successfully got access token: %s...", access_token[:20])
-    return access_token
+    
