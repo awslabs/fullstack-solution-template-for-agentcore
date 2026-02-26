@@ -17,30 +17,44 @@ from utils.ssm import get_ssm_parameter
 
 app = BedrockAgentCoreApp()
 
+# Phrase in the exception message raised by the MCP SDK when the HTTP session
+# has been closed (e.g. due to inactivity or token expiry).
+# Matches mcp.client (as of mcp SDK ~1.x).
+# If retries stop working after an SDK upgrade, verify this message still matches.
+_MCP_SESSION_ERROR = "client session is not running"
+# Total number of attempts agent_stream will make before surfacing a session-lost
+# error to the caller.  With a value of 2, one retry is performed.
+# Note: this is attempts, not retries (retries = attempts - 1).
+_MAX_MCP_ATTEMPTS = 2
 
-async def create_gateway_mcp_client(access_token: str) -> MultiServerMCPClient:
+
+async def create_gateway_mcp_client() -> MultiServerMCPClient:
     """
     Create an MCP client connected to the AgentCore Gateway with OAuth2 authentication.
-    
-    This function creates a MultiServerMCPClient that manages the connection to the
-    AgentCore Gateway using MCP (Model Context Protocol). The client handles session
-    lifecycle automatically and keeps the connection alive as long as the client exists.
+
+    Fetches a fresh OAuth2 token on every call so that each (re)attempt in the
+    retry loop uses valid, non-expired credentials.  Unlike the Strands MCPClient
+    factory-lambda approach, MultiServerMCPClient takes a static config dict, so
+    the token must be refreshed here rather than inside a reconnect callback.
     """
     stack_name = os.environ.get('STACK_NAME')
     if not stack_name:
         raise ValueError("STACK_NAME environment variable is required")
-    
+
     # Validate stack name format to prevent injection
     if not stack_name.replace('-', '').replace('_', '').isalnum():
         raise ValueError("Invalid STACK_NAME format")
-    
+
     print(f"[AGENT] Creating Gateway MCP client for stack: {stack_name}")
-    
-    # Fetch Gateway URL from SSM
+
+    # Fetch Gateway URL from SSM once per call (URL does not change between retries)
     gateway_url = get_ssm_parameter(f'/{stack_name}/gateway_url')
     print(f"[AGENT] Gateway URL from SSM: {gateway_url}")
-    
-    # Create MultiServerMCPClient with Gateway configuration
+
+    # Fetch a fresh token on every call.  Called inside create_gateway_mcp_client
+    # rather than in agent_stream so that each retry automatically gets a new token.
+    access_token = get_gateway_access_token()
+
     gateway_client = MultiServerMCPClient({
         "gateway": {
             "transport": "streamable_http",
@@ -50,7 +64,7 @@ async def create_gateway_mcp_client(access_token: str) -> MultiServerMCPClient:
             }
         }
     })
-    
+
     print(f"[AGENT] Gateway MCP client created successfully")
     return gateway_client
 
@@ -134,43 +148,61 @@ async def agent_stream(payload, context: RequestContext):
         print(f"[STREAM] Starting streaming invocation for user: {user_id}, session: {session_id}")
         print(f"[STREAM] Query: {user_query}")
         
-        # Get OAuth2 access token for Gateway
-        print("[STREAM] Getting OAuth2 access token...")
-        access_token = get_gateway_access_token()
-        print(f"[STREAM] Got access token: {access_token[:20]}...")
-        
-        # Create MCP client for Gateway
-        print("[STREAM] Creating Gateway MCP client...")
-        mcp_client = await create_gateway_mcp_client(access_token)
-        
-        # Load tools from Gateway - client manages session lifecycle automatically
-        print("[STREAM] Loading Gateway tools...")
-        tools = await mcp_client.get_tools()
-        print(f"[STREAM] Loaded {len(tools)} tools from Gateway")
-        
-        # Create agent with the loaded tools
-        graph = await create_langgraph_agent(user_id, session_id, tools)
-        
-        # Configure streaming with actor_id and thread_id for memory
-        config = {
-            "configurable": {
-                "thread_id": session_id,
-                "actor_id": user_id
-            }
-        }
-        
-        # Stream messages using LangGraph's astream with stream_mode="messages"
-        async for event in graph.astream(
-            {"messages": [("user", user_query)]},
-            config=config,
-            stream_mode="messages"
-        ):
-            # event is a tuple: (message_chunk, metadata)
-            message_chunk, metadata = event
-            yield message_chunk.model_dump()
-        
-        print("[STREAM] Streaming completed successfully")
-            
+        # Retry loop: if the MCP client session is lost (e.g. due to an HTTP
+        # connection timeout or an expired OAuth token), recreate the MCP client
+        # with a fresh token and retry.  create_gateway_mcp_client() fetches a
+        # fresh token on every call, so each attempt uses valid credentials.
+        #
+        # KNOWN BEHAVIOR: if the session error fires after some events have already
+        # been yielded to the SSE client, the retry starts a fresh stream from the
+        # beginning.  The client may receive duplicate events in that scenario.
+        # Resuming mid-stream requires a cursor/offset mechanism.
+        for attempt in range(1, _MAX_MCP_ATTEMPTS + 1):
+            try:
+                # Create MCP client — fetches a fresh OAuth2 token on each attempt
+                print("[STREAM] Creating Gateway MCP client...")
+                mcp_client = await create_gateway_mcp_client()
+
+                # Load tools from Gateway; client manages session lifecycle
+                print("[STREAM] Loading Gateway tools...")
+                tools = await mcp_client.get_tools()
+                print(f"[STREAM] Loaded {len(tools)} tools from Gateway")
+
+                # Create agent with the loaded tools
+                graph = await create_langgraph_agent(user_id, session_id, tools)
+
+                # Configure streaming with actor_id and thread_id for memory
+                config = {
+                    "configurable": {
+                        "thread_id": session_id,
+                        "actor_id": user_id
+                    }
+                }
+
+                # Stream messages using LangGraph's astream with stream_mode="messages"
+                async for event in graph.astream(
+                    {"messages": [("user", user_query)]},
+                    config=config,
+                    stream_mode="messages"
+                ):
+                    # event is a tuple: (message_chunk, metadata)
+                    message_chunk, metadata = event
+                    yield message_chunk.model_dump()
+
+                print("[STREAM] Streaming completed successfully")
+                break  # streaming completed successfully; exit the retry loop
+
+            except Exception as e:
+                # Matches the literal raised by mcp.client when the HTTP session is closed.
+                # If retries stop working after an SDK upgrade, verify this message still matches.
+                if _MCP_SESSION_ERROR in str(e) and attempt < _MAX_MCP_ATTEMPTS:
+                    print(
+                        f"[STREAM] MCP client session lost (attempt {attempt}/{_MAX_MCP_ATTEMPTS}), "
+                        "reconnecting with fresh token..."
+                    )
+                    continue
+                raise
+
     except Exception as e:
         error_msg = str(e) if str(e) else f"{type(e).__name__}: {repr(e)}"
         print(f"[STREAM ERROR] Error in agent_stream: {error_msg}")
