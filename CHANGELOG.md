@@ -7,25 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- OAuth2 Credential Provider Lambda handler (`infra-cdk/lambdas/oauth2-provider/index.py`) for lifecycle management with Create, Update, and Delete support
+- Token refresh helpers (`_fetch_gateway_token`) in both Strands and LangGraph agents to prevent stale token errors
+- Machine client secret storage in Secrets Manager for OAuth2 authentication
+- Runtime environment variable `GATEWAY_CREDENTIAL_PROVIDER_NAME` for OAuth2 provider lookup
+- OAuth2 Credential Provider and Token Vault IAM permissions to agent runtime role
+- Scoped Secrets Manager IAM permissions to agent runtime role for OAuth2 secrets
+
 ### Changed
 
-- Migrated Gateway authentication from manual OAuth2 implementation to AgentCore SDK `@requires_access_token` decorator
-- Replaced manual OAuth2 client credentials flow with managed OAuth2 Credential Provider through AgentCore Identity
-- Moved Secrets Manager permissions from base AgentCoreRole to backend-stack.ts for better separation of concerns
-- Updated both Strands and LangGraph agent patterns to use decorator-based authentication
+- Migrated Gateway authentication from manual OAuth2 implementation (~70 lines in `patterns/utils/auth.py`) to AgentCore SDK `@requires_access_token` decorator (single-line calls)
+- Use `cr.Provider` pattern for OAuth2 provider to avoid IAM propagation delays
+- Implemented scoped IAM permissions for OAuth2 provider, Token Vault, and Secrets Manager
+- Updated OAuth2 Custom Resource to pass secret ARN instead of plaintext value for enhanced security
+- Modified agent token handling to fetch fresh tokens on reconnection (Strands) and per-request (LangGraph)
+- Moved Secrets Manager permissions from base `AgentCoreRole` utility class to backend-stack.ts for better separation of concerns
 
 ### Removed
 
-- Manual OAuth2 token fetching logic from `patterns/utils/auth.py
+- Manual OAuth2 token fetching function `get_gateway_access_token()` (~70 lines) from `patterns/utils/auth.py`
 - Direct Secrets Manager access from agent code
 - Manual token caching and refresh logic
 - Dependencies on `requests` and `base64` libraries for OAuth2 operations
 
+### Fixed
+
+- Stale token errors in agents by implementing fresh token retrieval on MCP Gateway reconnection (Strands) and per-request (LangGraph)
+- IAM permission scoping to prevent overly broad wildcard access
+
 ### Security
 
 - Enhanced security by delegating OAuth2 token management to AgentCore Identity service
+- Eliminated plaintext secret passing to Custom Resources (now uses ARN references)
 - Restricted secret access to AgentCore service principal only via resource policies
-- Eliminated direct agent access to OAuth2 client secrets
 - Improved token lifecycle management with automatic refresh and error handling
 
 ## [0.3.1] - 2026-02-11

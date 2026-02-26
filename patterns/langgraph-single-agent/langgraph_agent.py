@@ -27,26 +27,33 @@ app = BedrockAgentCoreApp()
     auth_flow="M2M",
     scopes=[]
 )
-async def create_gateway_mcp_client(access_token: str) -> MultiServerMCPClient:
+async def _fetch_gateway_token(access_token: str) -> str:
     """
-    Create an MCP client connected to the AgentCore Gateway with OAuth2 authentication.
-
-    MCP (Model Context Protocol) is how agents communicate with tool providers.
-    This creates a client that can talk to the AgentCore Gateway using the provided
-    access token for authentication. The Gateway then provides access to Lambda-based tools.
+    Internal helper to fetch fresh OAuth2 token for Gateway authentication.
     
-    The @requires_access_token decorator is the standard "managed" way to handle OAuth2
-    in the Bedrock AgentCore SDK. It uses the provider_name to look up the OAuth2
-    Credential Provider in your account's Identity Token Vault, then automatically:
+    This is async because it's called with 'await' in create_gateway_mcp_client().
+    The @requires_access_token decorator handles token retrieval and refresh:
     1. Token Retrieval: Calls GetResourceOauth2Token API to fetch token from Token Vault
     2. Automatic Refresh: Uses refresh tokens to renew expired access tokens
     3. Error Orchestration: Handles missing tokens and OAuth flow management
     
-    For M2M (Machine-to-Machine) flows, the decorator uses Client Credentials grant type,
-    which authenticates the service itself (not individual users).
-    
+    For M2M (Machine-to-Machine) flows, the decorator uses Client Credentials grant type.
     The provider_name must match the Name field in the CDK OAuth2CredentialProvider resource.
-    CDK creates the provider with name: {stack_name}-runtime-gateway-auth
+    """
+    return access_token
+
+
+async def create_gateway_mcp_client() -> MultiServerMCPClient:
+    """
+    Create an MCP client connected to the AgentCore Gateway with OAuth2 authentication.
+
+    MCP (Model Context Protocol) is how agents communicate with tool providers.
+    This creates a client that can talk to the AgentCore Gateway using OAuth2
+    authentication. The Gateway then provides access to Lambda-based tools.
+    
+    This implementation avoids the "closure trap" by calling _fetch_gateway_token()
+    on every invocation of create_gateway_mcp_client(). Since this function is called
+    per-request in agent_stream(), it ensures fresh tokens for each request.
     """
     stack_name = os.environ.get('STACK_NAME')
     if not stack_name:
@@ -62,13 +69,16 @@ async def create_gateway_mcp_client(access_token: str) -> MultiServerMCPClient:
     gateway_url = get_ssm_parameter(f'/{stack_name}/gateway_url')
     print(f"[AGENT] Gateway URL from SSM: {gateway_url}")
     
+    # Fetch fresh token on every call to avoid closure trap
+    fresh_token = await _fetch_gateway_token()
+    
     # Create MCP client with Bearer token authentication
     gateway_client = MultiServerMCPClient({
         "gateway": {
             "transport": "streamable_http",
             "url": gateway_url,
             "headers": {
-                "Authorization": f"Bearer {access_token}"
+                "Authorization": f"Bearer {fresh_token}"
             }
         }
     })
