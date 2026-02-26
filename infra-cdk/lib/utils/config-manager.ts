@@ -5,6 +5,7 @@ import * as yaml from "yaml"
 const MAX_STACK_NAME_BASE_LENGTH = 35
 
 export type DeploymentType = "docker" | "zip"
+export type NetworkMode = "PUBLIC" | "PRIVATE"
 
 export interface AppConfig {
   stack_name_base: string
@@ -12,6 +13,9 @@ export interface AppConfig {
   backend: {
     pattern: string
     deployment_type: DeploymentType
+    agent_name: string
+    network_mode: NetworkMode
+    memory_expiration_days: number
   }
 }
 
@@ -55,6 +59,9 @@ export class ConfigManager {
         backend: {
           pattern: parsedConfig.backend?.pattern || "strands-single-agent",
           deployment_type: deploymentType,
+          agent_name: parsedConfig.backend?.agent_name || "StrandsAgent",
+          network_mode: parsedConfig.backend?.network_mode || "PUBLIC",
+          memory_expiration_days: parsedConfig.backend?.memory_expiration_days || 30,
         },
       }
     } catch (error) {
