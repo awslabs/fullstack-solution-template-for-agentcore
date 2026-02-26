@@ -19,14 +19,26 @@ from utils.ssm import get_ssm_parameter
 
 app = BedrockAgentCoreApp()
 
+# Phrase in the exception message raised by the MCP SDK when the HTTP session
+# has been closed (e.g. due to inactivity or token expiry).
+# Matches mcp.client (as of mcp SDK ~1.x).
+# If retries stop working after an SDK upgrade, verify this message still matches.
+_MCP_SESSION_ERROR = "client session is not running"
+# Total number of attempts agent_stream will make before surfacing a session-lost
+# error to the caller.  With a value of 2, one retry is performed.
+# Note: this is attempts, not retries (retries = attempts - 1).
+_MAX_MCP_ATTEMPTS = 2
 
-def create_gateway_mcp_client(access_token: str) -> MCPClient:
+
+def create_gateway_mcp_client() -> MCPClient:
     """
     Create MCP client for AgentCore Gateway with OAuth2 authentication.
 
     MCP (Model Context Protocol) is how agents communicate with tool providers.
-    This creates a client that can talk to the AgentCore Gateway using the provided
-    access token for authentication. The Gateway then provides access to Lambda-based tools.
+    This creates a client that can talk to the AgentCore Gateway using a fresh
+    OAuth2 access token fetched on each connection attempt. Fetching the token
+    inside the factory lambda ensures that reconnections (e.g. after a session
+    timeout) always use a valid, non-expired token.
     """
     stack_name = os.environ.get("STACK_NAME")
     if not stack_name:
@@ -38,14 +50,18 @@ def create_gateway_mcp_client(access_token: str) -> MCPClient:
 
     print(f"[AGENT] Creating Gateway MCP client for stack: {stack_name}")
 
-    # Fetch Gateway URL from SSM
+    # Fetch Gateway URL from SSM once (URL does not change between reconnects)
     gateway_url = get_ssm_parameter(f"/{stack_name}/gateway_url")
     print(f"[AGENT] Gateway URL from SSM: {gateway_url}")
 
-    # Create MCP client with Bearer token authentication
+    # The factory lambda is called by MCPClient each time it (re)establishes the
+    # underlying transport.  Calling get_gateway_access_token() inside the lambda
+    # rather than closing over a pre-fetched token means every new connection uses
+    # a fresh OAuth2 token, which prevents failures caused by token expiry.
     gateway_client = MCPClient(
         lambda: streamablehttp_client(
-            url=gateway_url, headers={"Authorization": f"Bearer {access_token}"}
+            url=gateway_url,
+            headers={"Authorization": f"Bearer {get_gateway_access_token()}"},
         ),
         prefix="gateway",
     )
@@ -92,18 +108,14 @@ def create_basic_agent(user_id: str, session_id: str) -> Agent:
     try:
         print("[AGENT] Starting agent creation with Gateway tools...")
 
-        # Get OAuth2 access token and create Gateway MCP client
-        print("[AGENT] Step 1: Getting OAuth2 access token...")
-        access_token = get_gateway_access_token()
-        print(f"[AGENT] Got access token: {access_token[:20]}...")
-
-        # Create Gateway MCP client with authentication
-        print("[AGENT] Step 2: Creating Gateway MCP client...")
-        gateway_client = create_gateway_mcp_client(access_token)
+        # Create Gateway MCP client; the factory lambda inside fetches a fresh
+        # OAuth2 token on every (re)connection so tokens never go stale.
+        print("[AGENT] Step 1: Creating Gateway MCP client...")
+        gateway_client = create_gateway_mcp_client()
         print("[AGENT] Gateway MCP client created successfully")
 
         print(
-            "[AGENT] Step 3: Creating Agent with Gateway tools and Code Interpreter..."
+            "[AGENT] Step 2: Creating Agent with Gateway tools and Code Interpreter..."
         )
         agent = Agent(
             name="BasicAgent",
@@ -164,11 +176,34 @@ async def agent_stream(payload, context: RequestContext):
         )
         print(f"[STREAM] Query: {user_query}")
 
-        agent = create_basic_agent(user_id, session_id)
+        # Retry loop: if the MCP client session is lost (e.g. due to an HTTP
+        # connection timeout or an expired OAuth token), recreate the agent and
+        # MCP client then retry.  The factory lambda inside create_gateway_mcp_client
+        # always fetches a fresh token, so each attempt uses valid credentials.
+        #
+        # KNOWN BEHAVIOR: if the session error fires after some events have already
+        # been yielded to the SSE client, the retry starts a fresh stream_async()
+        # call from the beginning.  The client may receive duplicate events in that
+        # scenario.  Resuming mid-stream requires a cursor/offset mechanism.
+        for attempt in range(1, _MAX_MCP_ATTEMPTS + 1):
+            try:
+                agent = create_basic_agent(user_id, session_id)
 
-        # Use the agent's stream_async method for true token-level streaming
-        async for event in agent.stream_async(user_query):
-            yield json.loads(json.dumps(dict(event), default=str))
+                # Use the agent's stream_async method for true token-level streaming
+                async for event in agent.stream_async(user_query):
+                    yield json.loads(json.dumps(dict(event), default=str))
+                break  # streaming completed successfully; exit the retry loop
+
+            except Exception as e:
+                # Matches the literal raised by mcp.client when the HTTP session is closed.
+                # If retries stop working after an SDK upgrade, verify this message still matches.
+                if _MCP_SESSION_ERROR in str(e) and attempt < _MAX_MCP_ATTEMPTS:
+                    print(
+                        f"[STREAM] MCP client session lost (attempt {attempt}/{_MAX_MCP_ATTEMPTS}), "
+                        "reconnecting with fresh token..."
+                    )
+                    continue
+                raise
 
     except Exception as e:
         print(f"[STREAM ERROR] Error in agent_stream: {e}")
