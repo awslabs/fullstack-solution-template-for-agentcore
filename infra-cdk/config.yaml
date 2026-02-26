@@ -5,8 +5,8 @@ stack_name_base: FAST-stack
 admin_user_email: # Example: admin@example.com
 
 backend:
-  pattern: strands-single-agent # Available patterns: strands-single-agent, langgraph-single-agent
-  deployment_type: docker # Available deployment types: docker (default), zip
+  pattern: strands-single-agent # Available patterns: strands-single-agent, langgraph-single-agent, claude-agent-sdk
+  deployment_type: docker # Available deployment types: docker (default), zip (not supported for claude-agent-sdk)
   network_mode: PUBLIC # Available network modes: PUBLIC (default), VPC
 
   # VPC configuration - required when network_mode is VPC
