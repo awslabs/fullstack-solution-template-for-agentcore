@@ -76,6 +76,16 @@ cd ..
 python scripts/deploy-frontend.py
 ```
 
+### Deploy Without Local Tooling (via CodeBuild)
+
+If you don't have Node.js, Docker, or CDK installed locally, you can deploy entirely in the cloud using a temporary CodeBuild project. Requires only Python 3.8+ and AWS CLI:
+
+```bash
+python scripts/deploy-with-codebuild.py
+```
+
+See `scripts/README.md` for details and required IAM permissions.
+
 ### 1. Install Dependencies
 
 Install infrastructure dependencies:

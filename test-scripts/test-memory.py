@@ -28,17 +28,11 @@ import argparse
 import sys
 import time
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Tuple
 
 import boto3
 from botocore.exceptions import ClientError
 from colorama import Fore, Style
-
-# Add scripts directory to path for reliable imports
-scripts_dir = Path(__file__).parent.parent / "scripts"
-if str(scripts_dir) not in sys.path:
-    sys.path.insert(0, str(scripts_dir))
 
 # Import shared utilities
 from utils import (

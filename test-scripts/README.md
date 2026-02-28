@@ -163,7 +163,7 @@ uv run test-scripts/test-gateway.py
 
 ## Shared Utilities
 
-The test scripts use shared utilities from `../scripts/utils.py`:
+The test scripts use shared utilities from `utils.py` (in this directory):
 
 - Stack configuration and SSM parameter retrieval
 - Cognito authentication

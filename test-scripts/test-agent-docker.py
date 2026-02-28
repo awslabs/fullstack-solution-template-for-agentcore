@@ -29,11 +29,6 @@ from typing import Optional
 
 import requests
 from colorama import Fore, Style
-
-scripts_dir = Path(__file__).parent.parent / "scripts"
-if str(scripts_dir) not in sys.path:
-    sys.path.insert(0, str(scripts_dir))
-
 from utils import (
     create_mock_jwt,
     generate_session_id,

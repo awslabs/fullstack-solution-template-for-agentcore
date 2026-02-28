@@ -455,9 +455,11 @@ export class BackendStack extends cdk.NestedStack {
     feedbackTable: dynamodb.Table
   ): void {
     // Create Lambda function for feedback using Python
+    // ARM_64 required — matches Powertools ARM64 layer and avoids cross-platform
     const feedbackLambda = new PythonFunction(this, "FeedbackLambda", {
       functionName: `${config.stack_name_base}-feedback`,
       runtime: lambda.Runtime.PYTHON_3_13,
+      architecture: lambda.Architecture.ARM_64,
       entry: path.join(__dirname, "..", "lambdas", "feedback"),
       handler: "handler",
       environment: {

@@ -51,19 +51,26 @@ change anything:
   "automaticSilentRenew": true
 }
 ```
+---
 
-### Shared Utilities
+### CodeBuild Deployment
 
-- `utils.py` - Common functions used by both deployment and test scripts:
-  - Stack configuration and SSM parameter retrieval
-  - Cognito authentication
-  - AWS client creation
-  - Session ID generation
+- `deploy-with-codebuild.py` - Deploys the entire FAST stack (backend + frontend) using an ephemeral CodeBuild project. No local Node.js, Docker, CDK, or npm required — only Python 3.8+ and AWS CLI.
+
+```bash
+python scripts/deploy-with-codebuild.py
+```
+
+Creates temporary AWS resources (S3 bucket, IAM role, CodeBuild project), runs the full deployment in the cloud, streams logs to your terminal, and cleans up all temporary resources on exit.
+
+See [DEPLOYMENT.md](../docs/DEPLOYMENT.md) for details and required IAM permissions.
+
+---
 
 ## Requirements
 
 - AWS CLI configured with appropriate permissions
-- Python 3.11+ (standard library only, no pip install needed for deployment)
+- Python 3.8+ (standard library only, no pip install needed for deployment)
 - Node.js and npm (for frontend build)
 - CDK stack deployed with the required outputs:
   - `CognitoClientId`
