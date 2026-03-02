@@ -125,6 +125,14 @@ def run_docker_container(memory_id: str, stack_name: str, region: str) -> Option
             f"AWS_DEFAULT_REGION={region}",
             "-e",
             f"AWS_REGION={region}",
+            "-e",
+            f"GATEWAY_CREDENTIAL_PROVIDER_NAME={stack_name}-runtime-gateway-auth",
+            "-e",
+            "USE_AGENTCORE_IDENTITY_OAUTH=false",
+            "-e",
+            "OTEL_TRACES_EXPORTER=none",
+            "-e",
+            "OTEL_METRICS_EXPORTER=none",
         ]
     )
 

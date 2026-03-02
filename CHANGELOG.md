@@ -10,15 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - OAuth2 Credential Provider Lambda handler (`infra-cdk/lambdas/oauth2-provider/index.py`) for lifecycle management with Create, Update, and Delete support
-- Token refresh helpers (`_fetch_gateway_token`) in both Strands and LangGraph agents to prevent stale token errors
+- Conditional token refresh helpers (`_fetch_gateway_token`) in both Strands and LangGraph agents with Runtime (decorator) and Docker (manual) implementations
+- Environment variable `USE_AGENTCORE_IDENTITY_OAUTH` for controlling authentication path (Runtime vs Docker)
+- Docker testing support with environment variable configuration in `test-scripts/test-agent-docker.py`
 - Machine client secret storage in Secrets Manager for OAuth2 authentication
 - Runtime environment variable `GATEWAY_CREDENTIAL_PROVIDER_NAME` for OAuth2 provider lookup
 - OAuth2 Credential Provider and Token Vault IAM permissions to agent runtime role
 - Scoped Secrets Manager IAM permissions to agent runtime role for OAuth2 secrets
+- `docs/RUNTIME_GATEWAY_AUTH.md` - Comprehensive documentation of the M2M authentication workflow between AgentCore Runtime and Gateway, covering both deployment (OAuth2 provider registration) and runtime (token retrieval and validation) phases
 
 ### Changed
 
-- Migrated Gateway authentication from manual OAuth2 implementation (~70 lines in `patterns/utils/auth.py`) to AgentCore SDK `@requires_access_token` decorator (single-line calls)
+- Migrated Gateway authentication to AgentCore SDK `@requires_access_token` decorator for AgentCore Runtime while maintaining manual OAuth2 implementation as fallback for Docker local testing
+- Implemented conditional authentication logic in agent patterns to support both Runtime (decorator) and Docker (manual) environments
 - Use `cr.Provider` pattern for OAuth2 provider to avoid IAM propagation delays
 - Implemented scoped IAM permissions for OAuth2 provider, Token Vault, and Secrets Manager
 - Updated OAuth2 Custom Resource to pass secret ARN instead of plaintext value for enhanced security
@@ -27,10 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- Manual OAuth2 token fetching function `get_gateway_access_token()` (~70 lines) from `patterns/utils/auth.py`
-- Direct Secrets Manager access from agent code
-- Manual token caching and refresh logic
-- Dependencies on `requests` and `base64` libraries for OAuth2 operations
+- Wildcard Secrets Manager IAM permissions from base `AgentCoreRole` utility class (moved to scoped permissions in backend-stack.ts)
 
 ### Fixed
 
@@ -39,9 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Enhanced security by delegating OAuth2 token management to AgentCore Identity service
+- Enhanced security by delegating OAuth2 token management to AgentCore Identity service in AgentCore Runtime
 - Eliminated plaintext secret passing to Custom Resources (now uses ARN references)
-- Restricted secret access to AgentCore service principal only via resource policies
 - Improved token lifecycle management with automatic refresh and error handling
 
 ## [0.3.1] - 2026-02-11

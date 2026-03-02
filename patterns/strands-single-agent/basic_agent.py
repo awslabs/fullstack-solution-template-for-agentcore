@@ -15,37 +15,55 @@ from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 from strands_code_interpreter import StrandsCodeInterpreterTools
 
-from utils.auth import extract_user_id_from_context
+from utils.auth import extract_user_id_from_context, get_gateway_access_token
 from utils.ssm import get_ssm_parameter
 
 app = BedrockAgentCoreApp()
 
+# Check environment to determine authentication method for Gateway access:
+# - Runtime (CDK deployment): Uses AgentCore Identity OAuth2 provider via @requires_access_token decorator
+#   Deployed via: `cdk deploy` - runs in AgentCore Runtime with managed token handling
+# - Docker (local testing): Uses manual Cognito OAuth2 client credentials flow
+#   Tested via: `python test-scripts/test-agent-docker.py` - runs locally with direct Cognito auth
+# The USE_AGENTCORE_IDENTITY_OAUTH environment variable controls which path is used (defaults to "true")
+USE_AGENTCORE_IDENTITY = os.environ.get("USE_AGENTCORE_IDENTITY_OAUTH", "true").lower() == "true"
 
-@requires_access_token(
-    provider_name=os.environ.get(
-        "GATEWAY_CREDENTIAL_PROVIDER_NAME",
-        f"{os.environ.get('STACK_NAME', 'unknown')}-runtime-gateway-auth"
-    ),
-    auth_flow="M2M",
-    scopes=[]
-)
-def _fetch_gateway_token(access_token: str) -> str:
-    """
-    Internal helper to fetch fresh OAuth2 token for Gateway authentication.
-    
-    The @requires_access_token decorator handles token retrieval and refresh:
-    1. Token Retrieval: Calls GetResourceOauth2Token API to fetch token from Token Vault
-    2. Automatic Refresh: Uses refresh tokens to renew expired access tokens
-    3. Error Orchestration: Handles missing tokens and OAuth flow management
-    
-    For M2M (Machine-to-Machine) flows, the decorator uses Client Credentials grant type.
-    The provider_name must match the Name field in the CDK OAuth2CredentialProvider resource.
 
-    This MUST be synchronous because it's called inside
-    the MCPClient lambda factory. If it were async, the lambda would receive
-    a coroutine object instead of a string, breaking authentication.
-    """
-    return access_token
+# Conditional token fetching based on environment
+if USE_AGENTCORE_IDENTITY:
+    # Runtime path: Use AgentCore Identity OAuth2 provider via decorator
+    @requires_access_token(
+        provider_name=os.environ["GATEWAY_CREDENTIAL_PROVIDER_NAME"],
+        auth_flow="M2M",
+        scopes=[]
+    )
+    def _fetch_gateway_token(access_token: str) -> str:
+        """
+        Internal helper to fetch fresh OAuth2 token for Gateway authentication.
+        
+        The @requires_access_token decorator handles token retrieval and refresh:
+        1. Token Retrieval: Calls GetResourceOauth2Token API to fetch token from Token Vault
+        2. Automatic Refresh: Uses refresh tokens to renew expired access tokens
+        3. Error Orchestration: Handles missing tokens and OAuth flow management
+        
+        For M2M (Machine-to-Machine) flows, the decorator uses Client Credentials grant type.
+        The provider_name must match the Name field in the CDK OAuth2CredentialProvider resource.
+
+        This MUST be synchronous because it's called inside
+        the MCPClient lambda factory. If it were async, the lambda would receive
+        a coroutine object instead of a string, breaking authentication.
+        """
+        return access_token
+else:
+    # Docker path: Use manual Cognito OAuth2 client credentials flow
+    def _fetch_gateway_token() -> str:
+        """
+        Fetch OAuth2 token from Cognito for Docker testing.
+        
+        This is a fallback for local Docker testing where AgentCore Identity
+        OAuth2 provider is not available. Uses direct Cognito client credentials flow.
+        """
+        return get_gateway_access_token()
 
 
 def create_gateway_mcp_client() -> MCPClient:
