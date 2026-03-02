@@ -5,6 +5,45 @@ All notable changes to the Fullstack AgentCore Solution Template (FAST) will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- OAuth2 Credential Provider Lambda handler (`infra-cdk/lambdas/oauth2-provider/index.py`) for lifecycle management with Create, Update, and Delete support
+- Conditional token refresh helpers (`_fetch_gateway_token`) in both Strands and LangGraph agents with Runtime (decorator) and Docker (manual) implementations
+- Environment variable `USE_AGENTCORE_IDENTITY_OAUTH` for controlling authentication path (Runtime vs Docker)
+- Docker testing support with environment variable configuration in `test-scripts/test-agent-docker.py`
+- Machine client secret storage in Secrets Manager for OAuth2 authentication
+- Runtime environment variable `GATEWAY_CREDENTIAL_PROVIDER_NAME` for OAuth2 provider lookup
+- OAuth2 Credential Provider and Token Vault IAM permissions to agent runtime role
+- Scoped Secrets Manager IAM permissions to agent runtime role for OAuth2 secrets
+- `docs/RUNTIME_GATEWAY_AUTH.md` - Comprehensive documentation of the M2M authentication workflow between AgentCore Runtime and Gateway, covering both deployment (OAuth2 provider registration) and runtime (token retrieval and validation) phases
+
+### Changed
+
+- Migrated Gateway authentication to AgentCore SDK `@requires_access_token` decorator for AgentCore Runtime while maintaining manual OAuth2 implementation as fallback for Docker local testing
+- Implemented conditional authentication logic in agent patterns to support both Runtime (decorator) and Docker (manual) environments
+- Use `cr.Provider` pattern for OAuth2 provider to avoid IAM propagation delays
+- Implemented scoped IAM permissions for OAuth2 provider, Token Vault, and Secrets Manager
+- Updated OAuth2 Custom Resource to pass secret ARN instead of plaintext value for enhanced security
+- Modified agent token handling to fetch fresh tokens on reconnection (Strands) and per-request (LangGraph)
+- Moved Secrets Manager permissions from base `AgentCoreRole` utility class to backend-stack.ts for better separation of concerns
+
+### Removed
+
+- Wildcard Secrets Manager IAM permissions from base `AgentCoreRole` utility class (moved to scoped permissions in backend-stack.ts)
+
+### Fixed
+
+- Stale token errors in agents by implementing fresh token retrieval on MCP Gateway reconnection (Strands) and per-request (LangGraph)
+- IAM permission scoping to prevent overly broad wildcard access
+
+### Security
+
+- Enhanced security by delegating OAuth2 token management to AgentCore Identity service in AgentCore Runtime
+- Eliminated plaintext secret passing to Custom Resources (now uses ARN references)
+- Improved token lifecycle management with automatic refresh and error handling
+
 ## [0.3.1] - 2026-02-11
 
 ### Added

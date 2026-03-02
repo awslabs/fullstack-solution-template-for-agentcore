@@ -20,7 +20,6 @@ from utils.ssm import get_ssm_parameter
 
 logger = logging.getLogger(__name__)
 
-
 def extract_user_id_from_context(context: RequestContext) -> str:
     """
     Securely extract the user ID from the JWT token in the request context.
@@ -130,6 +129,12 @@ def get_secret(secret_name: str) -> str:
 def get_gateway_access_token() -> str:
     """
     Get an OAuth2 access token using the client credentials flow.
+    
+    NOTE: This function is used for Docker local testing only. In AgentCore Runtime
+    environment, the @requires_access_token decorator is used instead, which provides
+    managed token retrieval, automatic refresh, and integration with AgentCore Identity
+    OAuth2 Provider and Token Vault. This manual Cognito approach is a fallback for
+    environments where the AgentCore Runtime context is not available.
 
     This implements machine-to-machine authentication where the agent acts as
     a client that needs to authenticate with Cognito to get permission to call

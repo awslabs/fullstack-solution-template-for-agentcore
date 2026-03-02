@@ -97,14 +97,6 @@ export class AgentCoreRole extends iam.Role {
                 `arn:aws:bedrock:${region}:${accountId}:*`,
               ],
             }),
-            new iam.PolicyStatement({
-              sid: "SecretsManagerAccess",
-              effect: iam.Effect.ALLOW,
-              actions: ["secretsmanager:GetSecretValue"],
-              resources: [
-                `arn:aws:secretsmanager:${region}:${accountId}:secret:/*/machine_client_secret*`,
-              ],
-            }),
           ],
         }),
       },
