@@ -35,8 +35,16 @@ async def main(payload, context: RequestContext):
     Uses ClaudeSDKClient for streaming with Code Interpreter and Gateway tools.
     User identity is extracted securely from the validated JWT token.
     """
-    prompt = payload["prompt"]
-    runtime_session_id = payload.get("runtimeSessionId", "")
+    prompt = payload.get("prompt")
+    runtime_session_id = payload.get("runtimeSessionId")
+
+    if not all([prompt, runtime_session_id]):
+        yield {
+            "status": "error",
+            "error": "Missing required fields: prompt or runtimeSessionId",
+        }
+        return
+
     code_int_session_id = payload.get("code_int_session_id", "")
     claude_session_id = payload.get("claude_session_id")
 
@@ -46,8 +54,19 @@ async def main(payload, context: RequestContext):
 
     # Get Gateway URL and access token
     stack_name = os.environ.get("STACK_NAME")
-    gateway_url = get_ssm_parameter(f"/{stack_name}/gateway_url") if stack_name else None
-    access_token = get_gateway_access_token() if gateway_url else None
+    gateway_url = None
+    access_token = None
+    if stack_name:
+        # Validate stack name format to prevent SSM parameter path injection
+        if not stack_name.replace("-", "").replace("_", "").isalnum():
+            raise ValueError("Invalid STACK_NAME format")
+        try:
+            gateway_url = get_ssm_parameter(f"/{stack_name}/gateway_url")
+            access_token = get_gateway_access_token()
+        except Exception as e:
+            logger.warning("[AGENT] Gateway not available, continuing without tools: %s", e)
+            gateway_url = None
+            access_token = None
 
     agent_responses = []
 
