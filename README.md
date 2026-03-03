@@ -8,7 +8,6 @@ FAST is designed with security and vibe-codability as primary tenets. Best pract
 
 With FAST as a starting point and development framework, delivery scientists and engineers will accelerate their development process and deliver production quality AgentCore code following architecture and security best practices without having to learn any frontend or infrastructure (cdk) code.
 
-
 ## FAST Baseline System
 
 FAST comes deployable out-of-the-box with a fully functioning, full-stack application. This application represents starts as a basic multi-turn chat agent where the backend agent has access to tools. **Do not let this deter you, even if your use case is entirely different! If your application requires AgentCore, customizing FAST to any use case is extremely straightforward. That is the intended use of FAST!**
@@ -45,41 +44,7 @@ python scripts/deploy-frontend.py
 
 See the [deployment guide](docs/DEPLOYMENT.md) for detailed instructions on how to deploy FAST into an AWS account.
 
-### Local Development
-
-Local development requires a deployed FAST stack because the agent depends on AWS services that cannot run locally:
-- **AgentCore Memory** - stores conversation history
-- **AgentCore Gateway** - provides tool access via MCP
-- **SSM Parameters** - stores configuration (Gateway URL, client IDs)
-- **Secrets Manager** - stores Gateway authentication credentials
-
-You must first deploy the stack with `cdk deploy`, then you can run the frontend and agent locally using Docker Compose while connecting to these deployed AWS resources:
-
-```bash
-# Set required environment variables (see below for how to find these)
-export MEMORY_ID=your-memory-id
-export STACK_NAME=your-stack-name  
-export AWS_DEFAULT_REGION=us-east-1
-
-# Start the full stack locally
-cd docker
-docker-compose up --build
-```
-
-**Finding the environment variable values:**
-- `STACK_NAME`: Use the `stack_name_base` value from `infra-cdk/config.yaml`
-- `MEMORY_ID`: Extract from the `MemoryArn` CloudFormation output (the ID is the last segment after `/`)
-  ```bash
-  aws cloudformation describe-stacks --stack-name <your-stack-name> \
-    --query 'Stacks[0].Outputs[?OutputKey==`MemoryArn`].OutputValue' --output text
-  # Returns: arn:aws:bedrock-agentcore:region:account:memory/MEMORY_ID
-  ```
-- `AWS_DEFAULT_REGION`: The region where you deployed the stack (e.g., `us-east-1`)
-
-See the [local development guide](docs/LOCAL_DEVELOPMENT.md) for detailed setup instructions.
-
 What comes next? That's up to you, the developer. With your requirements in mind, open up your coding assistant, describe what you'd like to do, and begin. The steering docs in this repository help guide coding assistants with best practices, and encourage them to always refer to the documentation built-in to the repository to make sure you end up building something great.
-
 
 ## Architecture
 
@@ -169,6 +134,12 @@ fullstack-agentcore-solution-template/
 ├── docker-compose.yml      # Local development stack
 └── README.md
 ```
+
+## DeepWiki
+Have a question about how FAST works? Consider asking DeepWiki!
+
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/awslabs/fullstack-solution-template-for-agentcore)
 
 ## Security
 
