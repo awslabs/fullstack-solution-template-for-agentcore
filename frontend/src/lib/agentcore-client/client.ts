@@ -4,11 +4,13 @@
 import type { AgentCoreConfig, AgentPattern, ChunkParser, StreamCallback } from "./types";
 import { parseStrandsChunk } from "./parsers/strands";
 import { parseLanggraphChunk } from "./parsers/langgraph";
+import { parseClaudeAgentSdkChunk } from "./parsers/claude-agent-sdk";
 import { readSSEStream } from "./utils/sse";
 
 const PARSERS: Record<AgentPattern, ChunkParser> = {
   "strands-single-agent": parseStrandsChunk,
   "langgraph-single-agent": parseLanggraphChunk,
+  "claude-agent-sdk": parseClaudeAgentSdkChunk,
 };
 
 export class AgentCoreClient {

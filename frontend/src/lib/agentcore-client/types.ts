@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** Supported agent framework patterns */
-export type AgentPattern = "strands-single-agent" | "langgraph-single-agent";
+export type AgentPattern = "strands-single-agent" | "langgraph-single-agent" | "claude-agent-sdk";
 
 /** Configuration for AgentCoreClient */
 export interface AgentCoreConfig {
