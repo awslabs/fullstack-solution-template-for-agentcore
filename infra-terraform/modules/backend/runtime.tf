@@ -155,7 +155,7 @@ resource "aws_iam_role" "runtime" {
 # -----------------------------------------------------------------------------
 
 data "aws_iam_policy_document" "runtime_policy" {
-  # 1. ECRImageAccess (docker mode only)
+  # ECRImageAccess (docker mode only)
   dynamic "statement" {
     for_each = local.is_docker ? [1] : []
     content {
@@ -170,7 +170,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     }
   }
 
-  # 2. ECRTokenAccess (docker mode only)
+  # ECRTokenAccess (docker mode only)
   dynamic "statement" {
     for_each = local.is_docker ? [1] : []
     content {
@@ -198,7 +198,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     }
   }
 
-  # 3. CloudWatchLogsGroupAccess
+  # CloudWatchLogsGroupAccess
   statement {
     sid    = "CloudWatchLogsGroupAccess"
     effect = "Allow"
@@ -209,7 +209,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     resources = ["arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws/bedrock-agentcore/runtimes/*"]
   }
 
-  # 4. CloudWatchLogsDescribeGroups
+  # CloudWatchLogsDescribeGroups
   statement {
     sid       = "CloudWatchLogsDescribeGroups"
     effect    = "Allow"
@@ -217,7 +217,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     resources = ["arn:aws:logs:${local.region}:${local.account_id}:log-group:*"]
   }
 
-  # 5. CloudWatchLogsStreamAccess
+  # CloudWatchLogsStreamAccess
   statement {
     sid    = "CloudWatchLogsStreamAccess"
     effect = "Allow"
@@ -228,7 +228,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     resources = ["arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*"]
   }
 
-  # 6. X-Ray Tracing
+  # X-Ray Tracing
   statement {
     sid    = "XRayTracing"
     effect = "Allow"
@@ -241,7 +241,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     resources = ["*"]
   }
 
-  # 7. CloudWatch Metrics
+  # CloudWatch Metrics
   statement {
     sid       = "CloudWatchMetrics"
     effect    = "Allow"
@@ -255,7 +255,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     }
   }
 
-  # 8. GetAgentAccessToken
+  # GetAgentAccessToken
   statement {
     sid    = "GetAgentAccessToken"
     effect = "Allow"
@@ -270,7 +270,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     ]
   }
 
-  # 9. BedrockModelInvocation
+  # BedrockModelInvocation
   statement {
     sid    = "BedrockModelInvocation"
     effect = "Allow"
@@ -284,15 +284,19 @@ data "aws_iam_policy_document" "runtime_policy" {
     ]
   }
 
-  # 10. SecretsManagerAccess
+  # SecretsManagerOAuth2Access
+  # Runtime needs to read OAuth2 credentials from Token Vault secret
+  # created by AgentCore Identity (not the machine client secret directly)
   statement {
-    sid       = "SecretsManagerAccess"
-    effect    = "Allow"
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = ["arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:/*/machine_client_secret*"]
+    sid     = "SecretsManagerOAuth2Access"
+    effect  = "Allow"
+    actions = ["secretsmanager:GetSecretValue"]
+    resources = [
+      "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:bedrock-agentcore-identity!default/oauth2/${var.stack_name_base}-runtime-gateway-auth*"
+    ]
   }
 
-  # 11. MemoryResourceAccess - references memory resource directly (no variable passing)
+  # MemoryResourceAccess - references memory resource directly (no variable passing)
   statement {
     sid    = "MemoryResourceAccess"
     effect = "Allow"
@@ -305,7 +309,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     resources = [aws_bedrockagentcore_memory.main.arn]
   }
 
-  # 12. SSMParameterAccess
+  # SSMParameterAccess
   statement {
     sid    = "SSMParameterAccess"
     effect = "Allow"
@@ -316,7 +320,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     resources = ["arn:aws:ssm:${local.region}:${local.account_id}:parameter/${var.stack_name_base}/*"]
   }
 
-  # 13. CodeInterpreterAccess
+  # CodeInterpreterAccess
   statement {
     sid    = "CodeInterpreterAccess"
     effect = "Allow"
@@ -326,6 +330,24 @@ data "aws_iam_policy_document" "runtime_policy" {
       "bedrock-agentcore:InvokeCodeInterpreter"
     ]
     resources = ["arn:aws:bedrock-agentcore:${local.region}:aws:code-interpreter/*"]
+  }
+
+  # OAuth2CredentialProviderAccess
+  # The @requires_access_token decorator performs a two-stage process:
+  # GetOauth2CredentialProvider - Looks up provider metadata
+  # GetResourceOauth2Token - Fetches the actual access token from Token Vault
+  statement {
+    sid    = "OAuth2CredentialProviderAccess"
+    effect = "Allow"
+    actions = [
+      "bedrock-agentcore:GetOauth2CredentialProvider",
+      "bedrock-agentcore:GetResourceOauth2Token"
+    ]
+    resources = [
+      "arn:aws:bedrock-agentcore:${local.region}:${local.account_id}:oauth2-credential-provider/*",
+      "arn:aws:bedrock-agentcore:${local.region}:${local.account_id}:token-vault/*",
+      "arn:aws:bedrock-agentcore:${local.region}:${local.account_id}:workload-identity-directory/*"
+    ]
   }
 }
 
@@ -386,8 +408,8 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
   # JWT authorizer configuration (Cognito)
   authorizer_configuration {
     custom_jwt_authorizer {
-      discovery_url    = local.oidc_discovery_url
-      allowed_audience = [var.web_client_id]
+      discovery_url   = local.oidc_discovery_url
+      allowed_clients = [var.web_client_id]
     }
   }
 
@@ -403,10 +425,11 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
 
   # Environment variables for the runtime
   environment_variables = {
-    AWS_REGION         = local.region
-    AWS_DEFAULT_REGION = local.region
-    MEMORY_ID          = aws_bedrockagentcore_memory.main.id
-    STACK_NAME         = var.stack_name_base
+    AWS_REGION                       = local.region
+    AWS_DEFAULT_REGION               = local.region
+    MEMORY_ID                        = aws_bedrockagentcore_memory.main.id
+    STACK_NAME                       = var.stack_name_base
+    GATEWAY_CREDENTIAL_PROVIDER_NAME = "${var.stack_name_base}-runtime-gateway-auth"
   }
 
   tags = var.tags
@@ -422,6 +445,7 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
   depends_on = [
     aws_iam_role_policy.runtime,
     null_resource.invoke_zip_packager,
-    null_resource.docker_build_push
+    null_resource.docker_build_push,
+    null_resource.invoke_oauth2_provider # Ensure provider is registered before Runtime starts
   ]
 }

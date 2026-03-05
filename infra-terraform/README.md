@@ -13,6 +13,7 @@ The infrastructure is organized into 3 Terraform modules, mirroring the CDK stac
 3. **Backend** (`modules/backend/`) - All AgentCore and API resources:
    - AgentCore Memory - Persistent memory for agent conversations
    - M2M Authentication - Cognito resource server and machine client
+   - OAuth2 Credential Provider - Lambda for Runtime → Gateway authentication
    - AgentCore Gateway - MCP gateway with Lambda tool targets
    - AgentCore Runtime - ECR repository and containerized agent runtime
    - Feedback API - API Gateway + Lambda + DynamoDB
@@ -149,6 +150,7 @@ infra-terraform/
         ├── artifacts/         # Build artifacts (.gitignored)
         ├── memory.tf          # AgentCore Memory + IAM
         ├── auth.tf            # M2M resource server + machine client
+        ├── oauth2_provider.tf # OAuth2 provider Lambda + lifecycle management
         ├── gateway.tf         # Gateway + Lambda tool target
         ├── runtime.tf         # ECR/S3 + Agent Runtime (conditional)
         ├── zip_packager.tf    # S3 + Lambda packager (zip mode only)
@@ -156,7 +158,7 @@ infra-terraform/
         └── ssm.tf             # SSM parameters + Secrets Manager
 ```
 
-> **Note:** Feedback Lambda source code is shared from `infra-cdk/lambdas/feedback/`. The zip-packager Lambda is Terraform-specific and lives under `infra-terraform/lambdas/`.
+> **Note:** Feedback and OAuth2 provider Lambda code is shared from `infra-cdk/lambdas/`. The zip-packager Lambda is Terraform-specific and lives under `infra-terraform/lambdas/`.
 
 ## Deployment Order
 
