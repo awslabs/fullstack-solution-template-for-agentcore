@@ -15,17 +15,6 @@ variable "stack_name_base" {
   }
 }
 
-variable "aws_region" {
-  description = "AWS region for deployment."
-  type        = string
-  default     = "us-east-1"
-
-  validation {
-    condition     = can(regex("^[a-z]{2}-[a-z]+-\\d$", var.aws_region))
-    error_message = "Must be a valid AWS region (e.g., us-east-1, eu-west-1)."
-  }
-}
-
 # =============================================================================
 # Optional Variables - Admin User
 # =============================================================================
@@ -56,114 +45,52 @@ variable "backend_pattern" {
   }
 }
 
-variable "deployment_type" {
+variable "backend_deployment_type" {
   description = "Deployment type for AgentCore Runtime. 'docker' uses ECR container image (requires Docker + separate build step). 'zip' uses S3 Python package (no Docker required, single-step deploy)."
   type        = string
   default     = "docker"
 
   validation {
-    condition     = contains(["docker", "zip"], var.deployment_type)
+    condition     = contains(["docker", "zip"], var.backend_deployment_type)
     error_message = "Deployment type must be 'docker' or 'zip'."
   }
 }
 
-variable "agent_name" {
-  description = "Name for the agent runtime."
-  type        = string
-  default     = "StrandsAgent"
-
-  validation {
-    condition     = can(regex("^[a-zA-Z][a-zA-Z0-9_]{1,62}$", var.agent_name))
-    error_message = "Agent name must start with a letter, be 2-63 characters, and contain only alphanumeric characters and underscores."
-  }
-}
-
-variable "network_mode" {
-  description = "Network mode for AgentCore resources. PUBLIC uses public internet, PRIVATE requires VPC configuration."
+variable "backend_network_mode" {
+  description = "Network mode for AgentCore Runtime. PUBLIC (default) uses public internet. VPC deploys into a user-provided VPC for private network isolation."
   type        = string
   default     = "PUBLIC"
 
   validation {
-    condition     = contains(["PUBLIC", "PRIVATE"], var.network_mode)
-    error_message = "Network mode must be PUBLIC or PRIVATE."
+    condition     = contains(["PUBLIC", "VPC"], var.backend_network_mode)
+    error_message = "Network mode must be 'PUBLIC' or 'VPC'."
   }
 }
 
 # =============================================================================
-# VPC Configuration (Required if network_mode = PRIVATE)
+# VPC Configuration (Required if backend_network_mode = VPC)
 # =============================================================================
 
-variable "vpc_id" {
-  description = "VPC ID for private network mode. Required if network_mode is PRIVATE."
+variable "backend_vpc_id" {
+  description = "VPC ID for VPC network mode. Required when backend_network_mode is 'VPC'."
   type        = string
   default     = null
 }
 
-variable "private_subnet_ids" {
-  description = "List of private subnet IDs for private network mode. Required if network_mode is PRIVATE."
+variable "backend_vpc_subnet_ids" {
+  description = "List of subnet IDs for VPC network mode. Required when backend_network_mode is 'VPC'. Subnets should be in at least two Availability Zones."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = length(var.backend_vpc_subnet_ids) == 0 || length(var.backend_vpc_subnet_ids) >= 1
+    error_message = "At least one subnet ID is required when using VPC network mode."
+  }
+}
+
+variable "backend_vpc_security_group_ids" {
+  description = "List of security group IDs for VPC network mode. Optional when backend_network_mode is 'VPC'. If omitted, a default security group is created with HTTPS self-referencing ingress and all-traffic egress."
   type        = list(string)
   default     = []
 }
 
-variable "security_group_ids" {
-  description = "List of security group IDs for private network mode. Required if network_mode is PRIVATE."
-  type        = list(string)
-  default     = []
-}
-
-# =============================================================================
-# Cognito Configuration
-# =============================================================================
-
-variable "callback_urls" {
-  description = "OAuth callback URLs for Cognito. Defaults include localhost for development."
-  type        = list(string)
-  default     = ["http://localhost:3000", "https://localhost:3000"]
-}
-
-variable "password_minimum_length" {
-  description = "Minimum password length for Cognito User Pool."
-  type        = number
-  default     = 8
-
-  validation {
-    condition     = var.password_minimum_length >= 8 && var.password_minimum_length <= 99
-    error_message = "Password minimum length must be between 8 and 99."
-  }
-}
-
-# =============================================================================
-# Memory Configuration
-# =============================================================================
-
-variable "memory_event_expiry_days" {
-  description = "Number of days after which memory events expire. Must be between 7 and 365."
-  type        = number
-  default     = 30
-
-  validation {
-    condition     = var.memory_event_expiry_days >= 7 && var.memory_event_expiry_days <= 365
-    error_message = "Memory event expiry must be between 7 and 365 days."
-  }
-}
-
-# =============================================================================
-# Tagging
-# =============================================================================
-
-variable "tags" {
-  description = "Additional tags to apply to all resources."
-  type        = map(string)
-  default     = {}
-}
-
-variable "environment" {
-  description = "Environment name (e.g., dev, staging, prod)."
-  type        = string
-  default     = "dev"
-
-  validation {
-    condition     = contains(["dev", "staging", "prod", "test"], var.environment)
-    error_message = "Environment must be one of: dev, staging, prod, test."
-  }
-}

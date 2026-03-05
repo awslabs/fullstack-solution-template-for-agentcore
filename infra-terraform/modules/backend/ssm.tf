@@ -17,7 +17,6 @@ resource "aws_ssm_parameter" "runtime_arn" {
   type        = "String"
   value       = aws_bedrockagentcore_agent_runtime.main.agent_runtime_arn
 
-  tags = var.tags
 }
 
 resource "aws_ssm_parameter" "cognito_user_pool_id" {
@@ -26,7 +25,6 @@ resource "aws_ssm_parameter" "cognito_user_pool_id" {
   type        = "String"
   value       = var.user_pool_id
 
-  tags = var.tags
 }
 
 resource "aws_ssm_parameter" "cognito_user_pool_client_id" {
@@ -35,7 +33,6 @@ resource "aws_ssm_parameter" "cognito_user_pool_client_id" {
   type        = "String"
   value       = var.web_client_id
 
-  tags = var.tags
 }
 
 resource "aws_ssm_parameter" "machine_client_id" {
@@ -44,7 +41,6 @@ resource "aws_ssm_parameter" "machine_client_id" {
   type        = "String"
   value       = aws_cognito_user_pool_client.machine.id
 
-  tags = var.tags
 }
 
 resource "aws_ssm_parameter" "cognito_provider" {
@@ -53,7 +49,6 @@ resource "aws_ssm_parameter" "cognito_provider" {
   type        = "String"
   value       = var.cognito_domain_url
 
-  tags = var.tags
 }
 
 resource "aws_ssm_parameter" "feedback_api_url" {
@@ -62,7 +57,6 @@ resource "aws_ssm_parameter" "feedback_api_url" {
   type        = "String"
   value       = "${aws_api_gateway_stage.prod.invoke_url}/feedback"
 
-  tags = var.tags
 }
 
 resource "aws_ssm_parameter" "gateway_url" {
@@ -71,7 +65,6 @@ resource "aws_ssm_parameter" "gateway_url" {
   type        = "String"
   value       = aws_bedrockagentcore_gateway.main.gateway_url
 
-  tags = var.tags
 }
 
 # Agent Code Bucket (zip mode only) - matches CDK's AgentCodeBucketNameParam
@@ -83,7 +76,6 @@ resource "aws_ssm_parameter" "agent_code_bucket" {
   type        = "String"
   value       = aws_s3_bucket.agent_code[0].id
 
-  tags = var.tags
 }
 
 # -----------------------------------------------------------------------------
@@ -95,7 +87,6 @@ resource "aws_secretsmanager_secret" "machine_client_secret" {
   name        = "${local.ssm_parameter_prefix}/machine_client_secret"
   description = "Machine Client Secret for M2M authentication"
 
-  tags = var.tags
 }
 
 resource "aws_secretsmanager_secret_version" "machine_client_secret" {

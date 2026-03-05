@@ -43,11 +43,6 @@ output "cognito_domain_url" {
   value       = "${aws_cognito_user_pool_domain.main.domain}.auth.${local.region}.amazoncognito.com"
 }
 
-output "hosted_ui_url" {
-  description = "Cognito hosted UI login URL"
-  value       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${local.region}.amazoncognito.com/login?client_id=${aws_cognito_user_pool_client.web.id}&response_type=code&redirect_uri=${urlencode(local.all_callback_urls[0])}"
-}
-
 # =============================================================================
 # OIDC Configuration Outputs
 # =============================================================================

@@ -25,8 +25,6 @@ resource "aws_ecr_repository" "agent" {
   encryption_configuration {
     encryption_type = "AES256"
   }
-
-  tags = var.tags
 }
 
 # ECR Lifecycle policy to keep only recent images
@@ -146,8 +144,6 @@ resource "aws_iam_role" "runtime" {
   name               = "${var.stack_name_base}-agentcore-runtime-role"
   assume_role_policy = data.aws_iam_policy_document.runtime_assume_role.json
   description        = "Execution role for AgentCore Runtime"
-
-  tags = var.tags
 }
 
 # -----------------------------------------------------------------------------
@@ -358,6 +354,53 @@ resource "aws_iam_role_policy" "runtime" {
 }
 
 # -----------------------------------------------------------------------------
+# Default Security Group (for VPC mode, when none provided)
+# -----------------------------------------------------------------------------
+
+locals {
+  # Use user-provided security groups, or fall back to the auto-created default
+  effective_security_group_ids = (
+    var.backend_network_mode == "VPC" && length(var.backend_vpc_security_group_ids) == 0
+    ? [aws_security_group.runtime_default[0].id]
+    : var.backend_vpc_security_group_ids
+  )
+}
+
+resource "aws_security_group" "runtime_default" {
+  count = var.backend_network_mode == "VPC" && length(var.backend_vpc_security_group_ids) == 0 ? 1 : 0
+
+  name        = "${var.stack_name_base}-agentcore-runtime-sg"
+  description = "Default security group for AgentCore Runtime VPC deployment"
+  vpc_id      = var.backend_vpc_id
+
+  tags = {
+    Name = "${var.stack_name_base}-agentcore-runtime-sg"
+  }
+}
+
+# Self-referencing ingress rule: allows HTTPS traffic between runtime and VPC endpoints
+resource "aws_vpc_security_group_ingress_rule" "runtime_default_https" {
+  count = var.backend_network_mode == "VPC" && length(var.backend_vpc_security_group_ids) == 0 ? 1 : 0
+
+  security_group_id            = aws_security_group.runtime_default[0].id
+  referenced_security_group_id = aws_security_group.runtime_default[0].id
+  from_port                    = 443
+  to_port                      = 443
+  ip_protocol                  = "tcp"
+  description                  = "Allow HTTPS from self (VPC endpoint access)"
+}
+
+# Egress rule: allow all outbound traffic (matches CDK allowAllOutbound: true)
+resource "aws_vpc_security_group_egress_rule" "runtime_default_all" {
+  count = var.backend_network_mode == "VPC" && length(var.backend_vpc_security_group_ids) == 0 ? 1 : 0
+
+  security_group_id = aws_security_group.runtime_default[0].id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+  description       = "Allow all outbound traffic"
+}
+
+# -----------------------------------------------------------------------------
 # AgentCore Runtime
 # -----------------------------------------------------------------------------
 
@@ -393,14 +436,18 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
   }
 
   # Network configuration
+  # PUBLIC: Runtime is accessible over the public internet (default).
+  # VPC: Runtime is deployed into a user-provided VPC for private network isolation.
+  #      The user must ensure their VPC has the necessary VPC endpoints for AWS services.
+  #      See docs/DEPLOYMENT.md for the full list of required VPC endpoints.
   network_configuration {
-    network_mode = var.network_mode
+    network_mode = var.backend_network_mode
 
     dynamic "network_mode_config" {
-      for_each = var.network_mode == "PRIVATE" && length(var.private_subnet_ids) > 0 ? [1] : []
+      for_each = var.backend_network_mode == "VPC" ? [1] : []
       content {
-        subnets         = var.private_subnet_ids
-        security_groups = var.security_group_ids
+        subnets         = var.backend_vpc_subnet_ids
+        security_groups = local.effective_security_group_ids
       }
     }
   }
@@ -431,8 +478,6 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
     STACK_NAME                       = var.stack_name_base
     GATEWAY_CREDENTIAL_PROVIDER_NAME = "${var.stack_name_base}-runtime-gateway-auth"
   }
-
-  tags = var.tags
 
   # Force runtime replacement when agent code changes (zip or docker)
   lifecycle {

@@ -24,7 +24,6 @@ resource "aws_cloudwatch_log_group" "oauth2_provider" {
   name              = "/aws/lambda/${var.stack_name_base}-oauth2-provider"
   retention_in_days = 7
 
-  tags = var.tags
 }
 
 # -----------------------------------------------------------------------------
@@ -47,7 +46,6 @@ resource "aws_iam_role" "oauth2_provider" {
   name               = "${var.stack_name_base}-oauth2-provider-role"
   assume_role_policy = data.aws_iam_policy_document.oauth2_provider_assume_role.json
 
-  tags = var.tags
 }
 
 # IAM Policy for OAuth2 Provider Lambda
@@ -152,7 +150,6 @@ resource "aws_lambda_function" "oauth2_provider" {
   runtime          = "python3.13"
   timeout          = 300 # 5 minutes
 
-  tags = var.tags
 
   depends_on = [
     aws_cloudwatch_log_group.oauth2_provider,

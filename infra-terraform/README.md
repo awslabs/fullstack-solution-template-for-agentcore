@@ -23,7 +23,7 @@ The infrastructure is organized into 3 Terraform modules, mirroring the CDK stac
 
 1. **Terraform** >= 1.5.0
 2. **AWS CLI** configured with appropriate credentials
-3. **Docker** (only required for `deployment_type = "docker"`)
+3. **Docker** (only required for `backend_deployment_type = "docker"`)
 
 > **Note:** This project requires **AWS provider v6.22.0 - v6.34.x**. AWS provider v6.35.0+ has a regression that breaks Gateway Target resources. The version is constrained in `versions.tf`. See [Troubleshooting](#gateway-target-schema-error) for details.
 
@@ -37,9 +37,9 @@ FAST supports two deployment types for the AgentCore Runtime:
 | **Requires Docker** | Yes | No |
 | **Best for** | Custom runtime images, complex dependencies | Quick deployment, CI/CD, environments without Docker |
 
-Set `deployment_type` in your `terraform.tfvars`:
+Set `backend_deployment_type` in your `terraform.tfvars`:
 ```hcl
-deployment_type = "docker"  # or "zip"
+backend_deployment_type = "docker"  # or "zip"
 ```
 
 ## Quick Start
@@ -93,8 +93,7 @@ terraform output deployment_summary
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `stack_name_base` | Base name for all resources | `"fast"` |
-| `aws_region` | AWS region for deployment | `"us-east-1"` |
+| `stack_name_base` | Base name for all resources | - |
 
 ### Optional Variables
 
@@ -102,22 +101,85 @@ terraform output deployment_summary
 |----------|-------------|---------|
 | `admin_user_email` | Email for Cognito admin user | `null` |
 | `backend_pattern` | Agent pattern to deploy | `"strands-single-agent"` |
-| `deployment_type` | `"docker"` (ECR container) or `"zip"` (S3 package) | `"docker"` |
-| `agent_name` | Name for the agent runtime | `"StrandsAgent"` |
-| `network_mode` | Network mode (PUBLIC/PRIVATE) | `"PUBLIC"` |
-| `environment` | Environment name for tagging | `"dev"` |
-| `memory_event_expiry_days` | Memory event TTL in days | `30` |
+| `backend_deployment_type` | `"docker"` (ECR container) or `"zip"` (S3 package) | `"docker"` |
+| `backend_network_mode` | Network mode (PUBLIC/VPC) | `"PUBLIC"` |
+| `backend_vpc_id` | VPC ID (required when VPC mode) | `null` |
+| `backend_vpc_subnet_ids` | Subnet IDs (required when VPC mode) | `[]` |
+| `backend_vpc_security_group_ids` | Security group IDs (optional for VPC mode) | `[]` |
 
-### VPC Configuration (Private Mode)
+**Region:** Set via the `AWS_REGION` environment variable or AWS CLI profile (`aws configure`). The Terraform provider uses the standard AWS SDK resolution chain -- no region variable is needed.
 
-For `PRIVATE` network mode, provide VPC details:
+**Tags:** The provider applies default tags (Project, ManagedBy, Repository) to all resources automatically. Add custom tags directly in the provider's `default_tags` block in `main.tf`.
+
+### CDK config.yaml to Terraform Variable Mapping
+
+Terraform uses flat variables with a `backend_` prefix to mirror the CDK's nested `config.yaml` structure. VPC-specific fields use `backend_vpc_` to reflect `backend.vpc.*` nesting:
+
+| CDK config.yaml path | Terraform variable | Notes |
+|---|---|---|
+| `stack_name_base` | `stack_name_base` | |
+| `admin_user_email` | `admin_user_email` | |
+| `backend.pattern` | `backend_pattern` | |
+| `backend.deployment_type` | `backend_deployment_type` | |
+| `backend.network_mode` | `backend_network_mode` | Added in MR !41 |
+| `backend.vpc.vpc_id` | `backend_vpc_id` | Added in MR !41 |
+| `backend.vpc.subnet_ids` | `backend_vpc_subnet_ids` | Added in MR !41 |
+| `backend.vpc.security_group_ids` | `backend_vpc_security_group_ids` | Added in MR !41 |
+
+Values that are hardcoded in CDK (not in `config.yaml`) are defined as module-internal locals in Terraform: agent name (`StrandsAgent`), memory event expiry (30 days), callback URLs, and password minimum length.
+
+### VPC Deployment (Private Network)
+
+By default, the AgentCore Runtime runs in PUBLIC network mode with internet access. To deploy the runtime into an existing VPC for private network isolation, set `backend_network_mode = "VPC"` and provide your VPC details:
 
 ```hcl
-network_mode       = "PRIVATE"
-vpc_id             = "vpc-xxxxxxxx"
-private_subnet_ids = ["subnet-xxx", "subnet-yyy"]
-security_group_ids = ["sg-xxxxxxxx"]
+backend_network_mode           = "VPC"
+backend_vpc_id                 = "vpc-0abc1234def56789a"
+backend_vpc_subnet_ids         = ["subnet-aaaa1111bbbb2222c", "subnet-cccc3333dddd4444e"]
+backend_vpc_security_group_ids = ["sg-0abc1234def56789a"]  # Optional
 ```
+
+The `backend_vpc_id` and `backend_vpc_subnet_ids` fields are required when using VPC mode. The `backend_vpc_security_group_ids` field is optional -- if omitted, a default security group is created with HTTPS (TCP 443) self-referencing ingress and all-traffic egress.
+
+#### Required VPC Endpoints
+
+When deploying in VPC mode, the runtime runs in private subnets without internet access. Your VPC must have the following VPC endpoints configured so the agent can reach the AWS services it depends on:
+
+| Endpoint | Service | Type |
+|----------|---------|------|
+| `com.amazonaws.{region}.bedrock-runtime` | Bedrock model invocation | Interface |
+| `com.amazonaws.{region}.bedrock-agent-runtime` | AgentCore Runtime | Interface |
+| `com.amazonaws.{region}.ssm` | SSM Parameter Store | Interface |
+| `com.amazonaws.{region}.secretsmanager` | Secrets Manager | Interface |
+| `com.amazonaws.{region}.logs` | CloudWatch Logs | Interface |
+| `com.amazonaws.{region}.ecr.api` | ECR API (Docker deployment) | Interface |
+| `com.amazonaws.{region}.ecr.dkr` | ECR Docker (Docker deployment) | Interface |
+| `com.amazonaws.{region}.s3` | S3 (ZIP deployment, ECR layers) | Gateway |
+| `com.amazonaws.{region}.dynamodb` | DynamoDB (feedback table) | Gateway |
+
+Replace `{region}` with your deployment region (e.g. `us-east-1`).
+
+All interface endpoints must have private DNS enabled and must be associated with the same subnets and security groups that allow traffic from the AgentCore Runtime.
+
+#### Subnet Requirements
+
+- Use private subnets (no internet gateway route) for proper network isolation
+- Subnets should be in at least two Availability Zones for high availability
+- Subnets must have sufficient available IP addresses for the runtime ENIs
+
+#### NAT Gateway
+
+A NAT Gateway is required for VPC mode. The agent authenticates with Cognito using the OAuth2 client credentials flow, which calls the Cognito hosted UI token endpoint over HTTPS. This endpoint has no VPC endpoint and can only be reached over the internet. A NAT Gateway in a public subnet with a `0.0.0.0/0` route from your private subnets provides this outbound IPv4 access. All other AWS service traffic (Bedrock, SSM, etc.) stays internal via VPC endpoints.
+
+#### Security Group Configuration
+
+If you omit `backend_vpc_security_group_ids`, a default security group is created automatically with:
+- Ingress: TCP 443 self-referencing (for VPC endpoint access)
+- Egress: all traffic
+
+If you provide your own security groups, you must ensure they allow inbound HTTPS (TCP 443) traffic from the runtime to the VPC endpoints. A common pattern is a self-referencing inbound rule:
+
+- Protocol: TCP, Port: 443, Source: the security group itself
 
 ## Module Structure
 

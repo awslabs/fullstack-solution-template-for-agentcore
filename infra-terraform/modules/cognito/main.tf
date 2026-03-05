@@ -19,8 +19,14 @@ locals {
   # Cognito domain prefix (must be globally unique and lowercase)
   domain_prefix = "${lower(replace(var.stack_name_base, "_", "-"))}-${local.account_id}-${local.region}"
 
+  # Callback URLs (hardcoded to match CDK cognito-stack.ts defaults)
+  default_callback_urls = ["http://localhost:3000", "https://localhost:3000"]
+
   # Combine callback URLs with Amplify URL if provided
-  all_callback_urls = var.amplify_url != null ? concat(var.callback_urls, [var.amplify_url]) : var.callback_urls
+  all_callback_urls = var.amplify_url != null ? concat(local.default_callback_urls, [var.amplify_url]) : local.default_callback_urls
+
+  # Password minimum length (hardcoded to match CDK cognito-stack.ts)
+  password_minimum_length = 8
 
   # User invitation email template
   invitation_email_subject = "Welcome to ${var.stack_name_base}!"
@@ -70,7 +76,7 @@ resource "aws_cognito_user_pool" "main" {
 
   # Password policy
   password_policy {
-    minimum_length                   = var.password_minimum_length
+    minimum_length                   = local.password_minimum_length
     require_lowercase                = true
     require_uppercase                = true
     require_numbers                  = true
@@ -99,8 +105,6 @@ resource "aws_cognito_user_pool" "main" {
 
   # Allow deletion (no protection)
   deletion_protection = "INACTIVE"
-
-  tags = var.tags
 }
 
 # =============================================================================

@@ -51,7 +51,6 @@ resource "aws_dynamodb_table" "feedback" {
     enabled = true
   }
 
-  tags = var.tags
 }
 
 # -----------------------------------------------------------------------------
@@ -62,7 +61,6 @@ resource "aws_cloudwatch_log_group" "feedback_lambda" {
   name              = "/aws/lambda/${var.stack_name_base}-feedback"
   retention_in_days = local.log_retention_days
 
-  tags = var.tags
 }
 
 # -----------------------------------------------------------------------------
@@ -86,7 +84,6 @@ resource "aws_iam_role" "feedback_lambda" {
   assume_role_policy = data.aws_iam_policy_document.feedback_lambda_assume_role.json
   description        = "Execution role for feedback Lambda function"
 
-  tags = var.tags
 }
 
 data "aws_iam_policy_document" "feedback_lambda_policy" {
@@ -182,7 +179,6 @@ resource "aws_lambda_function" "feedback" {
 
   depends_on = [aws_cloudwatch_log_group.feedback_lambda]
 
-  tags = var.tags
 }
 
 # -----------------------------------------------------------------------------
@@ -197,7 +193,6 @@ resource "aws_api_gateway_rest_api" "feedback" {
     types = ["REGIONAL"]
   }
 
-  tags = var.tags
 }
 
 # -----------------------------------------------------------------------------
@@ -365,7 +360,6 @@ resource "aws_api_gateway_stage" "prod" {
     })
   }
 
-  tags = var.tags
 
   depends_on = [aws_cloudwatch_log_group.api_gateway_access]
 }
@@ -375,7 +369,6 @@ resource "aws_cloudwatch_log_group" "api_gateway_access" {
   name              = "/aws/apigateway/${var.stack_name_base}-feedback-api/access-logs"
   retention_in_days = local.log_retention_days
 
-  tags = var.tags
 }
 
 # -----------------------------------------------------------------------------

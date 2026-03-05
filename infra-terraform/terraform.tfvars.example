@@ -5,6 +5,9 @@
 # Terraform Configuration Example
 # =============================================================================
 # Copy this file to terraform.tfvars and customize the values.
+#
+# Region: Set via AWS_REGION environment variable or AWS CLI profile.
+# Tags: Add custom tags via the provider's default_tags block in main.tf.
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -13,9 +16,6 @@
 
 # Base name for all resources
 stack_name_base = "fast-demo-stack"
-
-# AWS region for deployment
-aws_region = "us-east-1"
 
 # -----------------------------------------------------------------------------
 # Optional: Admin User
@@ -35,54 +35,26 @@ backend_pattern = "strands-single-agent"
 
 # Deployment type for AgentCore Runtime
 # "docker" - Container image via ECR (requires Docker + separate build step)
-#   Deployment: terraform apply → ./scripts/build-and-push-image.sh → terraform apply
+#   Deployment: terraform apply -> ./scripts/build-and-push-image.sh -> terraform apply
 # "zip" - Python package via S3 (no Docker required, single-step deploy)
 #   Deployment: terraform apply (packages and deploys automatically)
-deployment_type = "docker"
+backend_deployment_type = "docker"
 
-# Name for the agent runtime
-agent_name = "StrandsAgent"
-
-# Network mode for AgentCore resources
-# PUBLIC: Uses public internet (default)
-# PRIVATE: Requires VPC configuration below
-network_mode = "PUBLIC"
+# Network mode for AgentCore Runtime
+# PUBLIC: Runtime is accessible over the public internet (default)
+# VPC: Runtime is deployed into a user-provided VPC for private network isolation
+backend_network_mode = "PUBLIC"
 
 # -----------------------------------------------------------------------------
-# VPC Configuration (Required only if network_mode = "PRIVATE")
+# VPC Configuration (Required only if backend_network_mode = "VPC")
 # -----------------------------------------------------------------------------
-# Uncomment and configure if using PRIVATE network mode
+# Uncomment and configure if using VPC network mode.
+# Your VPC must have the necessary VPC endpoints for AWS services.
+# See README.md VPC Deployment Mode section for full requirements.
+#
+# Security groups are optional. If omitted, a default security group is created
+# with HTTPS (443) self-referencing ingress and all-traffic egress.
 
-# vpc_id             = "vpc-xxxxxxxxxxxxxxxxx"
-# private_subnet_ids = ["subnet-xxxxxxxxxxxxxxxxx", "subnet-yyyyyyyyyyyyyyyyy"]
-# security_group_ids = ["sg-xxxxxxxxxxxxxxxxx"]
-
-# -----------------------------------------------------------------------------
-# Cognito Configuration
-# -----------------------------------------------------------------------------
-
-# OAuth callback URLs (localhost included for development)
-callback_urls = ["http://localhost:3000", "https://localhost:3000"]
-
-# Minimum password length for Cognito User Pool
-password_minimum_length = 8
-
-# -----------------------------------------------------------------------------
-# Memory Configuration
-# -----------------------------------------------------------------------------
-
-# Number of days after which memory events expire (7-365)
-memory_event_expiry_days = 30
-
-# -----------------------------------------------------------------------------
-# Environment and Tagging
-# -----------------------------------------------------------------------------
-
-# Environment name
-environment = "dev"
-
-# Additional tags to apply to all resources
-tags = {
-  # Team = "YourTeam"
-  # CostCenter = "12345"
-}
+# backend_vpc_id                 = "vpc-xxxxxxxxxxxxxxxxx"
+# backend_vpc_subnet_ids         = ["subnet-xxxxxxxxxxxxxxxxx", "subnet-yyyyyyyyyyyyyyyyy"]
+# backend_vpc_security_group_ids = ["sg-xxxxxxxxxxxxxxxxx"]  # Optional

@@ -27,7 +27,7 @@ resource "aws_s3_bucket" "access_logs" {
   bucket_prefix = "${lower(var.stack_name_base)}-access-logs-"
   force_destroy = true
 
-  tags = var.tags
+
 }
 
 resource "aws_s3_bucket_public_access_block" "access_logs" {
@@ -60,7 +60,7 @@ resource "aws_s3_bucket" "staging" {
   bucket_prefix = "${lower(var.stack_name_base)}-staging-"
   force_destroy = true
 
-  tags = var.tags
+
 }
 
 resource "aws_s3_bucket_versioning" "staging" {
@@ -148,7 +148,7 @@ resource "aws_amplify_app" "frontend" {
   platform    = var.platform
   description = "${var.stack_name_base} - React/Next.js Frontend"
 
-  tags = var.tags
+
 }
 
 # =============================================================================
@@ -165,5 +165,5 @@ resource "aws_amplify_branch" "main" {
   # Enable auto-build on push (if using Git integration)
   enable_auto_build = false
 
-  tags = var.tags
+
 }

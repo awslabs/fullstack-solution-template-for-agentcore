@@ -92,20 +92,18 @@ if [[ -z "$STACK_NAME" || -z "$REGION" ]]; then
             STACK_NAME=$(grep -E '^stack_name_base\s*=' "$TFVARS_FILE" | awk -F'"' '{print $2}')
         fi
         
-        if [[ -z "$REGION" ]]; then
-            REGION=$(grep -E '^aws_region\s*=' "$TFVARS_FILE" | awk -F'"' '{print $2}')
-        fi
+        # Region is resolved from AWS_REGION env var or AWS CLI profile (not in tfvars)
     fi
 fi
 
 # Check deployment type - this script is for docker mode only
 TFVARS_FILE="$TERRAFORM_DIR/terraform.tfvars"
 if [[ -f "$TFVARS_FILE" ]]; then
-    DEPLOYMENT_TYPE=$(grep -E '^deployment_type\s*=' "$TFVARS_FILE" | awk -F'"' '{print $2}')
+    DEPLOYMENT_TYPE=$(grep -E '^backend_deployment_type\s*=' "$TFVARS_FILE" | awk -F'"' '{print $2}')
     if [[ "$DEPLOYMENT_TYPE" == "zip" ]]; then
-        echo -e "${YELLOW}========================================${NC}"
-        echo -e "${YELLOW}  deployment_type is set to 'zip'      ${NC}"
-        echo -e "${YELLOW}========================================${NC}"
+        echo -e "${YELLOW}===========================================${NC}"
+        echo -e "${YELLOW}  backend_deployment_type is set to 'zip' ${NC}"
+        echo -e "${YELLOW}===========================================${NC}"
         echo ""
         echo -e "This script is only needed for ${GREEN}docker${NC} deployment mode."
         echo -e "With ${GREEN}zip${NC} mode, agent code is packaged automatically during ${BLUE}terraform apply${NC}."
@@ -114,12 +112,19 @@ if [[ -f "$TFVARS_FILE" ]]; then
     fi
 fi
 
-# Set defaults if still empty
-REGION="${REGION:-us-east-1}"
+# Resolve region: CLI flag > AWS_REGION env > AWS_DEFAULT_REGION env > AWS CLI config
+if [[ -z "$REGION" ]]; then
+    REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-$(aws configure get region 2>/dev/null || echo "")}}"
+fi
 
 # Validate required values
 if [[ -z "$STACK_NAME" ]]; then
     echo -e "${RED}Error: Stack name not found. Please specify with -s or set in terraform.tfvars${NC}"
+    exit 1
+fi
+
+if [[ -z "$REGION" ]]; then
+    echo -e "${RED}Error: AWS region not found. Set AWS_REGION environment variable or configure via 'aws configure'.${NC}"
     exit 1
 fi
 
