@@ -24,6 +24,8 @@ The infrastructure is organized into 3 Terraform modules, mirroring the CDK stac
 2. **AWS CLI** configured with appropriate credentials
 3. **Docker** (only required for `deployment_type = "docker"`)
 
+> **Note:** This project requires **AWS provider v6.22.0 - v6.34.x**. AWS provider v6.35.0+ has a regression that breaks Gateway Target resources. The version is constrained in `versions.tf`. See [Troubleshooting](#gateway-target-schema-error) for details.
+
 ## Deployment Types
 
 FAST supports two deployment types for the AgentCore Runtime:
@@ -295,6 +297,49 @@ If your provider version doesn't support these resources yet, use the AWS CLI:
 ```bash
 aws bedrock-agentcore create-agent-runtime --cli-input-json file://runtime-config.json
 ```
+
+### Gateway Target Schema Error
+
+**Error Message:**
+```
+Error: reading Bedrock AgentCore Gateway Target: Unsupported Type
+  with module.backend.aws_bedrockagentcore_gateway_target.sample_tool,
+  on modules/backend/gateway.tf line 226
+Cause: schema definition flatten: *types.SchemaDefinition
+```
+
+**Cause:**
+AWS Terraform provider regression introduced in v6.35.0 affects Gateway Target resources with nested `input_schema.property` blocks. The provider cannot deserialize the schema during state refresh.
+
+**Solution:**
+This project requires **AWS provider v6.22.0 through v6.34.x**. The version is constrained in `versions.tf`:
+
+```hcl
+required_providers {
+  aws = {
+    source  = "hashicorp/aws"
+    version = ">= 6.22.0, < 6.35.0"
+  }
+}
+```
+
+**Alternative Solution (if you need AWS provider v6.35.0+):**
+
+If you must use a provider version >= v6.35.0 and are facing this issue, you can skip automatic state refresh to avoid the deserialization error:
+
+```bash
+# Skip refresh during plan
+terraform plan -refresh=false
+
+# Skip refresh during apply
+terraform apply -refresh=false
+```
+
+Note: This workaround bypasses the bug but means Terraform won't detect external changes to your Gateway Target resources. Use with caution and ensure you manually verify resource state. See [Terraform docs on skipping state refresh](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/run/modes-and-options#skipping-automatic-state-refresh).
+
+**Provider Version Compatibility:**
+- v6.22.0 - v6.34.0: Recommended (full feature support)
+- v6.35.0+: Broken (Gateway Target schema deserialization fails)
 
 ## Cleanup
 
