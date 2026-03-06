@@ -14,7 +14,6 @@ resource "aws_cloudwatch_log_group" "tool_lambda" {
   name              = "/aws/lambda/${var.stack_name_base}-sample-tool"
   retention_in_days = local.log_retention_days
 
-  tags = var.tags
 }
 
 # -----------------------------------------------------------------------------
@@ -38,7 +37,6 @@ resource "aws_iam_role" "tool_lambda" {
   assume_role_policy = data.aws_iam_policy_document.tool_lambda_assume_role.json
   description        = "Execution role for sample tool Lambda"
 
-  tags = var.tags
 }
 
 data "aws_iam_policy_document" "tool_lambda_policy" {
@@ -81,7 +79,6 @@ resource "aws_lambda_function" "sample_tool" {
 
   depends_on = [aws_cloudwatch_log_group.tool_lambda]
 
-  tags = var.tags
 }
 
 # -----------------------------------------------------------------------------
@@ -105,7 +102,6 @@ resource "aws_iam_role" "gateway" {
   assume_role_policy = data.aws_iam_policy_document.gateway_assume_role.json
   description        = "Role for AgentCore Gateway"
 
-  tags = var.tags
 }
 
 data "aws_iam_policy_document" "gateway_policy" {
@@ -211,7 +207,6 @@ resource "aws_bedrockagentcore_gateway" "main" {
     }
   }
 
-  tags = var.tags
 
   depends_on = [time_sleep.gateway_iam_propagation]
 }

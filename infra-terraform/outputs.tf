@@ -10,11 +10,6 @@ output "cognito_user_pool_id" {
   value       = module.cognito.user_pool_id
 }
 
-output "cognito_user_pool_arn" {
-  description = "Cognito User Pool ARN"
-  value       = module.cognito.user_pool_arn
-}
-
 output "cognito_web_client_id" {
   description = "Cognito Web Client ID (for frontend)"
   value       = module.cognito.web_client_id
@@ -28,11 +23,6 @@ output "cognito_machine_client_id" {
 output "cognito_domain_url" {
   description = "Cognito domain URL for OAuth"
   value       = module.cognito.cognito_domain_url
-}
-
-output "cognito_hosted_ui_url" {
-  description = "Cognito hosted UI login URL"
-  value       = module.cognito.hosted_ui_url
 }
 
 # =============================================================================
@@ -57,11 +47,6 @@ output "amplify_staging_bucket" {
 # =============================================================================
 # AgentCore Memory Outputs
 # =============================================================================
-
-output "memory_id" {
-  description = "AgentCore Memory ID"
-  value       = module.backend.memory_id
-}
 
 output "memory_arn" {
   description = "AgentCore Memory ARN"
@@ -116,21 +101,6 @@ output "runtime_role_arn" {
   value       = module.backend.runtime_role_arn
 }
 
-output "ecr_repository_url" {
-  description = "ECR repository URL for agent container (docker mode only)"
-  value       = module.backend.ecr_repository_url
-}
-
-output "agent_code_bucket" {
-  description = "S3 bucket for agent code packages (zip mode only)"
-  value       = module.backend.agent_code_bucket
-}
-
-output "deployment_type" {
-  description = "Deployment type used (docker or zip)"
-  value       = module.backend.deployment_type
-}
-
 # =============================================================================
 # Feedback API Outputs
 # =============================================================================
@@ -138,21 +108,6 @@ output "deployment_type" {
 output "feedback_api_url" {
   description = "Feedback API Gateway URL"
   value       = module.backend.feedback_api_url
-}
-
-output "feedback_api_id" {
-  description = "Feedback API Gateway ID"
-  value       = module.backend.feedback_api_id
-}
-
-output "feedback_table_name" {
-  description = "Feedback DynamoDB table name"
-  value       = module.backend.feedback_table_name
-}
-
-output "feedback_lambda_arn" {
-  description = "Feedback Lambda function ARN"
-  value       = module.backend.feedback_lambda_arn
 }
 
 # =============================================================================
@@ -174,11 +129,9 @@ output "deployment_summary" {
     stack_name      = var.stack_name_base
     region          = local.region
     account_id      = local.account_id
-    environment     = var.environment
-    deployment_type = var.deployment_type
+    deployment_type = var.backend_deployment_type
     frontend_url    = module.amplify_hosting.app_url
     gateway_url     = module.backend.gateway_url
     api_url         = module.backend.feedback_api_url
-    cognito_login   = module.cognito.hosted_ui_url
   }
 }

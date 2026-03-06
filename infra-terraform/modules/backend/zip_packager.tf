@@ -21,7 +21,6 @@ resource "aws_s3_bucket" "agent_code" {
   bucket        = "${var.stack_name_base}-agent-code-${local.account_id}"
   force_destroy = true
 
-  tags = var.tags
 }
 
 resource "aws_s3_bucket_versioning" "agent_code" {
@@ -81,7 +80,6 @@ resource "aws_iam_role" "zip_packager" {
   name               = "${var.stack_name_base}-zip-packager-role"
   assume_role_policy = data.aws_iam_policy_document.zip_packager_assume_role[0].json
 
-  tags = var.tags
 }
 
 data "aws_iam_policy_document" "zip_packager_policy" {
@@ -131,7 +129,6 @@ resource "aws_cloudwatch_log_group" "zip_packager" {
   name              = "/aws/lambda/${var.stack_name_base}-zip-packager"
   retention_in_days = local.log_retention_days
 
-  tags = var.tags
 }
 
 # -----------------------------------------------------------------------------
@@ -164,7 +161,6 @@ resource "aws_lambda_function" "zip_packager" {
     size = 2048
   }
 
-  tags = var.tags
 
   depends_on = [
     aws_cloudwatch_log_group.zip_packager[0],

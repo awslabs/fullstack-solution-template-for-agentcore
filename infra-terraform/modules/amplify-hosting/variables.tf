@@ -23,9 +23,3 @@ variable "access_logs_expiry_days" {
   type        = number
   default     = 90
 }
-
-variable "tags" {
-  description = "Tags to apply to all resources."
-  type        = map(string)
-  default     = {}
-}

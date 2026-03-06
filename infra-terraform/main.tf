@@ -6,8 +6,6 @@
 # =============================================================================
 
 provider "aws" {
-  region = var.aws_region
-
   default_tags {
     tags = local.common_tags
   }
@@ -36,8 +34,6 @@ module "amplify_hosting" {
 
   staging_bucket_expiry_days = local.staging_bucket_expiry_days
   access_logs_expiry_days    = local.access_logs_expiry_days
-
-  tags = local.common_tags
 }
 
 # =============================================================================
@@ -52,15 +48,11 @@ module "amplify_hosting" {
 module "cognito" {
   source = "./modules/cognito"
 
-  stack_name_base         = var.stack_name_base
-  admin_user_email        = var.admin_user_email
-  callback_urls           = local.default_callback_urls
-  password_minimum_length = var.password_minimum_length
+  stack_name_base  = var.stack_name_base
+  admin_user_email = var.admin_user_email
 
   # Use the predictable Amplify URL from the app_url output
   amplify_url = module.amplify_hosting.app_url
-
-  tags = local.common_tags
 
   depends_on = [module.amplify_hosting]
 }
@@ -79,17 +71,15 @@ module "cognito" {
 module "backend" {
   source = "./modules/backend"
 
-  stack_name_base          = var.stack_name_base
-  backend_pattern          = var.backend_pattern
-  deployment_type          = var.deployment_type
-  agent_name               = var.agent_name
-  network_mode             = var.network_mode
-  memory_event_expiry_days = var.memory_event_expiry_days
+  stack_name_base         = var.stack_name_base
+  backend_pattern         = var.backend_pattern
+  backend_deployment_type = var.backend_deployment_type
+  backend_network_mode    = var.backend_network_mode
 
-  # VPC configuration (for PRIVATE mode)
-  vpc_id             = var.vpc_id
-  private_subnet_ids = var.private_subnet_ids
-  security_group_ids = var.security_group_ids
+  # VPC configuration (for VPC mode)
+  backend_vpc_id                 = var.backend_vpc_id
+  backend_vpc_subnet_ids         = var.backend_vpc_subnet_ids
+  backend_vpc_security_group_ids = var.backend_vpc_security_group_ids
 
   # Cognito configuration
   user_pool_id       = module.cognito.user_pool_id
@@ -104,8 +94,6 @@ module "backend" {
   log_retention_days     = local.log_retention_days
   throttling_rate_limit  = local.api_throttling_rate_limit
   throttling_burst_limit = local.api_throttling_burst_limit
-
-  tags = local.common_tags
 
   depends_on = [module.cognito, module.amplify_hosting]
 }

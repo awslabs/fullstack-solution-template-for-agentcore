@@ -16,54 +16,37 @@ variable "backend_pattern" {
   default     = "strands-single-agent"
 }
 
-variable "deployment_type" {
+variable "backend_deployment_type" {
   description = "Deployment type: 'docker' (container via ECR) or 'zip' (Python package via S3)."
   type        = string
   default     = "docker"
 }
 
-variable "agent_name" {
-  description = "Name for the agent runtime."
-  type        = string
-  default     = "StrandsAgent"
-}
-
-variable "network_mode" {
-  description = "Network mode for AgentCore resources (PUBLIC or PRIVATE)."
+variable "backend_network_mode" {
+  description = "Network mode for AgentCore Runtime (PUBLIC or VPC)."
   type        = string
   default     = "PUBLIC"
 }
 
-variable "memory_event_expiry_days" {
-  description = "Number of days after which memory events expire."
-  type        = number
-  default     = 30
-}
-
-variable "environment" {
-  description = "Environment name for tagging."
-  type        = string
-  default     = "dev"
-}
 
 # =============================================================================
-# VPC Configuration (Required if network_mode = PRIVATE)
+# VPC Configuration (Required if backend_network_mode = VPC)
 # =============================================================================
 
-variable "vpc_id" {
-  description = "VPC ID for private network mode."
+variable "backend_vpc_id" {
+  description = "VPC ID for VPC network mode. Required when backend_network_mode is 'VPC'."
   type        = string
   default     = null
 }
 
-variable "private_subnet_ids" {
-  description = "List of private subnet IDs for private network mode."
+variable "backend_vpc_subnet_ids" {
+  description = "List of subnet IDs for VPC network mode. Required when backend_network_mode is 'VPC'."
   type        = list(string)
   default     = []
 }
 
-variable "security_group_ids" {
-  description = "List of security group IDs for private network mode."
+variable "backend_vpc_security_group_ids" {
+  description = "List of security group IDs for VPC network mode. Optional when backend_network_mode is 'VPC'. If omitted, a default security group is created."
   type        = list(string)
   default     = []
 }
@@ -129,8 +112,3 @@ variable "throttling_burst_limit" {
   default     = 200
 }
 
-variable "tags" {
-  description = "Tags to apply to all resources."
-  type        = map(string)
-  default     = {}
-}
