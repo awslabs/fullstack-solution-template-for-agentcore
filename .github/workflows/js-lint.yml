@@ -1,0 +1,87 @@
+name: JavaScript/TypeScript Code Quality
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  js-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get changed JS/TS files
+        id: changed-files
+        uses: tj-actions/changed-files@v46
+        with:
+          files: |
+            frontend/**/*.js
+            frontend/**/*.ts
+            frontend/**/*.jsx
+            frontend/**/*.tsx
+            frontend/**/*.css
+            frontend/**/*.json
+            frontend/**/*.mjs
+
+      - name: Set up Node.js
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: npm ci
+
+      - name: Run ESLint on changed files
+        if: steps.changed-files.outputs.any_changed == 'true'
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          echo "Linting changed JS/TS files:"
+          # Filter to only .ts/.tsx/.js/.jsx files for ESLint
+          ESLINT_FILES=""
+          for file in ${ALL_CHANGED_FILES}; do
+            # Strip frontend/ prefix since working-directory is frontend
+            relative_file="${file#frontend/}"
+            if [ -f "$relative_file" ] && echo "$relative_file" | grep -qE '\.(ts|tsx|js|jsx)$'; then
+              ESLINT_FILES="$ESLINT_FILES $relative_file"
+              echo "  $relative_file"
+            fi
+          done
+          if [ -n "$ESLINT_FILES" ]; then
+            npx eslint $ESLINT_FILES
+          else
+            echo "No JS/TS files to lint"
+          fi
+
+      - name: Run Prettier check on changed files
+        if: steps.changed-files.outputs.any_changed == 'true'
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          echo "Checking format of changed files:"
+          PRETTIER_FILES=""
+          for file in ${ALL_CHANGED_FILES}; do
+            relative_file="${file#frontend/}"
+            if [ -f "$relative_file" ]; then
+              PRETTIER_FILES="$PRETTIER_FILES $relative_file"
+              echo "  $relative_file"
+            fi
+          done
+          if [ -n "$PRETTIER_FILES" ]; then
+            npx prettier --check $PRETTIER_FILES
+          else
+            echo "No files to check"
+          fi
+
+      - name: Skip message
+        if: steps.changed-files.outputs.any_changed == 'false'
+        run: echo "No JavaScript/TypeScript files changed - skipping JS/TS linting"
