@@ -1,0 +1,39 @@
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: "frontend/**"
+
+infrastructure:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "infra-cdk/**"
+          - "infra-terraform/**"
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "gateway/**"
+          - "patterns/**"
+          - "tools/**"
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "**/*.md"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tests/**"
+          - "test-scripts/**"
+          - "**/*.test.*"
+
+docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docker/**"
+          - "**/Dockerfile*"
