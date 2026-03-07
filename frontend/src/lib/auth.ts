@@ -85,8 +85,8 @@ export async function createCognitoAuthConfig(): Promise<AwsExportsConfig> {
       automaticSilentRenew === "false"
         ? false
         : automaticSilentRenew === "true"
-        ? true
-        : awsConfig.automaticSilentRenew ?? true,
+          ? true
+          : (awsConfig.automaticSilentRenew ?? true),
     userStore:
       typeof window !== "undefined"
         ? new WebStorageStateStore({ store: window.localStorage })

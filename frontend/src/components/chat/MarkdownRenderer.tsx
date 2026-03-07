@@ -21,7 +21,11 @@ function CopyButton({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 2000)
   }
   return (
-    <button onClick={handleCopy} className="p-1 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Copy code">
+    <button
+      onClick={handleCopy}
+      className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+      aria-label="Copy code"
+    >
       {copied ? <Check size={14} /> : <Copy size={14} />}
     </button>
   )
@@ -45,14 +49,21 @@ const components: Record<string, any> = {
             style={oneLight}
             language={match[1]}
             PreTag="div"
-            customStyle={{ margin: 0, padding: "0.75rem", fontSize: "0.8rem", background: "white" }}
+            customStyle={{
+              margin: 0,
+              padding: "0.75rem",
+              fontSize: "0.8rem",
+              background: "white",
+            }}
           >
             {codeString}
           </SyntaxHighlighter>
         </div>
       )
     }
-    return <code className="px-1 py-0.5 bg-gray-200/60 rounded text-[0.85em] font-mono">{children}</code>
+    return (
+      <code className="px-1 py-0.5 bg-gray-200/60 rounded text-[0.85em] font-mono">{children}</code>
+    )
   },
   pre({ children }: { children?: React.ReactNode }) {
     return <>{children}</>

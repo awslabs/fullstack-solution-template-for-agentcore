@@ -80,7 +80,7 @@ export default function ChatInterface() {
       timestamp: new Date().toISOString(),
     }
 
-    setMessages((prev) => [...prev, newUserMessage])
+    setMessages(prev => [...prev, newUserMessage])
     setInput("")
     setIsLoading(true)
 
@@ -91,7 +91,7 @@ export default function ChatInterface() {
       timestamp: new Date().toISOString(),
     }
 
-    setMessages((prev) => [...prev, assistantResponse])
+    setMessages(prev => [...prev, assistantResponse])
 
     try {
       // Get auth token from react-oidc-context
@@ -101,103 +101,98 @@ export default function ChatInterface() {
         throw new Error("Authentication required. Please log in again.")
       }
 
-      const segments: MessageSegment[] = [];
-      const toolCallMap = new Map<string, ToolCall>();
+      const segments: MessageSegment[] = []
+      const toolCallMap = new Map<string, ToolCall>()
 
       const updateMessage = () => {
         // Build content from text segments for backward compat
         const content = segments
           .filter((s): s is Extract<MessageSegment, { type: "text" }> => s.type === "text")
-          .map((s) => s.content)
-          .join("");
+          .map(s => s.content)
+          .join("")
 
-        setMessages((prev) => {
-          const updated = [...prev];
+        setMessages(prev => {
+          const updated = [...prev]
           updated[updated.length - 1] = {
             ...updated[updated.length - 1],
             content,
             segments: [...segments],
-          };
-          return updated;
-        });
-      };
+          }
+          return updated
+        })
+      }
 
       // User identity is extracted server-side from the validated JWT token,
       // not passed as a parameter — prevents impersonation via prompt injection.
-      await client.invoke(
-        userMessage,
-        sessionId,
-        accessToken,
-        (event) => {
-          switch (event.type) {
-            case "text": {
-              // If text arrives after a tool segment, mark all pending tools as complete
-              const prev = segments[segments.length - 1];
-              if (prev && prev.type === "tool") {
-                for (const tc of toolCallMap.values()) {
-                  if (tc.status === "streaming" || tc.status === "executing") {
-                    tc.status = "complete";
-                  }
+      await client.invoke(userMessage, sessionId, accessToken, event => {
+        switch (event.type) {
+          case "text": {
+            // If text arrives after a tool segment, mark all pending tools as complete
+            const prev = segments[segments.length - 1]
+            if (prev && prev.type === "tool") {
+              for (const tc of toolCallMap.values()) {
+                if (tc.status === "streaming" || tc.status === "executing") {
+                  tc.status = "complete"
                 }
               }
-              // Append to last text segment, or create new one
-              const last = segments[segments.length - 1];
-              if (last && last.type === "text") {
-                last.content += event.content;
-              } else {
-                segments.push({ type: "text", content: event.content });
+            }
+            // Append to last text segment, or create new one
+            const last = segments[segments.length - 1]
+            if (last && last.type === "text") {
+              last.content += event.content
+            } else {
+              segments.push({ type: "text", content: event.content })
+            }
+            updateMessage()
+            break
+          }
+          case "tool_use_start": {
+            const tc: ToolCall = {
+              toolUseId: event.toolUseId,
+              name: event.name,
+              input: "",
+              status: "streaming",
+            }
+            toolCallMap.set(event.toolUseId, tc)
+            segments.push({ type: "tool", toolCall: tc })
+            updateMessage()
+            break
+          }
+          case "tool_use_delta": {
+            const tc = toolCallMap.get(event.toolUseId)
+            if (tc) {
+              tc.input += event.input
+            }
+            updateMessage()
+            break
+          }
+          case "tool_result": {
+            const tc = toolCallMap.get(event.toolUseId)
+            if (tc) {
+              tc.result = event.result
+              tc.status = "complete"
+            }
+            updateMessage()
+            break
+          }
+          case "message": {
+            if (event.role === "assistant") {
+              for (const tc of toolCallMap.values()) {
+                if (tc.status === "streaming") tc.status = "executing"
               }
-              updateMessage();
-              break;
+              updateMessage()
             }
-            case "tool_use_start": {
-              const tc: ToolCall = {
-                toolUseId: event.toolUseId,
-                name: event.name,
-                input: "",
-                status: "streaming",
-              };
-              toolCallMap.set(event.toolUseId, tc);
-              segments.push({ type: "tool", toolCall: tc });
-              updateMessage();
-              break;
-            }
-            case "tool_use_delta": {
-              const tc = toolCallMap.get(event.toolUseId);
-              if (tc) {
-                tc.input += event.input;
-              }
-              updateMessage();
-              break;
-            }
-            case "tool_result": {
-              const tc = toolCallMap.get(event.toolUseId);
-              if (tc) {
-                tc.result = event.result;
-                tc.status = "complete";
-              }
-              updateMessage();
-              break;
-            }
-            case "message": {
-              if (event.role === "assistant") {
-                for (const tc of toolCallMap.values()) {
-                  if (tc.status === "streaming") tc.status = "executing";
-                }
-                updateMessage();
-              }
-              break;
-            }
+            break
           }
         }
-      )
+      })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error"
       setError(`Failed to get response: ${errorMessage}`)
       console.error("Error invoking AgentCore:", err)
 
       // Update the assistant message with error
-      setMessages((prev) => {
+      setMessages(prev => {
         const updated = [...prev]
         updated[updated.length - 1] = {
           ...updated[updated.length - 1],
@@ -263,7 +258,7 @@ export default function ChatInterface() {
   const isInitialState = messages.length === 0
 
   // Check if there are any assistant messages
-  const hasAssistantMessages = messages.some((message) => message.role === "assistant")
+  const hasAssistantMessages = messages.some(message => message.role === "assistant")
 
   return (
     <div className="flex flex-col h-screen w-full">

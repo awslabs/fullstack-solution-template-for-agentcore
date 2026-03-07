@@ -7,7 +7,7 @@
  * Provides shared state and functionality across components
  */
 
-import { createContext, useContext, PropsWithChildren, useState } from 'react'
+import { createContext, useContext, PropsWithChildren, useState } from "react"
 
 interface GlobalContextType {
   isLoading: boolean
@@ -24,7 +24,7 @@ const GlobalContext = createContext<GlobalContextType | undefined>(undefined)
 export function useGlobal(): GlobalContextType {
   const context = useContext(GlobalContext)
   if (context === undefined) {
-    throw new Error('useGlobal must be used within a GlobalContextProvider')
+    throw new Error("useGlobal must be used within a GlobalContextProvider")
   }
   return context
 }
@@ -42,9 +42,5 @@ export function GlobalContextProvider({ children }: PropsWithChildren) {
     setIsLoading,
   }
 
-  return (
-    <GlobalContext.Provider value={value}>
-      {children}
-    </GlobalContext.Provider>
-  )
+  return <GlobalContext.Provider value={value}>{children}</GlobalContext.Provider>
 }

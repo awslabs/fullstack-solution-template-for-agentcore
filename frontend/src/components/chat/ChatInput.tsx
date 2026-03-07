@@ -58,7 +58,7 @@ export function ChatInput({
         <Textarea
           ref={textareaRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type your message... (Ctrl+Enter for new line)"
           disabled={isLoading}

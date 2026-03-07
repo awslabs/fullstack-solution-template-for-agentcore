@@ -13,7 +13,8 @@ interface ChatMessageProps {
   onFeedbackSubmit: (feedbackType: "positive" | "negative", comment: string) => Promise<void>
 }
 
-export function ChatMessage({ message, sessionId: _sessionId, onFeedbackSubmit }: ChatMessageProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function ChatMessage({ message, sessionId, onFeedbackSubmit }: ChatMessageProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedFeedbackType, setSelectedFeedbackType] = useState<"positive" | "negative">(
     "positive"
@@ -21,7 +22,10 @@ export function ChatMessage({ message, sessionId: _sessionId, onFeedbackSubmit }
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
   }
 
   const handleFeedbackClick = (type: "positive" | "negative") => {
@@ -39,20 +43,25 @@ export function ChatMessage({ message, sessionId: _sessionId, onFeedbackSubmit }
     if (message.segments && message.segments.length > 0) {
       return message.segments.map((seg, i) => {
         if (seg.type === "text") {
-          return <MarkdownRenderer key={i} content={seg.content} />;
+          return <MarkdownRenderer key={i} content={seg.content} />
         }
-        const render = getToolRenderer(seg.toolCall.name);
-        if (!render) return null;
+        const render = getToolRenderer(seg.toolCall.name)
+        if (!render) return null
         return (
           <div key={seg.toolCall.toolUseId} className="my-1">
-            {render({ name: seg.toolCall.name, args: seg.toolCall.input, status: seg.toolCall.status, result: seg.toolCall.result })}
+            {render({
+              name: seg.toolCall.name,
+              args: seg.toolCall.input,
+              status: seg.toolCall.status,
+              result: seg.toolCall.result,
+            })}
           </div>
-        );
-      });
+        )
+      })
     }
     // Fallback: just render content as markdown
-    return <MarkdownRenderer content={message.content} />;
-  };
+    return <MarkdownRenderer content={message.content} />
+  }
 
   return (
     <div className={`flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}>

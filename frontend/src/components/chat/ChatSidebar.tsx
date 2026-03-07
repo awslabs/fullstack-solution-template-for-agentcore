@@ -41,7 +41,7 @@ export function ChatSidebar({
           <SidebarGroupLabel>Recent Chats</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sessions.map((session) => (
+              {sessions.map(session => (
                 <SidebarMenuItem key={session.id}>
                   <SidebarMenuButton
                     onClick={() => onSessionSelect(session)}
