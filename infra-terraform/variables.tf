@@ -10,8 +10,8 @@ variable "stack_name_base" {
   type        = string
 
   validation {
-    condition     = can(regex("^[a-z][a-z0-9-]{2,62}$", var.stack_name_base))
-    error_message = "Stack name must start with a lowercase letter, be 3-63 characters, and contain only lowercase alphanumeric characters and hyphens."
+    condition     = can(regex("^[a-z][a-z0-9-]{2,34}$", var.stack_name_base))
+    error_message = "Stack name must start with a lowercase letter, be 3-35 characters, and contain only lowercase alphanumeric characters and hyphens."
   }
 }
 
