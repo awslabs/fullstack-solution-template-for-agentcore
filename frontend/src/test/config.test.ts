@@ -9,6 +9,18 @@ import { resolve } from "path"
  * Helper function to parse JSONC (JSON with comments)
  * Strips single-line and multi-line comments before parsing
  */
+interface TSConfig {
+  compilerOptions: {
+    target: string
+    moduleResolution: string
+    noEmit: boolean
+    strict: boolean
+    paths: Record<string, string[]>
+    jsx: string
+  }
+  include: string[]
+}
+
 function parseJSONC(content: string): Record<string, unknown> {
   // Remove single-line comments
   let cleaned = content.replace(/\/\/.*$/gm, "")
@@ -56,38 +68,38 @@ describe("Configuration Verification Tests", () => {
 
   describe("tsconfig.json", () => {
     it("should have correct target set to ES2020", () => {
-      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8"))
+      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8")) as unknown as TSConfig
       expect(tsconfig.compilerOptions.target).toBe("ES2020")
     })
 
     it("should have bundler module resolution", () => {
-      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8"))
+      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8")) as unknown as TSConfig
       expect(tsconfig.compilerOptions.moduleResolution).toBe("bundler")
     })
 
     it("should have noEmit set to true", () => {
-      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8"))
+      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8")) as unknown as TSConfig
       expect(tsconfig.compilerOptions.noEmit).toBe(true)
     })
 
     it("should have strict mode enabled", () => {
-      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8"))
+      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8")) as unknown as TSConfig
       expect(tsconfig.compilerOptions.strict).toBe(true)
     })
 
     it('should have path alias "@/*" configured', () => {
-      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8"))
+      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8")) as unknown as TSConfig
       expect(tsconfig.compilerOptions.paths).toHaveProperty("@/*")
       expect(tsconfig.compilerOptions.paths["@/*"]).toEqual(["./src/*"])
     })
 
     it("should have jsx set to react-jsx", () => {
-      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8"))
+      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8")) as unknown as TSConfig
       expect(tsconfig.compilerOptions.jsx).toBe("react-jsx")
     })
 
     it("should include src directory", () => {
-      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8"))
+      const tsconfig = parseJSONC(readFileSync(resolve(__dirname, "../../tsconfig.json"), "utf-8")) as unknown as TSConfig
       expect(tsconfig.include).toContain("src")
     })
   })

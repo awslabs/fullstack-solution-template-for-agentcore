@@ -11,6 +11,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest"
 import * as fc from "fast-check"
 import { render, screen, cleanup } from "@testing-library/react"
+import type { User } from "oidc-client-ts"
 import ChatPage from "@/routes/ChatPage"
 
 // Mock the useAuth hook
@@ -94,7 +95,7 @@ describe("Authentication State Routing", () => {
               access_token: "test-token",
               id_token: "test-id-token",
               profile: { sub: "test-user-id" },
-            } as unknown,
+            } as unknown as User,
             isLoading: false,
             error: undefined,
             token: "test-id-token",
@@ -135,7 +136,7 @@ describe("Authentication State Routing", () => {
                   access_token: "test-token",
                   id_token: "test-id-token",
                   profile: { sub: "test-user-id" },
-                } as unknown)
+                } as unknown as User)
               : null,
             isLoading: false,
             error: undefined,
@@ -176,7 +177,7 @@ describe("Authentication State Routing", () => {
             access_token: "test-token",
             id_token: "test-id-token",
             profile: { sub: "test-user-id" },
-          } as unknown,
+          } as unknown as User,
           isLoading: false,
           error: undefined,
           token: "test-id-token",

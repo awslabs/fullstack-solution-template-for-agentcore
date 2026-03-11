@@ -6,8 +6,10 @@ RequestContext (prevents impersonation via prompt injection).
 """
 
 import logging
+import os
 
 import jwt
+from bedrock_agentcore.identity.auth import requires_access_token
 from bedrock_agentcore.runtime import RequestContext
 
 logger = logging.getLogger(__name__)
@@ -73,3 +75,26 @@ def extract_user_id_from_context(context: RequestContext) -> str:
 
     logger.info("Extracted user_id from JWT: %s", user_id)
     return user_id
+
+
+@requires_access_token(
+    provider_name=os.environ.get("GATEWAY_CREDENTIAL_PROVIDER_NAME", ""),
+    auth_flow="M2M",
+    scopes=[]
+)
+def get_gateway_access_token(access_token: str) -> str:
+    """
+    Fetch OAuth2 access token for AgentCore Gateway authentication.
+
+    The @requires_access_token decorator handles token retrieval and refresh:
+    1. Token Retrieval: Calls GetResourceOauth2Token API to fetch token from Token Vault
+    2. Automatic Refresh: Uses refresh tokens to renew expired access tokens
+    3. Error Orchestration: Handles missing tokens and OAuth flow management
+
+    For M2M (Machine-to-Machine) flows, the decorator uses Client Credentials grant type.
+    The provider_name must match the Name field in the CDK OAuth2CredentialProvider resource.
+
+    This is synchronous because it's called during agent setup before the async
+    message processing loop.
+    """
+    return access_token
