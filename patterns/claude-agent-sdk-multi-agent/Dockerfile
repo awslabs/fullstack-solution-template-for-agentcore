@@ -28,7 +28,7 @@ COPY gateway/ gateway/
 COPY tools/ tools/
 
 # Copy and install agent-specific requirements
-COPY patterns/claude-agent-sdk/requirements.txt requirements.txt
+COPY patterns/claude-agent-sdk-multi-agent/requirements.txt requirements.txt
 RUN uv pip install --no-cache -r requirements.txt && \
     uv pip install --no-cache aws-opentelemetry-distro==0.10.1
 
@@ -47,9 +47,9 @@ ENV CLAUDE_CONFIG_DIR=/home/bedrock_agentcore/.claude
 EXPOSE 8080
 
 # Copy agent code files
-COPY patterns/claude-agent-sdk/agent.py .
-COPY patterns/claude-agent-sdk/code_int_mcp/ code_int_mcp/
-COPY patterns/claude-agent-sdk/agents/ agents/
+COPY patterns/claude-agent-sdk-multi-agent/agent.py .
+COPY patterns/claude-agent-sdk-multi-agent/code_int_mcp/ code_int_mcp/
+COPY patterns/claude-agent-sdk-multi-agent/agents/ agents/
 COPY patterns/utils/ utils/
 
 # Healthcheck using Python

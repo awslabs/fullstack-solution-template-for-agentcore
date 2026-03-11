@@ -1,12 +1,11 @@
-# Claude Agent SDK Pattern
+# Claude Agent SDK Single-Agent Pattern
 
-This pattern integrates Anthropic's Claude Agent SDK with Amazon Bedrock AgentCore, providing Code Interpreter access via an in-process MCP server, subagent delegation, and Gateway tool integration.
+This pattern integrates Anthropic's Claude Agent SDK with Amazon Bedrock AgentCore, providing Code Interpreter access via an in-process MCP server and Gateway tool integration. For a multi-agent version with subagent delegation, see the `claude-agent-sdk-multi-agent` pattern.
 
 ## Features
 
 - **Claude Agent SDK**: Uses Anthropic's official agent SDK (`ClaudeSDKClient`) for agentic workflows on Bedrock
 - **Code Interpreter**: Execute Python code, bash commands, and file operations via an in-process MCP server
-- **Subagent Spawning**: Delegate focused subtasks to a specialized `code-analyst` subagent via the Task tool
 - **Gateway Integration**: Access Lambda-based tools through AgentCore Gateway (MCP protocol with OAuth2 auth)
 - **Session Management**: Resume conversations across requests via `claude_session_id`
 - **Secure Identity**: User identity extracted from validated JWT token (`RequestContext`), not from payload
@@ -24,21 +23,14 @@ ClaudeSDKClient (Opus model via Bedrock)
     |     execute_code, execute_command, write_files, read_files
     |
     +-- Gateway MCP (HTTP, optional)
-    |     Lambda-based tools via AgentCore Gateway
-    |
-    +-- Task tool (subagent spawning)
-          code-analyst (Sonnet) — analyze output, debug errors
+          Lambda-based tools via AgentCore Gateway
 ```
-
-The main agent (Opus) orchestrates work and can delegate to a `code-analyst` subagent (Sonnet) that runs as a separate `claude-code` child process.
 
 ## File Structure
 
 ```
-patterns/claude-agent-sdk/
+patterns/claude-agent-sdk-single-agent/
 ├── agent.py                  # Main entrypoint (BedrockAgentCoreApp)
-├── agents/
-│   └── subagents.py          # Subagent definitions (code-analyst)
 ├── code_int_mcp/
 │   ├── server.py             # MCP server with @tool definitions
 │   ├── client.py             # boto3 wrapper for AgentCore Code Interpreter API
@@ -56,13 +48,11 @@ patterns/claude-agent-sdk/
 | `execute_command` | `mcp__codeint__` | Run bash/shell commands |
 | `write_files` | `mcp__codeint__` | Write files in the Code Interpreter session |
 | `read_files` | `mcp__codeint__` | Read files from the Code Interpreter session |
-| `Task` | — | Spawn a subagent for focused subtasks |
 | Gateway tools | `mcp__gateway__*` | Lambda-based tools via AgentCore Gateway |
 
 ## Models
 
 - **Main agent**: `us.anthropic.claude-opus-4-6-v1`
-- **Subagents**: `sonnet` (cost-efficient for focused analysis tasks)
 
 ## Streaming Events
 
@@ -74,7 +64,7 @@ The agent yields three event types as SSE `data: {json}` lines:
 | Tool use | `{"current_tool_use": {"name": "...", "input": {...}, "toolUseId": "..."}}` | Tool invocation |
 | Session ID | `{"claude_session_id": "..."}` | Session ID for conversation resumption |
 
-A dedicated frontend parser at `frontend/src/lib/agentcore-client/parsers/claude-agent-sdk.ts` handles these events.
+A dedicated frontend parser at `frontend/src/lib/agentcore-client/parsers/claude-agent-sdk.ts` handles these events. Both the single-agent and multi-agent patterns share the same parser.
 
 ## Session Management
 
@@ -95,31 +85,13 @@ Code Interpreter sessions are separate from Claude sessions:
 3. Use the returned session ID for all subsequent Code Interpreter calls
 4. Never generate or fabricate session IDs
 
-## Adding a Subagent
-
-Edit `agents/subagents.py` and add an entry to the dictionary returned by `get_subagent_definitions()`:
-
-```python
-"my-agent": AgentDefinition(
-    description="When to use this agent (the main agent reads this to decide delegation)",
-    prompt="System prompt defining the agent's role and behavior",
-    tools=["mcp__codeint__execute_code", "mcp__gateway__*", "Read", "Grep", "Glob"],
-    model="sonnet",
-),
-```
-
-Constraints:
-- Subagents inherit MCP server configuration from the parent `ClaudeAgentOptions`
-- Subagents **cannot** spawn other subagents (don't include `Task` in their tools)
-- Keep descriptions clear — the main agent uses them to decide when to delegate
-
 ## Deployment
 
 ```bash
 cd infra-cdk
 # Set pattern in config.yaml:
 #   backend:
-#     pattern: claude-agent-sdk
+#     pattern: claude-agent-sdk-single-agent
 #     deployment_type: docker
 cdk deploy
 ```
@@ -134,15 +106,15 @@ cdk deploy
 - **Gateway auth**: OAuth2 client credentials flow via Cognito for machine-to-machine authentication
 - **Gateway resilience**: If Gateway is unavailable, the agent continues without Gateway tools
 
-## Differences from Strands / LangGraph Patterns
+## Differences from Other Patterns
 
-| Feature | Claude Agent SDK | Strands | LangGraph |
-|---------|-----------------|---------|-----------|
-| Framework | Anthropic Claude Agent SDK | Strands Agents | LangGraph + LangChain |
-| Model provider | Bedrock (via `CLAUDE_CODE_USE_BEDROCK`) | Bedrock (`BedrockModel`) | Bedrock (`ChatBedrock`) |
-| Memory | `claude_session_id` (SDK-managed) | AgentCoreMemory | AgentCoreMemory |
-| Token streaming | No (complete message blocks) | Yes | Yes |
-| Subagents | Yes (Task tool + `AgentDefinition`) | No (single agent) | No (single agent) |
-| Code Interpreter | In-process MCP server | `StrandsCodeInterpreterTools` | LangGraph tool wrapper |
-| Requires Node.js | Yes (claude-code CLI) | No | No |
-| ZIP deployment | Not supported | Supported | Supported |
+| Feature | Claude Agent SDK (Single-Agent) | Claude Agent SDK (Multi-Agent) | Strands | LangGraph |
+|---------|--------------------------------|-------------------------------|---------|-----------|
+| Framework | Anthropic Claude Agent SDK | Anthropic Claude Agent SDK | Strands Agents | LangGraph + LangChain |
+| Model provider | Bedrock (via `CLAUDE_CODE_USE_BEDROCK`) | Bedrock (via `CLAUDE_CODE_USE_BEDROCK`) | Bedrock (`BedrockModel`) | Bedrock (`ChatBedrock`) |
+| Memory | `claude_session_id` (SDK-managed) | `claude_session_id` (SDK-managed) | AgentCoreMemory | AgentCoreMemory |
+| Token streaming | No (complete message blocks) | No (complete message blocks) | Yes | Yes |
+| Subagents | No (single agent) | Yes (Task tool + `AgentDefinition`) | No (single agent) | No (single agent) |
+| Code Interpreter | In-process MCP server | In-process MCP server | `StrandsCodeInterpreterTools` | LangGraph tool wrapper |
+| Requires Node.js | Yes (claude-code CLI) | Yes (claude-code CLI) | No | No |
+| ZIP deployment | Not supported | Not supported | Supported | Supported |

@@ -10,7 +10,8 @@ import { readSSEStream } from "./utils/sse"
 const PARSERS: Record<AgentPattern, ChunkParser> = {
   "strands-single-agent": parseStrandsChunk,
   "langgraph-single-agent": parseLanggraphChunk,
-  "claude-agent-sdk": parseClaudeAgentSdkChunk,
+  "claude-agent-sdk-single-agent": parseClaudeAgentSdkChunk,
+  "claude-agent-sdk-multi-agent": parseClaudeAgentSdkChunk,
 }
 
 export class AgentCoreClient {

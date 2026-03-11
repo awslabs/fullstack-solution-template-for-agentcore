@@ -113,10 +113,10 @@ export class BackendStack extends cdk.NestedStack {
     let agentRuntimeArtifact: agentcore.AgentRuntimeArtifact
     let zipPackagerResource: cdk.CustomResource | undefined
 
-    if (deploymentType === "zip" && pattern === "claude-agent-sdk") {
+    if (deploymentType === "zip" && (pattern === "claude-agent-sdk-single-agent" || pattern === "claude-agent-sdk-multi-agent")) {
       throw new Error(
-        "claude-agent-sdk pattern requires Docker deployment (deployment_type: docker) " +
-        "because it needs Node.js and the claude-code CLI installed at build time."
+        "claude-agent-sdk patterns require Docker deployment (deployment_type: docker) " +
+        "because they need Node.js and the claude-code CLI installed at build time."
       )
     }
 
@@ -342,7 +342,7 @@ export class BackendStack extends cdk.NestedStack {
     }
 
     // Add claude-agent-sdk specific environment variable
-    if (pattern === "claude-agent-sdk") {
+    if (pattern === "claude-agent-sdk-single-agent" || pattern === "claude-agent-sdk-multi-agent") {
       envVars["CLAUDE_CODE_USE_BEDROCK"] = "1"
     }
 
