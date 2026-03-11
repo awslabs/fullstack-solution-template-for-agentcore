@@ -25,8 +25,6 @@ resource "aws_iam_role" "memory_execution" {
   name               = "${var.stack_name_base}-memory-execution-role"
   assume_role_policy = data.aws_iam_policy_document.memory_assume_role.json
   description        = "Execution role for AgentCore Memory"
-
-  tags = var.tags
 }
 
 # Attach the AWS managed policy for Bedrock model inference
@@ -40,17 +38,13 @@ resource "aws_iam_role_policy_attachment" "memory_bedrock_policy" {
 # Configured with short-term memory (conversation history) as default
 resource "aws_bedrockagentcore_memory" "main" {
   name                  = local.memory_name
-  event_expiry_duration = var.memory_event_expiry_days
+  event_expiry_duration = local.memory_event_expiry_days
   description           = "Short-term memory for ${var.stack_name_base} agent"
 
   # Memory execution role for model processing (required for long-term strategies)
   memory_execution_role_arn = aws_iam_role.memory_execution.arn
 
-  tags = merge(
-    var.tags,
-    {
-      Name      = "${var.stack_name_base}_Memory"
-      ManagedBy = "Terraform"
-    }
-  )
+  tags = {
+    Name = "${var.stack_name_base}_Memory"
+  }
 }

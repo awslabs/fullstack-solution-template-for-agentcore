@@ -22,8 +22,11 @@ locals {
   # Stack name for resource naming (underscores for some AWS resources)
   stack_name_underscore = replace(var.stack_name_base, "-", "_")
 
+  # Agent name (matches CDK CfnParameter default in backend-stack.ts)
+  agent_name = "StrandsAgent"
+
   # Runtime name (underscores required by AgentCore)
-  runtime_name = "${local.stack_name_underscore}_${var.agent_name}"
+  runtime_name = "${local.stack_name_underscore}_${local.agent_name}"
 
   # Memory name (unique within account/region)
   # Must match ^[a-zA-Z][a-zA-Z0-9_]{0,47}$ - no hyphens allowed
@@ -36,8 +39,8 @@ locals {
   powertools_layer_arn = "arn:aws:lambda:${local.region}:017000801446:layer:AWSLambdaPowertoolsPythonV3-python313-arm64:18"
 
   # Deployment type flags
-  is_docker = var.deployment_type == "docker"
-  is_zip    = var.deployment_type == "zip"
+  is_docker = var.backend_deployment_type == "docker"
+  is_zip    = var.backend_deployment_type == "zip"
 
   # Project paths (for zip packaging)
   project_root = "${path.module}/../../.."
@@ -62,4 +65,7 @@ locals {
   api_throttling_rate_limit  = var.throttling_rate_limit
   api_throttling_burst_limit = var.throttling_burst_limit
   api_cache_ttl_seconds      = 300
+
+  # Memory event expiry (hardcoded in CDK backend-stack.ts)
+  memory_event_expiry_days = 30
 }

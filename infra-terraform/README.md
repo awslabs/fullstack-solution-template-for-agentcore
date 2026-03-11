@@ -2,7 +2,7 @@
 
 This directory contains Terraform configurations for deploying the Fullstack AgentCore Solution Template (FAST).
 
-> **Note:** All commands and scripts in this README run from the `infra-terraform/` directory. This folder is self-contained and independent from the CDK deployment (`infra-cdk/`).
+> **Deployment guide:** For step-by-step deployment instructions, see [Terraform Deployment Guide](../docs/TERRAFORM_DEPLOYMENT.md). This README covers module architecture, configuration reference, and developer documentation.
 
 ## Architecture
 
@@ -13,108 +13,60 @@ The infrastructure is organized into 3 Terraform modules, mirroring the CDK stac
 3. **Backend** (`modules/backend/`) - All AgentCore and API resources:
    - AgentCore Memory - Persistent memory for agent conversations
    - M2M Authentication - Cognito resource server and machine client
+   - OAuth2 Credential Provider - Lambda for Runtime -> Gateway authentication
    - AgentCore Gateway - MCP gateway with Lambda tool targets
    - AgentCore Runtime - ECR repository and containerized agent runtime
    - Feedback API - API Gateway + Lambda + DynamoDB
    - SSM Parameters and Secrets Manager
 
-## Prerequisites
-
-1. **Terraform** >= 1.5.0
-2. **AWS CLI** configured with appropriate credentials
-3. **Docker** (only required for `deployment_type = "docker"`)
-
-## Deployment Types
-
-FAST supports two deployment types for the AgentCore Runtime:
-
-| | Docker (default) | Zip |
-|---|---|---|
-| **How it works** | Builds a Docker container image and pushes to ECR | Packages Python code + ARM64 wheels via Lambda and uploads to S3 |
-| **Requires Docker** | Yes | No |
-| **Best for** | Custom runtime images, complex dependencies | Quick deployment, CI/CD, environments without Docker |
-
-Set `deployment_type` in your `terraform.tfvars`:
-```hcl
-deployment_type = "docker"  # or "zip"
-```
-
 ## Quick Start
 
 ```bash
-# Navigate to the terraform directory
 cd infra-terraform
-
-# Copy the example variables file
 cp terraform.tfvars.example terraform.tfvars
-
 # Edit terraform.tfvars with your configuration
-# At minimum, set admin_user_email for the Cognito admin user
-
-# Initialize Terraform
 terraform init
-```
-
-### Deploy
-```bash
 terraform apply
+python scripts/deploy-frontend.py
 ```
 
-- **Docker mode** (default): Builds an ARM64 Docker image, pushes to ECR, and creates the runtime. Requires Docker to be running locally.
-- **Zip mode**: Deploys a packager Lambda that bundles your agent code with ARM64 wheels, uploads to S3, and creates the runtime. No Docker required.
+See the [Terraform Deployment Guide](../docs/TERRAFORM_DEPLOYMENT.md) for detailed instructions, VPC deployment, troubleshooting, and cleanup.
 
-> **Note:** If you provide a pre-built image via `container_uri`, Terraform skips the build and uses your image directly.
+## Configuration Reference
 
-### Manual Docker Build (Optional)
-
-If you prefer to build the Docker image separately (e.g., in CI/CD), you can use the build script:
-```bash
-./scripts/build-and-push-image.sh
-```
-
-**Options:**
-```bash
-./scripts/build-and-push-image.sh -h                          # Show help
-./scripts/build-and-push-image.sh -p langgraph-single-agent   # Use LangGraph pattern
-./scripts/build-and-push-image.sh -s my-stack -r us-west-2    # Override stack/region
-```
-
-### (Optional) Verify Deployment
-```bash
-terraform output deployment_summary
-```
-
-## Configuration
-
-### Required Variables
+### Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `stack_name_base` | Base name for all resources | `"fast"` |
-| `aws_region` | AWS region for deployment | `"us-east-1"` |
-
-### Optional Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
+| `stack_name_base` | Base name for all resources (required) | - |
 | `admin_user_email` | Email for Cognito admin user | `null` |
 | `backend_pattern` | Agent pattern to deploy | `"strands-single-agent"` |
-| `deployment_type` | `"docker"` (ECR container) or `"zip"` (S3 package) | `"docker"` |
-| `agent_name` | Name for the agent runtime | `"StrandsAgent"` |
-| `network_mode` | Network mode (PUBLIC/PRIVATE) | `"PUBLIC"` |
-| `environment` | Environment name for tagging | `"dev"` |
-| `memory_event_expiry_days` | Memory event TTL in days | `30` |
+| `backend_deployment_type` | `"docker"` (ECR container) or `"zip"` (S3 package) | `"docker"` |
+| `backend_network_mode` | Network mode (PUBLIC/VPC) | `"PUBLIC"` |
+| `backend_vpc_id` | VPC ID (required when VPC mode) | `null` |
+| `backend_vpc_subnet_ids` | Subnet IDs (required when VPC mode) | `[]` |
+| `backend_vpc_security_group_ids` | Security group IDs (optional for VPC mode) | `[]` |
 
-### VPC Configuration (Private Mode)
+**Region:** Set via the `AWS_REGION` environment variable or AWS CLI profile. No region variable is needed.
 
-For `PRIVATE` network mode, provide VPC details:
+**Tags:** Default tags (Project, ManagedBy, Repository) are applied automatically via the provider's `default_tags` block in `main.tf`.
 
-```hcl
-network_mode       = "PRIVATE"
-vpc_id             = "vpc-xxxxxxxx"
-private_subnet_ids = ["subnet-xxx", "subnet-yyy"]
-security_group_ids = ["sg-xxxxxxxx"]
-```
+### CDK config.yaml to Terraform Variable Mapping
+
+Terraform uses flat variables with a `backend_` prefix to mirror the CDK's nested `config.yaml` structure:
+
+| CDK config.yaml path | Terraform variable |
+|---|---|
+| `stack_name_base` | `stack_name_base` |
+| `admin_user_email` | `admin_user_email` |
+| `backend.pattern` | `backend_pattern` |
+| `backend.deployment_type` | `backend_deployment_type` |
+| `backend.network_mode` | `backend_network_mode` |
+| `backend.vpc.vpc_id` | `backend_vpc_id` |
+| `backend.vpc.subnet_ids` | `backend_vpc_subnet_ids` |
+| `backend.vpc.security_group_ids` | `backend_vpc_security_group_ids` |
+
+Values that are hardcoded in CDK (not in `config.yaml`) are defined as module-internal locals in Terraform: agent name (`StrandsAgent`), memory event expiry (30 days), callback URLs, and password minimum length.
 
 ## Module Structure
 
@@ -147,6 +99,7 @@ infra-terraform/
         ├── artifacts/         # Build artifacts (.gitignored)
         ├── memory.tf          # AgentCore Memory + IAM
         ├── auth.tf            # M2M resource server + machine client
+        ├── oauth2_provider.tf # OAuth2 provider Lambda + lifecycle management
         ├── gateway.tf         # Gateway + Lambda tool target
         ├── runtime.tf         # ECR/S3 + Agent Runtime (conditional)
         ├── zip_packager.tf    # S3 + Lambda packager (zip mode only)
@@ -154,7 +107,7 @@ infra-terraform/
         └── ssm.tf             # SSM parameters + Secrets Manager
 ```
 
-> **Note:** Feedback Lambda source code is shared from `infra-cdk/lambdas/feedback/`. The zip-packager Lambda is Terraform-specific and lives under `infra-terraform/lambdas/`.
+> **Note:** Feedback and OAuth2 provider Lambda code is shared from `infra-cdk/lambdas/`. The zip-packager Lambda is Terraform-specific and lives under `infra-terraform/lambdas/`.
 
 ## Deployment Order
 
@@ -164,68 +117,28 @@ The modules are deployed in this order:
 2. **Cognito** - Uses Amplify URL for OAuth callback URLs
 3. **Backend** - Depends on Cognito and Amplify URL; internally creates Memory, Auth, Gateway, Runtime, Feedback API, and SSM resources with correct dependency ordering
 
-## Post-Deployment Steps
-
-### 1. Deploy Frontend
-
-Two deployment scripts are available:
-
-**Python (cross-platform - recommended):**
-```bash
-# From infra-terraform directory
-python scripts/deploy-frontend.py
-
-# Or with options
-python scripts/deploy-frontend.py --pattern langgraph-single-agent
-```
-
-**Shell (macOS/Linux only):**
-```bash
-# From infra-terraform directory
-./scripts/deploy-frontend.sh
-
-# Or with options
-./scripts/deploy-frontend.sh -p langgraph-single-agent
-```
-
-Both scripts perform the same operations:
-- Fetch configuration from Terraform outputs
-- Generate `aws-exports.json` for frontend authentication
-- Build the Next.js application
-- Package and upload to S3
-- Trigger Amplify deployment and monitor status
-
-### 2. Test the Agent (Optional)
-
-```bash
-# From infra-terraform directory
-pip install boto3 requests colorama  # First time only
-python scripts/test-agent.py 'Hello, what can you do?'
-```
-
-### 3. Verify Deployment
-
-```bash
-# Get deployment summary
-terraform output deployment_summary
-
-# Get all outputs
-terraform output
-```
-
 ## Outputs
 
 | Output | Description |
 |--------|-------------|
 | `amplify_app_url` | Frontend application URL |
-| `cognito_hosted_ui_url` | Cognito login page URL |
+| `amplify_app_id` | Amplify App ID |
+| `amplify_staging_bucket` | S3 bucket for frontend staging deployments |
+| `cognito_user_pool_id` | Cognito User Pool ID |
+| `cognito_web_client_id` | Cognito Web Client ID (for frontend) |
+| `cognito_machine_client_id` | Cognito Machine Client ID (for M2M authentication) |
+| `cognito_domain_url` | Cognito domain URL for OAuth |
+| `gateway_id` | AgentCore Gateway ID |
+| `gateway_arn` | AgentCore Gateway ARN |
 | `gateway_url` | AgentCore Gateway URL |
+| `gateway_target_id` | AgentCore Gateway Target ID |
+| `tool_lambda_arn` | Sample tool Lambda function ARN |
+| `runtime_id` | AgentCore Runtime ID |
 | `runtime_arn` | AgentCore Runtime ARN |
+| `runtime_role_arn` | AgentCore Runtime execution role ARN |
 | `memory_arn` | AgentCore Memory ARN |
 | `feedback_api_url` | Feedback API endpoint |
-| `ecr_repository_url` | ECR repository for agent container (docker mode) |
-| `agent_code_bucket` | S3 bucket for agent code (zip mode) |
-| `deployment_type` | Deployment type used (docker or zip) |
+| `ssm_parameter_prefix` | SSM parameter prefix for this deployment |
 | `deployment_summary` | Combined summary of all resources |
 
 ## State Management
@@ -269,55 +182,6 @@ See `backend.tf.example` for the full configuration.
 | Lambda Function | `aws_lambda_function` |
 | SSM Parameter | `aws_ssm_parameter` |
 | Secrets Manager | `aws_secretsmanager_secret` |
-
-## Troubleshooting
-
-### Terraform Init Fails
-
-Ensure you have the correct provider versions:
-```bash
-terraform init -upgrade
-```
-
-### Authentication Errors
-
-Verify AWS credentials:
-```bash
-aws sts get-caller-identity
-```
-
-### AgentCore Resources Not Found
-
-AgentCore resources require AWS provider version >= 5.82.0 with the `aws_bedrockagentcore_*` resources.
-
-If your provider version doesn't support these resources yet, use the AWS CLI:
-
-```bash
-aws bedrock-agentcore create-agent-runtime --cli-input-json file://runtime-config.json
-```
-
-## Cleanup
-
-To remove all provisioned resources:
-
-```bash
-terraform destroy
-```
-
-Terraform handles resource dependencies automatically and destroys in the correct order.
-
-**Note:** All Cognito users and their data will be permanently deleted.
-
-### Verify Cleanup
-
-After destroy completes, verify no resources remain:
-```bash
-aws resourcegroupstaggingapi get-resources --tag-filters Key=stack,Values=<your-stack-name>
-```
-
-### Cost Note
-
-Ensure `terraform destroy` completes successfully. Orphaned resources (especially AgentCore Runtime, DynamoDB, or API Gateway) may continue incurring charges.
 
 ## Contributing
 

@@ -17,16 +17,12 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.id
 
-  # Common tags applied to all resources
-  common_tags = merge(
-    {
-      Project     = var.stack_name_base
-      Environment = var.environment
-      ManagedBy   = "Terraform"
-      Repository  = "fullstack-agentcore-solution-template"
-    },
-    var.tags
-  )
+  # Common tags applied to all resources via provider default_tags
+  common_tags = {
+    Project    = var.stack_name_base
+    ManagedBy  = "Terraform"
+    Repository = "fullstack-agentcore-solution-template"
+  }
 
   # SSM parameter paths
   ssm_parameter_prefix = "/${var.stack_name_base}"
@@ -42,9 +38,4 @@ locals {
   api_throttling_rate_limit  = 100
   api_throttling_burst_limit = 200
 
-  # Callback URLs for Cognito (includes Amplify URL when available)
-  default_callback_urls = concat(
-    var.callback_urls,
-    [] # Amplify URL will be added dynamically via amplify_url variable
-  )
 }

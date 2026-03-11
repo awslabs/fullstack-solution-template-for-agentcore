@@ -25,8 +25,6 @@ resource "aws_ecr_repository" "agent" {
   encryption_configuration {
     encryption_type = "AES256"
   }
-
-  tags = var.tags
 }
 
 # ECR Lifecycle policy to keep only recent images
@@ -146,8 +144,6 @@ resource "aws_iam_role" "runtime" {
   name               = "${var.stack_name_base}-agentcore-runtime-role"
   assume_role_policy = data.aws_iam_policy_document.runtime_assume_role.json
   description        = "Execution role for AgentCore Runtime"
-
-  tags = var.tags
 }
 
 # -----------------------------------------------------------------------------
@@ -155,7 +151,7 @@ resource "aws_iam_role" "runtime" {
 # -----------------------------------------------------------------------------
 
 data "aws_iam_policy_document" "runtime_policy" {
-  # 1. ECRImageAccess (docker mode only)
+  # ECRImageAccess (docker mode only)
   dynamic "statement" {
     for_each = local.is_docker ? [1] : []
     content {
@@ -170,7 +166,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     }
   }
 
-  # 2. ECRTokenAccess (docker mode only)
+  # ECRTokenAccess (docker mode only)
   dynamic "statement" {
     for_each = local.is_docker ? [1] : []
     content {
@@ -198,7 +194,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     }
   }
 
-  # 3. CloudWatchLogsGroupAccess
+  # CloudWatchLogsGroupAccess
   statement {
     sid    = "CloudWatchLogsGroupAccess"
     effect = "Allow"
@@ -209,7 +205,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     resources = ["arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws/bedrock-agentcore/runtimes/*"]
   }
 
-  # 4. CloudWatchLogsDescribeGroups
+  # CloudWatchLogsDescribeGroups
   statement {
     sid       = "CloudWatchLogsDescribeGroups"
     effect    = "Allow"
@@ -217,7 +213,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     resources = ["arn:aws:logs:${local.region}:${local.account_id}:log-group:*"]
   }
 
-  # 5. CloudWatchLogsStreamAccess
+  # CloudWatchLogsStreamAccess
   statement {
     sid    = "CloudWatchLogsStreamAccess"
     effect = "Allow"
@@ -228,7 +224,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     resources = ["arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*"]
   }
 
-  # 6. X-Ray Tracing
+  # X-Ray Tracing
   statement {
     sid    = "XRayTracing"
     effect = "Allow"
@@ -241,7 +237,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     resources = ["*"]
   }
 
-  # 7. CloudWatch Metrics
+  # CloudWatch Metrics
   statement {
     sid       = "CloudWatchMetrics"
     effect    = "Allow"
@@ -255,7 +251,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     }
   }
 
-  # 8. GetAgentAccessToken
+  # GetAgentAccessToken
   statement {
     sid    = "GetAgentAccessToken"
     effect = "Allow"
@@ -270,7 +266,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     ]
   }
 
-  # 9. BedrockModelInvocation
+  # BedrockModelInvocation
   statement {
     sid    = "BedrockModelInvocation"
     effect = "Allow"
@@ -284,15 +280,19 @@ data "aws_iam_policy_document" "runtime_policy" {
     ]
   }
 
-  # 10. SecretsManagerAccess
+  # SecretsManagerOAuth2Access
+  # Runtime needs to read OAuth2 credentials from Token Vault secret
+  # created by AgentCore Identity (not the machine client secret directly)
   statement {
-    sid       = "SecretsManagerAccess"
-    effect    = "Allow"
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = ["arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:/*/machine_client_secret*"]
+    sid     = "SecretsManagerOAuth2Access"
+    effect  = "Allow"
+    actions = ["secretsmanager:GetSecretValue"]
+    resources = [
+      "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:bedrock-agentcore-identity!default/oauth2/${var.stack_name_base}-runtime-gateway-auth*"
+    ]
   }
 
-  # 11. MemoryResourceAccess - references memory resource directly (no variable passing)
+  # MemoryResourceAccess - references memory resource directly (no variable passing)
   statement {
     sid    = "MemoryResourceAccess"
     effect = "Allow"
@@ -305,7 +305,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     resources = [aws_bedrockagentcore_memory.main.arn]
   }
 
-  # 12. SSMParameterAccess
+  # SSMParameterAccess
   statement {
     sid    = "SSMParameterAccess"
     effect = "Allow"
@@ -316,7 +316,7 @@ data "aws_iam_policy_document" "runtime_policy" {
     resources = ["arn:aws:ssm:${local.region}:${local.account_id}:parameter/${var.stack_name_base}/*"]
   }
 
-  # 13. CodeInterpreterAccess
+  # CodeInterpreterAccess
   statement {
     sid    = "CodeInterpreterAccess"
     effect = "Allow"
@@ -327,12 +327,77 @@ data "aws_iam_policy_document" "runtime_policy" {
     ]
     resources = ["arn:aws:bedrock-agentcore:${local.region}:aws:code-interpreter/*"]
   }
+
+  # OAuth2CredentialProviderAccess
+  # The @requires_access_token decorator performs a two-stage process:
+  # GetOauth2CredentialProvider - Looks up provider metadata
+  # GetResourceOauth2Token - Fetches the actual access token from Token Vault
+  statement {
+    sid    = "OAuth2CredentialProviderAccess"
+    effect = "Allow"
+    actions = [
+      "bedrock-agentcore:GetOauth2CredentialProvider",
+      "bedrock-agentcore:GetResourceOauth2Token"
+    ]
+    resources = [
+      "arn:aws:bedrock-agentcore:${local.region}:${local.account_id}:oauth2-credential-provider/*",
+      "arn:aws:bedrock-agentcore:${local.region}:${local.account_id}:token-vault/*",
+      "arn:aws:bedrock-agentcore:${local.region}:${local.account_id}:workload-identity-directory/*"
+    ]
+  }
 }
 
 resource "aws_iam_role_policy" "runtime" {
   name   = "${var.stack_name_base}-agentcore-runtime-policy"
   role   = aws_iam_role.runtime.id
   policy = data.aws_iam_policy_document.runtime_policy.json
+}
+
+# -----------------------------------------------------------------------------
+# Default Security Group (for VPC mode, when none provided)
+# -----------------------------------------------------------------------------
+
+locals {
+  # Use user-provided security groups, or fall back to the auto-created default
+  effective_security_group_ids = (
+    var.backend_network_mode == "VPC" && length(var.backend_vpc_security_group_ids) == 0
+    ? [aws_security_group.runtime_default[0].id]
+    : var.backend_vpc_security_group_ids
+  )
+}
+
+resource "aws_security_group" "runtime_default" {
+  count = var.backend_network_mode == "VPC" && length(var.backend_vpc_security_group_ids) == 0 ? 1 : 0
+
+  name        = "${var.stack_name_base}-agentcore-runtime-sg"
+  description = "Default security group for AgentCore Runtime VPC deployment"
+  vpc_id      = var.backend_vpc_id
+
+  tags = {
+    Name = "${var.stack_name_base}-agentcore-runtime-sg"
+  }
+}
+
+# Self-referencing ingress rule: allows HTTPS traffic between runtime and VPC endpoints
+resource "aws_vpc_security_group_ingress_rule" "runtime_default_https" {
+  count = var.backend_network_mode == "VPC" && length(var.backend_vpc_security_group_ids) == 0 ? 1 : 0
+
+  security_group_id            = aws_security_group.runtime_default[0].id
+  referenced_security_group_id = aws_security_group.runtime_default[0].id
+  from_port                    = 443
+  to_port                      = 443
+  ip_protocol                  = "tcp"
+  description                  = "Allow HTTPS from self (VPC endpoint access)"
+}
+
+# Egress rule: allow all outbound traffic (matches CDK allowAllOutbound: true)
+resource "aws_vpc_security_group_egress_rule" "runtime_default_all" {
+  count = var.backend_network_mode == "VPC" && length(var.backend_vpc_security_group_ids) == 0 ? 1 : 0
+
+  security_group_id = aws_security_group.runtime_default[0].id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+  description       = "Allow all outbound traffic"
 }
 
 # -----------------------------------------------------------------------------
@@ -371,14 +436,18 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
   }
 
   # Network configuration
+  # PUBLIC: Runtime is accessible over the public internet (default).
+  # VPC: Runtime is deployed into a user-provided VPC for private network isolation.
+  #      The user must ensure their VPC has the necessary VPC endpoints for AWS services.
+  #      See docs/DEPLOYMENT.md for the full list of required VPC endpoints.
   network_configuration {
-    network_mode = var.network_mode
+    network_mode = var.backend_network_mode
 
     dynamic "network_mode_config" {
-      for_each = var.network_mode == "PRIVATE" && length(var.private_subnet_ids) > 0 ? [1] : []
+      for_each = var.backend_network_mode == "VPC" ? [1] : []
       content {
-        subnets         = var.private_subnet_ids
-        security_groups = var.security_group_ids
+        subnets         = var.backend_vpc_subnet_ids
+        security_groups = local.effective_security_group_ids
       }
     }
   }
@@ -386,8 +455,8 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
   # JWT authorizer configuration (Cognito)
   authorizer_configuration {
     custom_jwt_authorizer {
-      discovery_url    = local.oidc_discovery_url
-      allowed_audience = [var.web_client_id]
+      discovery_url   = local.oidc_discovery_url
+      allowed_clients = [var.web_client_id]
     }
   }
 
@@ -403,16 +472,23 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
 
   # Environment variables for the runtime
   environment_variables = {
-    AWS_REGION         = local.region
-    AWS_DEFAULT_REGION = local.region
-    MEMORY_ID          = aws_bedrockagentcore_memory.main.id
-    STACK_NAME         = var.stack_name_base
+    AWS_REGION                       = local.region
+    AWS_DEFAULT_REGION               = local.region
+    MEMORY_ID                        = aws_bedrockagentcore_memory.main.id
+    STACK_NAME                       = var.stack_name_base
+    GATEWAY_CREDENTIAL_PROVIDER_NAME = "${var.stack_name_base}-runtime-gateway-auth"
   }
-
-  tags = var.tags
 
   # Force runtime replacement when agent code changes (zip or docker)
   lifecycle {
+    precondition {
+      condition     = var.backend_network_mode != "VPC" || (var.backend_vpc_id != null && var.backend_vpc_id != "")
+      error_message = "backend_vpc_id is required when backend_network_mode is 'VPC'."
+    }
+    precondition {
+      condition     = var.backend_network_mode != "VPC" || length(var.backend_vpc_subnet_ids) > 0
+      error_message = "backend_vpc_subnet_ids must contain at least one subnet ID when backend_network_mode is 'VPC'."
+    }
     replace_triggered_by = [
       terraform_data.agent_code_hash,
       terraform_data.docker_image_hash,
@@ -422,6 +498,7 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
   depends_on = [
     aws_iam_role_policy.runtime,
     null_resource.invoke_zip_packager,
-    null_resource.docker_build_push
+    null_resource.docker_build_push,
+    null_resource.invoke_oauth2_provider # Ensure provider is registered before Runtime starts
   ]
 }
