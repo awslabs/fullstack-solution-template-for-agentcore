@@ -51,6 +51,7 @@
     "eslint": "^9.39.2",
     "fast-check": "^4.5.3",
     "jsdom": "^23.0.1",
+    "prettier": "^3.8.1",
     "shadcn": "^3.0.0",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.2.9",
