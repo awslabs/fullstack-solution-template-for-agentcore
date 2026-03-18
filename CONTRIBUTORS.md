@@ -14,3 +14,6 @@
 - Andrew Ang
 - Tesfagabir Meharizghi
 - Gauhar Bains
+- Meghana Ashok
+- Suren Gunturu
+- Samaneh Aminikhanghahi
