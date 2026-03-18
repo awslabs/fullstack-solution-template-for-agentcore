@@ -47,10 +47,14 @@ export class ConfigManager {
   }
 
   private _loadConfig(configFile: string): AppConfig {
-    const configPath = path.join(__dirname, "..", "..", configFile)
+    let configPath: string
 
-    if (!fs.existsSync(configPath)) {
-      throw new Error(`Configuration file ${configPath} does not exist. Please create config.yaml file.`)
+    if (fs.existsSync(configFile)) {
+      configPath = configFile
+    } else {
+      const defaultConfigPath = path.join(__dirname, "..", "..", configFile)
+      console.warn(`WARNING: Using '${defaultConfigPath}' instead.`)
+      configPath = defaultConfigPath
     }
 
     try {
@@ -59,12 +63,12 @@ export class ConfigManager {
 
       const deploymentType = parsedConfig.backend?.deployment_type || "docker"
       if (deploymentType !== "docker" && deploymentType !== "zip") {
-        throw new Error(`Invalid deployment_type '${deploymentType}'. Must be 'docker' or 'zip'.`)
+        throw new Error(`Invalid deployment_type '${deploymentType}' in ${configPath}. Must be 'docker' or 'zip'.`)
       }
 
       const stackNameBase = parsedConfig.stack_name_base
       if (!stackNameBase) {
-        throw new Error("stack_name_base is required in config.yaml")
+        throw new Error(`stack_name_base is required in ${configPath}`)
       }
       if (stackNameBase.length > MAX_STACK_NAME_BASE_LENGTH) {
         throw new Error(
@@ -76,20 +80,20 @@ export class ConfigManager {
       // Validate network_mode if provided
       const networkMode = parsedConfig.backend?.network_mode || "PUBLIC"
       if (networkMode !== "PUBLIC" && networkMode !== "VPC") {
-        throw new Error(`Invalid network_mode '${networkMode}'. Must be 'PUBLIC' or 'VPC'.`)
+        throw new Error(`Invalid network_mode '${networkMode}' in ${configPath}. Must be 'PUBLIC' or 'VPC'.`)
       }
 
       // Validate VPC configuration when network_mode is VPC
       const vpcConfig = parsedConfig.backend?.vpc
       if (networkMode === "VPC") {
         if (!vpcConfig) {
-          throw new Error("backend.vpc configuration is required when network_mode is 'VPC'.")
+          throw new Error(`backend.vpc configuration is required in ${configPath} when network_mode is 'VPC'.`)
         }
         if (!vpcConfig.vpc_id) {
-          throw new Error("backend.vpc.vpc_id is required when network_mode is 'VPC'.")
+          throw new Error(`backend.vpc.vpc_id is required in ${configPath} when network_mode is 'VPC'.`)
         }
         if (!vpcConfig.subnet_ids || vpcConfig.subnet_ids.length === 0) {
-          throw new Error("backend.vpc.subnet_ids must contain at least one subnet ID when network_mode is 'VPC'.")
+          throw new Error(`backend.vpc.subnet_ids must contain at least one subnet ID in ${configPath} when network_mode is 'VPC'.`)
         }
       }
 
