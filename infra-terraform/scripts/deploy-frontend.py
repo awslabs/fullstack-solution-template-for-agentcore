@@ -320,6 +320,7 @@ def generate_aws_exports(
         "amplify_app_url": "app_url",
         "runtime_arn": "runtime_arn",
         "feedback_api_url": "feedback_api_url",
+        "copilotkit_runtime_url": "copilotkit_runtime_url",
     }
 
     missing = [k for k in required_mappings.keys() if k not in outputs]
@@ -344,6 +345,7 @@ def generate_aws_exports(
         "agentRuntimeArn": outputs["runtime_arn"],
         "awsRegion": region,
         "feedbackApiUrl": outputs["feedback_api_url"],
+        "copilotKitRuntimeUrl": outputs["copilotkit_runtime_url"],
         "agentPattern": pattern,
     }
 

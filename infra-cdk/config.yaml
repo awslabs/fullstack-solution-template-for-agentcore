@@ -1,13 +1,14 @@
-stack_name_base: FAST-stack
+stack_name_base: langgraph-stack
 
 # Optional: Set to automatically create an admin user and email credentials
 # If not provided, you'll need to manually create users via AWS Console
-admin_user_email: # Example: admin@example.com
+admin_user_email:
 
 backend:
-  pattern: strands-single-agent # Available patterns: strands-single-agent, langgraph-single-agent, claude-agent-sdk
+  pattern: langgraph-single-agent # Available patterns: strands-single-agent, langgraph-single-agent, claude-agent-sdk
   deployment_type: docker # Available deployment types: docker (default), zip (not supported for claude-agent-sdk)
   network_mode: PUBLIC # Available network modes: PUBLIC (default), VPC
+
 
   # VPC configuration - required when network_mode is VPC
   # Your VPC must have the necessary VPC endpoints for AWS services.

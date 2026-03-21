@@ -1,23 +1,15 @@
-# Exclude large directories to keep build context small
-node_modules/
-.git/
-frontend/node_modules/
-frontend/dist/
-infra-cdk/node_modules/
-infra-cdk/cdk.out/
-.ruff_cache/
-__pycache__/
-*.pyc
-.pytest_cache/
-.coverage
-htmlcov/
-dist/
-build/
-*.egg-info/
-.vscode/
-.idea/
+# Default-deny the repo root and only include the runtime inputs we need.
+**
 
-# Keep only what we need for Docker builds
-!gateway/
+!.dockerignore
 !pyproject.toml
+!gateway/
+!gateway/**
 !patterns/
+!patterns/**
+!tools/
+!tools/**
+!ag_ui_langgraph/
+!ag_ui_langgraph/**
+!copilotkit/
+!copilotkit/**

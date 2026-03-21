@@ -144,6 +144,7 @@ COGNITO_USER_POOL_ID=$(terraform output -raw cognito_user_pool_id 2>/dev/null)
 AMPLIFY_URL=$(terraform output -raw amplify_app_url 2>/dev/null)
 RUNTIME_ARN=$(terraform output -raw runtime_arn 2>/dev/null)
 FEEDBACK_API_URL=$(terraform output -raw feedback_api_url 2>/dev/null)
+COPILOTKIT_RUNTIME_URL=$(terraform output -raw copilotkit_runtime_url 2>/dev/null)
 AWS_REGION=$(terraform output -json deployment_summary 2>/dev/null | jq -r '.region')
 
 # Validate required outputs
@@ -161,6 +162,10 @@ if [[ -z "$COGNITO_CLIENT_ID" ]]; then
 fi
 if [[ -z "$RUNTIME_ARN" ]]; then
     log_error "Could not find Runtime ARN in Terraform outputs"
+    exit 1
+fi
+if [[ -z "$COPILOTKIT_RUNTIME_URL" ]]; then
+    log_error "Could not find CopilotKit runtime URL in Terraform outputs"
     exit 1
 fi
 
@@ -193,6 +198,7 @@ AWS_EXPORTS=$(cat <<EOF
   "agentRuntimeArn": "${RUNTIME_ARN}",
   "awsRegion": "${AWS_REGION}",
   "feedbackApiUrl": "${FEEDBACK_API_URL}",
+  "copilotKitRuntimeUrl": "${COPILOTKIT_RUNTIME_URL}",
   "agentPattern": "${PATTERN}"
 }
 EOF

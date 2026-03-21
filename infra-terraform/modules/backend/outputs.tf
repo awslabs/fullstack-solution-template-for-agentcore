@@ -67,6 +67,11 @@ output "feedback_api_url" {
   value       = "${aws_api_gateway_stage.prod.invoke_url}/feedback"
 }
 
+output "copilotkit_runtime_url" {
+  description = "CopilotKit runtime endpoint URL"
+  value       = "${aws_apigatewayv2_stage.copilotkit_runtime.invoke_url}/copilotkit"
+}
+
 # =============================================================================
 # Machine Client Outputs
 # =============================================================================

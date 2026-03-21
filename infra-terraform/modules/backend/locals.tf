@@ -57,6 +57,7 @@ locals {
   gateway_lambda_source_path  = "${path.module}/../../../gateway/tools/sample_tool"
   gateway_tool_spec_path      = "${path.module}/../../../gateway/tools/sample_tool/tool_spec.json"
   feedback_lambda_source_path = "${path.module}/../../../infra-cdk/lambdas/feedback"
+  copilotkit_runtime_source_path = "${path.module}/../../../infra-cdk/lambdas/copilotkit-runtime"
 
   # SSM parameter paths
   ssm_parameter_prefix = "/${var.stack_name_base}"

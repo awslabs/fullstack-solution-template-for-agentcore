@@ -110,6 +110,11 @@ output "feedback_api_url" {
   value       = module.backend.feedback_api_url
 }
 
+output "copilotkit_runtime_url" {
+  description = "CopilotKit runtime API URL"
+  value       = module.backend.copilotkit_runtime_url
+}
+
 # =============================================================================
 # SSM Parameter Paths (for reference)
 # =============================================================================
@@ -133,5 +138,6 @@ output "deployment_summary" {
     frontend_url    = module.amplify_hosting.app_url
     gateway_url     = module.backend.gateway_url
     api_url         = module.backend.feedback_api_url
+    copilotkit_url  = module.backend.copilotkit_runtime_url
   }
 }
