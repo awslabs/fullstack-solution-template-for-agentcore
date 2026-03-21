@@ -9,6 +9,7 @@ import { Message, MessageSegment, ToolCall } from "./types"
 import { useGlobal } from "@/app/context/GlobalContext"
 import { AgentCoreClient } from "@/lib/agentcore-client"
 import type { AgentPattern } from "@/lib/agentcore-client"
+import { loadAwsConfig } from "@/lib/runtime-config"
 import { submitFeedback } from "@/services/feedbackService"
 import { useAuth } from "react-oidc-context"
 import { useDefaultTool } from "@/hooks/useToolRenderer"
@@ -36,13 +37,9 @@ export default function ChatInterface() {
   useEffect(() => {
     async function loadConfig() {
       try {
-        const response = await fetch("/aws-exports.json")
-        if (!response.ok) {
-          throw new Error("Failed to load configuration")
-        }
-        const config = await response.json()
+        const config = await loadAwsConfig()
 
-        if (!config.agentRuntimeArn) {
+        if (!config || !config.agentRuntimeArn) {
           throw new Error("Agent Runtime ARN not found in configuration")
         }
 
