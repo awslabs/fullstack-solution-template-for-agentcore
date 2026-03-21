@@ -56,8 +56,9 @@ Example:
 ## Procedure
 
 1. Update `infra-terraform/VERSION` with the new version
-2. Update `CHANGELOG.md` with `[Terraform]` labeled entries
-3. Commit, tag with `v<VERSION>`, and push
+2. Update `infra-terraform/main.tf` with the new version in the Cloudformation stack description
+3. Update `CHANGELOG.md` with `[Terraform]` labeled entries
+4. Commit, tag with `v<VERSION-tf.X>`, and push
 
 ```bash
 git tag v$(cat infra-terraform/VERSION)
