@@ -59,6 +59,14 @@ resource "aws_ssm_parameter" "feedback_api_url" {
 
 }
 
+resource "aws_ssm_parameter" "copilotkit_runtime_url" {
+  name        = "${local.ssm_parameter_prefix}/copilotkit-runtime-url"
+  description = "CopilotKit runtime API URL"
+  type        = "String"
+  value       = "${aws_apigatewayv2_stage.copilotkit_runtime.invoke_url}/copilotkit"
+
+}
+
 resource "aws_ssm_parameter" "gateway_url" {
   name        = "${local.ssm_parameter_prefix}/gateway_url"
   description = "AgentCore Gateway URL"

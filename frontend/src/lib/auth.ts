@@ -1,14 +1,7 @@
 import { WebStorageStateStore } from "oidc-client-ts"
+import { loadAwsConfig, type AwsExportsConfig } from "./runtime-config"
 
-// Configuration type matching the cognitoAuthConfig structure
-type AwsExportsConfig = {
-  authority?: string
-  client_id?: string
-  redirect_uri?: string
-  post_logout_redirect_uri?: string
-  response_type?: string
-  scope?: string
-  automaticSilentRenew?: boolean
+type CognitoAwsExportsConfig = AwsExportsConfig & {
   userStore: WebStorageStateStore | undefined
 }
 
@@ -19,40 +12,8 @@ type AwsExportsConfig = {
  * 3. Default values
  */
 
-// Cache for loaded config
-let configCache: AwsExportsConfig | null = null
-let configPromise: Promise<AwsExportsConfig | null> | null = null
-
-// Load configuration from aws-exports.json at runtime
-async function loadAwsConfig(): Promise<AwsExportsConfig | null> {
-  if (configCache) {
-    return configCache
-  }
-
-  if (configPromise) {
-    return configPromise
-  }
-
-  configPromise = (async () => {
-    try {
-      const response = await fetch("/aws-exports.json")
-      if (!response.ok) {
-        throw new Error(`Failed to load aws-exports.json: ${response.status}`)
-      }
-      const config = await response.json()
-      configCache = config
-      return config
-    } catch (error) {
-      console.error("Failed to load aws-exports.json:", error)
-      throw error
-    }
-  })()
-
-  return configPromise
-}
-
 // Create auth config factory function that loads config dynamically
-export async function createCognitoAuthConfig(): Promise<AwsExportsConfig> {
+export async function createCognitoAuthConfig(): Promise<CognitoAwsExportsConfig> {
   const awsConfig = await loadAwsConfig()
 
   if (awsConfig === null) {

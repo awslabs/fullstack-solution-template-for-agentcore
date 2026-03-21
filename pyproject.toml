@@ -47,7 +47,7 @@ agent-langgraph = [
     "langgraph==1.0.3",
     "langchain-aws==1.0.0",
     "langchain-mcp-adapters==0.1.13",
-    "langgraph-checkpoint-aws==1.0.1",
+    "langgraph-checkpoint-aws==1.0.5",
     "mcp==1.21.0",
 ]
 

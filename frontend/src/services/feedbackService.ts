@@ -3,6 +3,8 @@
  * Handles submission of user feedback to the backend API
  */
 
+import { loadAwsConfig } from "@/lib/runtime-config"
+
 // Load API URL from aws-exports.json
 let FEEDBACK_API_URL = ""
 
@@ -13,8 +15,10 @@ async function loadApiUrl(): Promise<string> {
   }
 
   try {
-    const response = await fetch("/aws-exports.json")
-    const config = await response.json()
+    const config = await loadAwsConfig()
+    if (!config) {
+      throw new Error("Feedback API URL not configured")
+    }
     FEEDBACK_API_URL = config.feedbackApiUrl ? `${config.feedbackApiUrl}feedback` : ""
     return FEEDBACK_API_URL
   } catch (error) {

@@ -19,6 +19,7 @@ import { AppConfig } from "./utils/config-manager"
 import { AgentCoreRole } from "./utils/agentcore-role"
 import * as path from "path"
 import * as fs from "fs"
+import { execSync } from "child_process"
 
 export interface BackendStackProps extends cdk.NestedStackProps {
   config: AppConfig
@@ -33,6 +34,7 @@ export class BackendStack extends cdk.NestedStack {
   public readonly userPoolClientId: string
   public readonly userPoolDomain: cognito.UserPoolDomain
   public feedbackApiUrl: string
+  public copilotKitRuntimeUrl: string
   public runtimeArn: string
   public memoryArn: string
   private agentName: cdk.CfnParameter
@@ -94,6 +96,9 @@ export class BackendStack extends cdk.NestedStack {
     // Create API Gateway Feedback API resources (example of best-practice API Gateway + Lambda
     // pattern)
     this.createFeedbackApi(props.config, props.frontendUrl, feedbackTable)
+
+    // Create standalone CopilotKit runtime API.
+    this.createCopilotKitRuntimeApi(props.config, props.frontendUrl)
   }
 
   private createAgentCoreRuntime(config: AppConfig): void {
@@ -596,6 +601,140 @@ export class BackendStack extends cdk.NestedStack {
     })
   }
 
+  private createCopilotKitRuntimeApi(config: AppConfig, frontendUrl: string): void {
+    const buildAgentCoreAgUiUrl = (runtimeArn: string): string => {
+      const encodedRuntimeArn = cdk.Fn.join(
+        "%2F",
+        cdk.Fn.split("/", cdk.Fn.join("%3A", cdk.Fn.split(":", runtimeArn)))
+      )
+
+      return cdk.Fn.join("", [
+        "https://bedrock-agentcore.",
+        cdk.Stack.of(this).region,
+        ".amazonaws.com/runtimes/",
+        encodedRuntimeArn,
+        "/invocations?qualifier=DEFAULT",
+      ])
+    }
+
+    // Use own runtime ARN for the current stack; for the other stack,
+    // look up its SSM parameter only if it has been deployed, otherwise
+    // fall back to our own ARN (safe because routing uses config.pattern).
+    const langgraphRuntimeArn = config.stack_name_base === "langgraph-stack"
+      ? this.runtimeArn
+      : ssm.StringParameter.valueForStringParameter(this, "/langgraph-stack/runtime-arn")
+    const strandsRuntimeArn = config.stack_name_base === "strands-stack"
+      ? this.runtimeArn
+      : this.runtimeArn
+
+    const defaultRuntimeArn =
+      config.backend?.pattern === "strands-single-agent" ? strandsRuntimeArn : langgraphRuntimeArn
+    const defaultAgentCoreAgUiUrl = buildAgentCoreAgUiUrl(defaultRuntimeArn)
+    const langgraphAgentCoreAgUiUrl = buildAgentCoreAgUiUrl(langgraphRuntimeArn)
+    const strandsAgentCoreAgUiUrl = buildAgentCoreAgUiUrl(strandsRuntimeArn)
+
+    const copilotKitRuntimeLambda = new lambda.Function(this, "CopilotKitRuntimeLambda", {
+      functionName: `${config.stack_name_base}-copilotkit-runtime`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      architecture: lambda.Architecture.ARM_64,
+      handler: "dist/index.handler",
+      code: lambda.Code.fromAsset(path.join(__dirname, "..", "lambdas", "copilotkit-runtime"), {
+        assetHashType: cdk.AssetHashType.OUTPUT,
+        bundling: {
+          local: {
+            tryBundle(outputDir: string) {
+              const runtimeDir = path.join(__dirname, "..", "lambdas", "copilotkit-runtime")
+              execSync("npm ci --no-audit --no-fund", { cwd: runtimeDir, stdio: "inherit" })
+              execSync("npm run build", { cwd: runtimeDir, stdio: "inherit" })
+              execSync("npm prune --omit=dev", { cwd: runtimeDir, stdio: "inherit" })
+              execSync(`cp -R dist node_modules package.json package-lock.json ${outputDir}/`, {
+                cwd: runtimeDir,
+                stdio: "inherit",
+              })
+              return true
+            },
+          },
+          image: lambda.Runtime.NODEJS_20_X.bundlingImage,
+          environment: {
+            NPM_CONFIG_CACHE: "/tmp/.npm",
+            NPM_CONFIG_FETCH_RETRIES: "5",
+            NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT: "120000",
+          },
+          command: [
+            "bash",
+            "-c",
+            [
+              "mkdir -p /tmp/.npm",
+              "npm ci --no-audit --no-fund",
+              "npm run build",
+              "npm prune --omit=dev",
+              "cp -R dist node_modules package.json package-lock.json /asset-output/",
+            ].join(" && "),
+          ],
+        },
+      }),
+      environment: {
+        AGENTCORE_AG_UI_URL: defaultAgentCoreAgUiUrl,
+        COPILOTKIT_AGENT_NAME: config.backend?.pattern || "strands-single-agent",
+        LANGGRAPH_AGENTCORE_AG_UI_URL: langgraphAgentCoreAgUiUrl,
+        STRANDS_AGENTCORE_AG_UI_URL: strandsAgentCoreAgUiUrl,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 1024,
+      logGroup: new logs.LogGroup(this, "CopilotKitRuntimeLambdaLogGroup", {
+        logGroupName: `/aws/lambda/${config.stack_name_base}-copilotkit-runtime`,
+        retention: logs.RetentionDays.ONE_WEEK,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
+    })
+
+    const copilotKitApi = new apigateway.RestApi(this, "CopilotKitRuntimeApi", {
+      restApiName: `${config.stack_name_base}-copilotkit-runtime-api`,
+      description: "Standalone CopilotKit runtime API backed by Lambda",
+      defaultCorsPreflightOptions: {
+        allowOrigins: [frontendUrl, "http://localhost:3000"],
+        allowMethods: ["GET", "POST", "OPTIONS"],
+        allowHeaders: ["Content-Type", "Authorization"],
+      },
+      deployOptions: {
+        stageName: "prod",
+      },
+    })
+
+    const runtimeIntegration = new apigateway.LambdaIntegration(copilotKitRuntimeLambda, {
+      responseTransferMode: apigateway.ResponseTransferMode.STREAM,
+    })
+
+    const runtimeResource = copilotKitApi.root.addResource("copilotkit")
+    runtimeResource.addMethod("GET", runtimeIntegration, {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    })
+    runtimeResource.addMethod("POST", runtimeIntegration, {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    })
+
+    const runtimeProxy = runtimeResource.addResource("{proxy+}")
+    runtimeProxy.addMethod("GET", runtimeIntegration, {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    })
+    runtimeProxy.addMethod("POST", runtimeIntegration, {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    })
+
+    this.copilotKitRuntimeUrl = copilotKitApi.urlForPath("/copilotkit")
+
+    new ssm.StringParameter(this, "CopilotKitRuntimeUrlParam", {
+      parameterName: `/${config.stack_name_base}/copilotkit-runtime-url`,
+      stringValue: this.copilotKitRuntimeUrl,
+      description: "CopilotKit runtime API URL",
+    })
+
+    new cdk.CfnOutput(this, "CopilotKitRuntimeUrl", {
+      description: "CopilotKit runtime API URL",
+      value: this.copilotKitRuntimeUrl,
+    })
+  }
+
   private createAgentCoreGateway(config: AppConfig): void {
     // Create sample tool Lambda
     const toolLambda = new lambda.Function(this, "SampleToolLambda", {
@@ -1020,4 +1159,5 @@ export class BackendStack extends cdk.NestedStack {
     const crypto = require("crypto")
     return crypto.createHash("sha256").update(content).digest("hex").slice(0, 16)
   }
+
 }

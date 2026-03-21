@@ -3,9 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import ChatInterface from "@/components/chat/ChatInterface"
+import CopilotChatInterface from "@/components/chat/CopilotChatInterface"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/useAuth"
 import { GlobalContextProvider } from "@/app/context/GlobalContext"
+
+const USE_COPILOTKIT_CHAT = true
 
 export default function ChatPage() {
   const { isAuthenticated, signIn } = useAuth()
@@ -22,7 +25,7 @@ export default function ChatPage() {
   return (
     <GlobalContextProvider>
       <div className="relative h-screen">
-        <ChatInterface />
+        {USE_COPILOTKIT_CHAT ? <CopilotChatInterface /> : <ChatInterface />}
       </div>
     </GlobalContextProvider>
   )

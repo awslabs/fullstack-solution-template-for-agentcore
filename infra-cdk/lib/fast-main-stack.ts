@@ -83,6 +83,12 @@ export class FastMainStack extends cdk.Stack {
       exportName: `${props.config.stack_name_base}-FeedbackApiUrl`,
     })
 
+    new cdk.CfnOutput(this, "CopilotKitRuntimeUrl", {
+      value: this.backendStack.copilotKitRuntimeUrl,
+      description: "CopilotKit runtime API URL",
+      exportName: `${props.config.stack_name_base}-CopilotKitRuntimeUrl`,
+    })
+
     new cdk.CfnOutput(this, "AmplifyConsoleUrl", {
       value: `https://console.aws.amazon.com/amplify/apps/${this.amplifyHostingStack.amplifyApp.appId}`,
       description: "Amplify Console URL for monitoring deployments",
