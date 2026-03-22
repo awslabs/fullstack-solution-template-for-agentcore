@@ -12,9 +12,10 @@ ENV UV_SYSTEM_PYTHON=1 \
     OTEL_PYTHON_LOG_CORRELATION=true \
     PYTHONUNBUFFERED=1
 
-# Copy pyproject.toml and gateway package for FAST installation
+# Copy pyproject.toml and shared packages for installation
 COPY pyproject.toml .
 COPY gateway/ gateway/
+COPY tools/ agentcore_tools/
 
 # Copy and install agent-specific requirements first
 COPY patterns/langgraph-single-agent/requirements.txt requirements.txt
@@ -31,11 +32,12 @@ USER bedrock_agentcore
 
 EXPOSE 8080
 
-# Copy only the agent code
+# Copy agent code and tools
 COPY patterns/langgraph-single-agent/langgraph_agent.py .
+COPY patterns/langgraph-single-agent/tools/ tools/
 COPY patterns/utils/ utils/
 
-# Healthcheck using Python (no extra dependencies needed)
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/ping', timeout=2)" || exit 1
 

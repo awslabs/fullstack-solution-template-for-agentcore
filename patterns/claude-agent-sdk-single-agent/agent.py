@@ -1,25 +1,26 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-from code_int_mcp.server import code_int_mcp_server
+import json
+import logging
+import os
+
+from bedrock_agentcore.runtime import BedrockAgentCoreApp, RequestContext
 from claude_agent_sdk import (
     AssistantMessage,
-    UserMessage,
+    ClaudeAgentOptions,
+    ClaudeSDKClient,
+    ProcessError,
     ResultMessage,
     SystemMessage,
-    ClaudeAgentOptions,
     TextBlock,
-    ToolUseBlock,
-    ClaudeSDKClient,
     ToolResultBlock,
-    ProcessError,
+    ToolUseBlock,
+    UserMessage,
 )
-from bedrock_agentcore.runtime import BedrockAgentCoreApp, RequestContext
+from code_int_mcp.server import code_int_mcp_server
 from utils.auth import extract_user_id_from_context, get_gateway_access_token
 from utils.ssm import get_ssm_parameter
-import logging
-import json
-import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -48,7 +49,7 @@ async def main(payload, context: RequestContext):
         }
         return
 
-    code_int_session_id = payload.get("code_int_session_id", "")
+    _code_int_session_id = payload.get("code_int_session_id", "")
     claude_session_id = _session_map.get(runtime_session_id)
 
     # Extract user ID securely from validated JWT token
@@ -67,7 +68,9 @@ async def main(payload, context: RequestContext):
             gateway_url = get_ssm_parameter(f"/{stack_name}/gateway_url")
             access_token = get_gateway_access_token()
         except Exception as e:
-            logger.warning("[AGENT] Gateway not available, continuing without tools: %s", e)
+            logger.warning(
+                "[AGENT] Gateway not available, continuing without tools: %s", e
+            )
             gateway_url = None
             access_token = None
 
@@ -100,12 +103,27 @@ async def main(payload, context: RequestContext):
             mcp_servers=mcp_servers,
             model="us.anthropic.claude-opus-4-6-v1",
             allowed_tools=allowed_tools,
-            disallowed_tools=["Bash", "Write", "NotebookEdit", "Edit", "WebFetch", "Read", "Glob", "Grep", "EnterWorktree", "Skill", "TodoWrite", "CronCreate", "CronDelete", "CronList"],
+            disallowed_tools=[
+                "Bash",
+                "Write",
+                "NotebookEdit",
+                "Edit",
+                "WebFetch",
+                "Read",
+                "Glob",
+                "Grep",
+                "EnterWorktree",
+                "Skill",
+                "TodoWrite",
+                "CronCreate",
+                "CronDelete",
+                "CronList",
+            ],
             resume=resume_id,
             thinking={"type": "adaptive"},
             cli_path="/usr/bin/claude",
             stderr=lambda line: logger.error("claude-code stderr: %s", line),
-            system_prompt=f"""You are an AI assistant that helps users with code execution and analysis tasks.
+            system_prompt="""You are an AI assistant that helps users with code execution and analysis tasks.
 
 CRITICAL RULES:
 1. You MUST use mcp__codeint__execute_code for ALL Python code execution tasks.
@@ -131,7 +149,9 @@ Your response should:
             async for msg in client.receive_response():
                 if isinstance(msg, SystemMessage):
                     if msg.subtype == "init":
-                        logger.info("Claude session init: %s", msg.data.get("session_id"))
+                        logger.info(
+                            "Claude session init: %s", msg.data.get("session_id")
+                        )
                 elif isinstance(msg, AssistantMessage):
                     for block in msg.content:
                         if isinstance(block, ToolUseBlock):
@@ -140,7 +160,9 @@ Your response should:
                                 "current_tool_use": {
                                     "name": block.name,
                                     "input": block.input,
-                                    "toolUseId": f"tool-{block.id}" if hasattr(block, "id") else f"tool-{hash(block.name)}",
+                                    "toolUseId": f"tool-{block.id}"
+                                    if hasattr(block, "id")
+                                    else f"tool-{hash(block.name)}",
                                 }
                             }
                         elif isinstance(block, TextBlock):
@@ -156,9 +178,11 @@ Your response should:
                                     try:
                                         result_data = json.loads(text_content)
                                         if isinstance(result_data, dict):
-                                            extracted = result_data.get("code_int_session_id", "")
+                                            extracted = result_data.get(
+                                                "code_int_session_id", ""
+                                            )
                                             if extracted:
-                                                code_int_session_id = extracted
+                                                _code_int_session_id = extracted
                                     except json.JSONDecodeError:
                                         pass
                 elif isinstance(msg, ResultMessage):
@@ -172,7 +196,10 @@ Your response should:
             yield event
     except ProcessError:
         if claude_session_id:
-            logger.warning("Resume failed for session %s, starting fresh session", claude_session_id)
+            logger.warning(
+                "Resume failed for session %s, starting fresh session",
+                claude_session_id,
+            )
             async for event in _process_messages(_build_options(None)):
                 yield event
         else:

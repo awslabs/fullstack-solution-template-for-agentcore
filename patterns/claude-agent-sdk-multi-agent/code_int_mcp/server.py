@@ -3,11 +3,13 @@
 
 """In-process MCP server for Code Interpreter."""
 
-from .client import CodeInterpreterClient
-from claude_agent_sdk import tool, create_sdk_mcp_server
-from typing import Any
 import json
 import logging
+from typing import Any
+
+from claude_agent_sdk import create_sdk_mcp_server, tool
+
+from .client import CodeInterpreterClient
 
 logger = logging.getLogger(__name__)
 
