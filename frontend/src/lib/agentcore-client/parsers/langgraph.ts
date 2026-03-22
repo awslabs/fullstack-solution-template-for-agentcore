@@ -6,20 +6,19 @@ import type { ChunkParser } from "../types"
 /**
  * Parses SSE chunks from LangGraph agents (stream_mode="messages").
  *
- * Each SSE line is a model_dump() of either AIMessageChunk or ToolMessage.
+ * Uses LangChain's normalized message fields — works with any ChatModel backend.
  *
- * AIMessageChunk shapes:
- *   - text:       content: [{type:"text", text:"...", index:N}]
- *   - tool start: content: [{type:"tool_use", id, name, input:{}, index:N}]  + tool_calls[]
- *   - tool delta: content: [{type:"tool_use", partial_json:"...", index:N}]   + tool_call_chunks[]
- *   - stop:       response_metadata: {stop_reason:"end_turn"|"tool_use"}
- *   - last:       chunk_position: "last"
- *
- * ToolMessage shape:
- *   - type: "tool", content: "result", name: "tool_name", tool_call_id: "id"
+ * Stream format:
+ *   AIMessageChunk:
+ *     - text:        content (string)
+ *     - tool start:  tool_call_chunks[{id, name, args}]  — first chunk has id + name
+ *     - tool delta:  tool_call_chunks[{args}]             — subsequent chunks have args only
+ *     - stop:        response_metadata.stop_reason
+ *   ToolMessage:
+ *     - type: "tool", content: string, tool_call_id: string
  */
 
-// Track current tool_use_id across chunks (deltas don't carry the id)
+// Track current tool_use_id — streaming deltas may omit the id
 let currentToolUseId = ""
 
 export const parseLanggraphChunk: ChunkParser = (line, callback) => {
@@ -43,39 +42,29 @@ export const parseLanggraphChunk: ChunkParser = (line, callback) => {
 
     // AIMessageChunk
     if (json.type === "AIMessageChunk") {
-      // Content as plain string (when model responds without tool use)
+      // Text token — content can be a string or array of text blocks
       if (typeof json.content === "string" && json.content) {
         callback({ type: "text", content: json.content })
-      }
-
-      // Content as array of blocks (when model uses tools)
-      if (Array.isArray(json.content)) {
+      } else if (Array.isArray(json.content)) {
         for (const block of json.content) {
-          // Text token
           if (block.type === "text" && block.text) {
             callback({ type: "text", content: block.text })
           }
+        }
+      }
 
-          // Tool use start — has id and name
-          if (block.type === "tool_use" && block.id && block.name) {
-            currentToolUseId = block.id
-            callback({
-              type: "tool_use_start",
-              toolUseId: block.id,
-              name: block.name,
-            })
+      // Tool calls — streamed via tool_call_chunks (LangChain's standard streaming field)
+      if (Array.isArray(json.tool_call_chunks)) {
+        for (const chunk of json.tool_call_chunks) {
+          if (chunk.id && chunk.name) {
+            currentToolUseId = chunk.id
+            callback({ type: "tool_use_start", toolUseId: chunk.id, name: chunk.name })
           }
-
-          // Tool input streaming — has partial_json
-          if (
-            block.type === "tool_use" &&
-            typeof block.partial_json === "string" &&
-            block.partial_json
-          ) {
+          if (typeof chunk.args === "string" && chunk.args) {
             callback({
               type: "tool_use_delta",
-              toolUseId: currentToolUseId,
-              input: block.partial_json,
+              toolUseId: chunk.id || currentToolUseId,
+              input: chunk.args,
             })
           }
         }

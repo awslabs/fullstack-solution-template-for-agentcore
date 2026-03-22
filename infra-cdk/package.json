@@ -13,7 +13,7 @@
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/node": "22.7.9",
-    "aws-cdk": "2.1031.0",
+    "aws-cdk": "^2.1111.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
@@ -21,8 +21,8 @@
   },
   "dependencies": {
     "@aws-cdk/aws-amplify-alpha": "^2.215.0-alpha.0",
-    "@aws-cdk/aws-bedrock-agentcore-alpha": "^2.233.0-alpha.0",
-    "@aws-cdk/aws-bedrock-alpha": "^2.233.0-alpha.0",
+    "@aws-cdk/aws-bedrock-agentcore-alpha": "^2.243.0-alpha.0",
+    "@aws-cdk/aws-bedrock-alpha": "^2.243.0-alpha.0",
     "@aws-cdk/aws-lambda-python-alpha": "^2.233.0-alpha.0",
     "@aws-sdk/client-bedrock-agentcore": "^3.987.0",
     "aws-cdk-lib": "^2.240.0",

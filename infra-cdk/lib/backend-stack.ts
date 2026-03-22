@@ -364,6 +364,13 @@ export class BackendStack extends cdk.NestedStack {
       description: `${pattern} agent runtime for ${config.stack_name_base}`,
     })
 
+    // AGUI protocol override — CloudFormation doesn't support AGUI enum yet
+    // (only MCP | HTTP | A2A). Runtime deploys as HTTP, which also works properly.
+    // if (pattern.startsWith("agui-")) {
+    //   const cfnRuntime = this.agentRuntime.node.defaultChild as cdk.CfnResource
+    //   cfnRuntime.addPropertyOverride("ProtocolConfiguration", "AGUI")
+    // }
+
     // Make sure that ZIP is uploaded before Runtime is created
     if (zipPackagerResource) {
       this.agentRuntime.node.addDependency(zipPackagerResource)
