@@ -15,7 +15,6 @@ ENV UV_SYSTEM_PYTHON=1 \
 # Copy pyproject.toml and gateway package for FAST installation
 COPY pyproject.toml .
 COPY gateway/ gateway/
-COPY tools/ tools/
 
 # Copy and install agent-specific requirements first
 COPY patterns/strands-single-agent/requirements.txt requirements.txt
@@ -32,9 +31,9 @@ USER bedrock_agentcore
 
 EXPOSE 8080
 
-# Copy agent code files
-COPY patterns/strands-single-agent/basic_agent.py .
-COPY patterns/strands-single-agent/strands_code_interpreter.py .
+# Copy agent code
+COPY patterns/strands-single-agent/strands_agent.py .
+COPY patterns/strands-single-agent/tools/ tools/
 COPY patterns/utils/ utils/
 
 # Healthcheck using Python (no extra dependencies needed)
@@ -42,4 +41,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/ping', timeout=2)" || exit 1
 
 # Start agent with OpenTelemetry instrumentation
-CMD ["opentelemetry-instrument", "python", "-m", "basic_agent"]
+CMD ["opentelemetry-instrument", "python", "-m", "strands_agent"]
