@@ -116,4 +116,5 @@ resource "aws_cloudformation_stack" "solution_tag" {
       }
     }
   })
+  #checkov:skip=CKV_AWS_124: Empty stack used only as a solution tag indicator; SNS notifications not needed
 }
