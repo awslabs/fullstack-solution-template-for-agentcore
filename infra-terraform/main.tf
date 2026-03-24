@@ -97,3 +97,24 @@ module "backend" {
 
   depends_on = [module.cognito, module.amplify_hosting]
 }
+
+# =============================================================================
+# Solution Tag (CloudFormation)
+# =============================================================================
+# Empty CloudFormation stack for AWS solution tag indicator.
+# Maps to: CDK FastMainStack description
+
+resource "aws_cloudformation_stack" "solution_tag" {
+  name = "${var.stack_name_base}-solution-tag"
+
+  template_body = jsonencode({
+    AWSTemplateFormatVersion = "2010-09-09"
+    Description              = "Fullstack AgentCore Solution Template (v0.4.0-tf.1) (uksb-v6dos0t5g8) (tag: terraform)"
+    Resources = {
+      NullResource = {
+        Type = "AWS::CloudFormation::WaitConditionHandle"
+      }
+    }
+  })
+  #checkov:skip=CKV_AWS_124: Empty stack used only as a solution tag indicator; SNS notifications not needed
+}

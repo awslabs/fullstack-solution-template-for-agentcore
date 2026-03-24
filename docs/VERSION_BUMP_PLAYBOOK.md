@@ -9,8 +9,9 @@ This document provides a checklist for bumping the version of FAST (Fullstack Ag
 3. **`frontend/package.json`** - Frontend package version (`"version": "X.Y.Z"`)
 4. **`infra-cdk/package.json`** - CDK package version (`"version": "X.Y.Z"`)
 5. **`infra-cdk/lib/fast-main-stack.ts`** - Stack description (`(vX.Y.Z)`)
-6. **`infra-terraform/VERSION`** - Terraform compatibility version (only update if TF is verified compatible with the new FAST version; see `infra-terraform/TF_VERSION_BUMP_PLAYBOOK.md`)
-7. **`CHANGELOG.md`** - Add new version entry at top
+6. **`infra-terraform/VERSION`** - Terraform compatibility version (`X.X.X-tf.X`)(only update if TF is verified compatible with the new FAST version; see `infra-terraform/TF_VERSION_BUMP_PLAYBOOK.md`)
+7. **`infra-terraform/main.tf`** - Stack description (`(vX.X.X-tf.X)`) (only update if TF is verified compatible with the new FAST version; see `infra-terraform/TF_VERSION_BUMP_PLAYBOOK.md`)
+8. **`CHANGELOG.md`** - Add new version entry at top
 
 ## Auto-Generated Files (DO NOT manually update)
 
