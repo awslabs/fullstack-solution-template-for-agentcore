@@ -1,8 +1,11 @@
 # LangGraph agent dependencies with pinned versions
 langgraph==1.0.10rc1
 langchain-aws==1.0.0
+langchain-core>=1.2.5
 langchain-mcp-adapters==0.1.13
 langgraph-checkpoint-aws==1.0.1
-mcp==1.23.1
+mcp>=1.23.1
+urllib3>=2.6.3
+python-multipart>=0.0.22
 bedrock-agentcore==1.0.6
 PyJWT[crypto]>=2.10.1

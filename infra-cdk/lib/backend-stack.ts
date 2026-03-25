@@ -995,6 +995,7 @@ export class BackendStack extends cdk.NestedStack {
    */
   private readDirRecursive(dirPath: string, prefix: string, output: Record<string, string>): void {
     for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+      // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal — dirPath is derived from __dirname-relative CDK build paths, not user input
       const fullPath = path.join(dirPath, entry.name)
       const relativePath = path.join(prefix, entry.name)
 

@@ -481,7 +481,7 @@ Each log event contains a JSON object with OpenTelemetry-style attributes:
     "gen_ai.evaluation.score.label": "Very Helpful",
     "gen_ai.evaluation.explanation": "The response directly addresses the user's question with relevant and actionable information..."
   },
-  "traceId": "abc123def456",
+  "traceId": "abc123def456",  // pragma: allowlist secret (example placeholder, not a real secret)
   "spanId": "789ghi",
   "sessionId": "session-456",
   "timestamp": "2026-02-17T00:42:42.086Z"

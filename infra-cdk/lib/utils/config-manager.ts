@@ -47,6 +47,7 @@ export class ConfigManager {
   }
 
   private _loadConfig(configFile: string): AppConfig {
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal — configFile is a hardcoded filename from the CDK app entry point, not user input
     const configPath = path.join(__dirname, "..", "..", configFile)
 
     if (!fs.existsSync(configPath)) {
@@ -112,6 +113,7 @@ export class ConfigManager {
     return this.config
   }
 
+  // nosemgrep: javascript.lang.security.audit.prototype-pollution.prototype-pollution-loop.prototype-pollution-loop — iterates over a trusted local YAML config object, not user-controlled input
   public get(key: string, defaultValue?: any): any {
     const keys = key.split(".")
     let value: any = this.config
