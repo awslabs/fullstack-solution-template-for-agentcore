@@ -5,7 +5,13 @@ stack_name_base: FAST-stack
 admin_user_email: # Example: admin@example.com
 
 backend:
-  pattern: strands-single-agent # Available patterns: strands-single-agent, langgraph-single-agent, claude-agent-sdk
+  pattern: strands-single-agent # See patterns/ for available options
+  # Pattern prefix determines the frontend parser:
+  #   agui-*      → AG-UI parser      (e.g. agui-strands-agent)
+  #   strands-*   → Strands parser    (e.g. strands-single-agent)
+  #   langgraph-* → LangGraph parser  (e.g. langgraph-single-agent)
+  #   claude-*    → Claude parser     (e.g. claude-agent-sdk-single-agent)
+  # The folder name must match exactly and start with the desired parser prefix.
   deployment_type: docker # Available deployment types: docker (default), zip (not supported for claude-agent-sdk)
   network_mode: PUBLIC # Available network modes: PUBLIC (default), VPC
 
