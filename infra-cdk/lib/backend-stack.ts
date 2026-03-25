@@ -551,6 +551,7 @@ export class BackendStack extends cdk.NestedStack {
         throttlingRateLimit: 100,
         throttlingBurstLimit: 200,
         cachingEnabled: true,
+        cacheDataEncrypted: true,
         cacheClusterEnabled: true,
         cacheClusterSize: "0.5",
         cacheTtl: cdk.Duration.minutes(5),
