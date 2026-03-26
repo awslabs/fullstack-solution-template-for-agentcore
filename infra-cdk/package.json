@@ -27,6 +27,6 @@
     "@aws-sdk/client-bedrock-agentcore": "^3.987.0",
     "aws-cdk-lib": "^2.240.0",
     "constructs": "^10.0.0",
-    "yaml": "^2.3.4"
+    "yaml": "^2.8.3"
   }
 }
