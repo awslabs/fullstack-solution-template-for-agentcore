@@ -36,6 +36,13 @@ export interface AppConfig {
     network_mode: NetworkMode
     /** VPC configuration. Required when network_mode is "VPC". */
     vpc?: VpcConfig
+    /**
+     * Enable long-term memory (SemanticMemoryStrategy) for the agent.
+     * When true, the agent extracts and retrieves facts across sessions.
+     * This incurs additional costs: $0.75/1,000 records stored + $0.50/1,000 retrievals.
+     * Defaults to false.
+     */
+    use_long_term_memory: boolean
   }
 }
 
@@ -63,7 +70,9 @@ export class ConfigManager {
       configPath = defaultConfigPath
     }
     if (!fs.existsSync(configPath)) {
-      throw new Error(`Configuration file ${configPath} does not exist. Please create config.yaml file.`)
+      throw new Error(
+        `Configuration file ${configPath} does not exist. Please create config.yaml file.`
+      )
     }
 
     try {
@@ -72,7 +81,9 @@ export class ConfigManager {
 
       const deploymentType = parsedConfig.backend?.deployment_type || "docker"
       if (deploymentType !== "docker" && deploymentType !== "zip") {
-        throw new Error(`Invalid deployment_type '${deploymentType}' in ${configPath}. Must be 'docker' or 'zip'.`)
+        throw new Error(
+          `Invalid deployment_type '${deploymentType}' in ${configPath}. Must be 'docker' or 'zip'.`
+        )
       }
 
       const stackNameBase = parsedConfig.stack_name_base
@@ -89,20 +100,28 @@ export class ConfigManager {
       // Validate network_mode if provided
       const networkMode = parsedConfig.backend?.network_mode || "PUBLIC"
       if (networkMode !== "PUBLIC" && networkMode !== "VPC") {
-        throw new Error(`Invalid network_mode '${networkMode}' in ${configPath}. Must be 'PUBLIC' or 'VPC'.`)
+        throw new Error(
+          `Invalid network_mode '${networkMode}' in ${configPath}. Must be 'PUBLIC' or 'VPC'.`
+        )
       }
 
       // Validate VPC configuration when network_mode is VPC
       const vpcConfig = parsedConfig.backend?.vpc
       if (networkMode === "VPC") {
         if (!vpcConfig) {
-          throw new Error(`backend.vpc configuration is required in ${configPath} when network_mode is 'VPC'.`)
+          throw new Error(
+            `backend.vpc configuration is required in ${configPath} when network_mode is 'VPC'.`
+          )
         }
         if (!vpcConfig.vpc_id) {
-          throw new Error(`backend.vpc.vpc_id is required in ${configPath} when network_mode is 'VPC'.`)
+          throw new Error(
+            `backend.vpc.vpc_id is required in ${configPath} when network_mode is 'VPC'.`
+          )
         }
         if (!vpcConfig.subnet_ids || vpcConfig.subnet_ids.length === 0) {
-          throw new Error(`backend.vpc.subnet_ids must contain at least one subnet ID in ${configPath} when network_mode is 'VPC'.`)
+          throw new Error(
+            `backend.vpc.subnet_ids must contain at least one subnet ID in ${configPath} when network_mode is 'VPC'.`
+          )
         }
       }
 
@@ -114,6 +133,7 @@ export class ConfigManager {
           deployment_type: deploymentType,
           network_mode: networkMode,
           vpc: vpcConfig,
+          use_long_term_memory: parsedConfig.backend?.use_long_term_memory === true,
         },
       }
     } catch (error) {
