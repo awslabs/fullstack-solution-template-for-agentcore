@@ -184,3 +184,22 @@ Ultimately it is your responsibility as the developer of a full stack applicatio
 ## License
 
 This project is licensed under the Apache-2.0 License.
+
+
+## Installation
+
+```bash
+# Installation instructions
+```
+
+
+## Usage
+
+```python
+# Usage examples
+```
+
+
+## Contributing
+
+Contributions are welcome!
