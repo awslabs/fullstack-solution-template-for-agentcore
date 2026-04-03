@@ -1,9 +1,10 @@
 """Strands agent with Gateway MCP tools, Memory, and Code Interpreter."""
 
-import json
 import logging
 import os
 
+from ag_ui.core import RunAgentInput, RunErrorEvent
+from ag_ui_strands import StrandsAgent
 from bedrock_agentcore.memory.integrations.strands.config import AgentCoreMemoryConfig
 from bedrock_agentcore.memory.integrations.strands.session_manager import (
     AgentCoreMemorySessionManager,
@@ -26,6 +27,12 @@ SYSTEM_PROMPT = (
 )
 
 
+def _build_model() -> BedrockModel:
+    return BedrockModel(
+        model_id="us.anthropic.claude-sonnet-4-5-20250929-v1:0", temperature=0.1
+    )
+
+
 def _create_session_manager(
     user_id: str, session_id: str
 ) -> AgentCoreMemorySessionManager:
@@ -41,57 +48,67 @@ def _create_session_manager(
     )
 
 
-def create_strands_agent(user_id: str, session_id: str) -> Agent:
-    """Create a Strands agent with Gateway tools, memory, and Code Interpreter."""
-
-    bedrock_model = BedrockModel(
-        model_id="us.anthropic.claude-sonnet-4-5-20250929-v1:0", temperature=0.1
-    )
-
-    session_manager = _create_session_manager(user_id, session_id)
+def _create_agent(user_id: str, session_id: str) -> Agent:
+    """Create a Strands Agent with Gateway MCP tools, Memory, and Code Interpreter."""
+    gateway_client = create_gateway_mcp_client()
 
     region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
     code_tools = StrandsCodeInterpreterTools(region)
-
-    gateway_client = create_gateway_mcp_client()
 
     return Agent(
         name="strands_agent",
         system_prompt=SYSTEM_PROMPT,
         tools=[gateway_client, code_tools.execute_python_securely],
-        model=bedrock_model,
-        session_manager=session_manager,
-        trace_attributes={"user.id": user_id, "session.id": session_id},
+        model=_build_model(),
+        session_manager=_create_session_manager(user_id, session_id),
     )
 
 
+class ActorAwareStrandsAgent(StrandsAgent):
+    """StrandsAgent that creates the underlying agent per-request with the
+    correct user/session scope for AgentCore memory."""
+
+    def __init__(self, *, user_id: str, session_id: str, name: str, description: str):
+        self._user_id = user_id
+        self._session_id = session_id
+        super().__init__(
+            agent=Agent(model=_build_model(), system_prompt=SYSTEM_PROMPT),
+            name=name,
+            description=description,
+        )
+
+    async def run(self, input_data: RunAgentInput):
+        thread_id = input_data.thread_id or self._session_id
+        self._agents_by_thread[thread_id] = _create_agent(
+            self._user_id, self._session_id
+        )
+        async for event in super().run(input_data):
+            yield event
+
+
 @app.entrypoint
-async def invocations(payload, context: RequestContext):
-    """Main entrypoint — called by AgentCore Runtime on each request.
+async def invocations(payload: dict, context: RequestContext):
+    """Main entrypoint — called by AgentCore Runtime on each AG-UI request."""
+    input_data = RunAgentInput.model_validate(payload)
+    user_id = extract_user_id_from_context(context)
 
-    Extracts user ID from the validated JWT token (not the payload body)
-    to prevent impersonation via prompt injection.
-    """
-    user_query = payload.get("prompt")
-    session_id = payload.get("runtimeSessionId")
-
-    if not all([user_query, session_id]):
-        yield {
-            "status": "error",
-            "error": "Missing required fields: prompt or runtimeSessionId",
-        }
-        return
+    agent = ActorAwareStrandsAgent(
+        user_id=user_id,
+        session_id=input_data.thread_id,
+        name="strands_agent",
+        description="Strands agent with Gateway MCP tools and Memory",
+    )
 
     try:
-        user_id = extract_user_id_from_context(context)
-        agent = create_strands_agent(user_id, session_id)
-
-        async for event in agent.stream_async(user_query):
-            yield json.loads(json.dumps(dict(event), default=str))
-
-    except Exception as e:
+        async for event in agent.run(input_data):
+            if event is not None:
+                yield event.model_dump(mode="json", by_alias=True, exclude_none=True)
+    except Exception as exc:
         logger.exception("Agent run failed")
-        yield {"status": "error", "error": str(e)}
+        yield RunErrorEvent(
+            message=str(exc) or type(exc).__name__,
+            code=type(exc).__name__,
+        ).model_dump(mode="json", by_alias=True, exclude_none=True)
 
 
 if __name__ == "__main__":

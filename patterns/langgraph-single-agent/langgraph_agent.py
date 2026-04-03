@@ -3,6 +3,8 @@
 import logging
 import os
 
+from ag_ui.core import RunAgentInput, RunErrorEvent
+from ag_ui_langgraph import LangGraphAgent
 from bedrock_agentcore.runtime import BedrockAgentCoreApp, RequestContext
 from langchain.agents import create_agent
 from langchain_aws import ChatBedrock
@@ -59,37 +61,30 @@ async def create_langgraph_agent():
 
 
 @app.entrypoint
-async def invocations(payload, context: RequestContext):
-    """Main entrypoint — called by AgentCore Runtime on each request."""
-    user_query = payload.get("prompt")
-    session_id = payload.get("runtimeSessionId")
+async def invocations(payload: dict, context: RequestContext):
+    """Main entrypoint — called by AgentCore Runtime on each AG-UI request."""
+    input_data = RunAgentInput.model_validate(payload)
 
-    if not all([user_query, session_id]):
-        yield {
-            "status": "error",
-            "error": "Missing required fields: prompt or runtimeSessionId",
-        }
-        return
+    user_id = extract_user_id_from_context(context)
+    graph = await create_langgraph_agent()
+
+    agent = LangGraphAgent(
+        name="langgraph_agent",
+        description="LangGraph agent with Gateway MCP tools and Memory",
+        graph=graph,
+        config={"configurable": {"actor_id": user_id}},
+    )
 
     try:
-        user_id = extract_user_id_from_context(context)
-
-        graph = await create_langgraph_agent()
-
-        config = {"configurable": {"thread_id": session_id, "actor_id": user_id}}
-
-        async for event in graph.astream(
-            {"messages": [("user", user_query)]},
-            config=config,
-            stream_mode="messages",
-        ):
-            message_chunk, metadata = event
-            yield message_chunk.model_dump()
-
-    except Exception as e:
-        error_msg = str(e) if str(e) else f"{type(e).__name__}: {repr(e)}"
+        async for event in agent.run(input_data):
+            if event is not None:
+                yield event.model_dump(mode="json", by_alias=True, exclude_none=True)
+    except Exception as exc:
         logger.exception("Agent run failed")
-        yield {"status": "error", "error": error_msg}
+        yield RunErrorEvent(
+            message=str(exc) or type(exc).__name__,
+            code=type(exc).__name__,
+        ).model_dump(mode="json", by_alias=True, exclude_none=True)
 
 
 if __name__ == "__main__":

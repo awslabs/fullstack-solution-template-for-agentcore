@@ -1,4 +1,5 @@
-# LangGraph agent dependencies
+# LangGraph AG-UI agent dependencies
+ag-ui-langgraph
 langchain==1.2.13
 langgraph==1.1.3
 langchain-aws==1.4.1
