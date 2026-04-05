@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated architecture diagram with latest logos (`docs/architecture-diagram/FAST-architecture-20260403.png`)
+
 ## [0.4.1] - 2026-03-25
 
 ### Added

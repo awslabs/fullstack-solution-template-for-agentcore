@@ -18,3 +18,4 @@
 - Suren Gunturu
 - Samaneh Aminikhanghahi
 - Abhilash Balachandran
+- Rajat Dogra

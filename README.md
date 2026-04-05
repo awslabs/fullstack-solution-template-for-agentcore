@@ -50,7 +50,7 @@ What comes next? That's up to you, the developer. With your requirements in mind
 
 ## Architecture
 
-![Architecture Diagram](docs/architecture-diagram/FAST-architecture-20260302.png)
+![Architecture Diagram](docs/architecture-diagram/FAST-architecture-20260403.png)
 
 The out-of-the-box architecture is shown above. The diagram illustrates the authentication flows across the stack:
 1. User login to the frontend (Cognito User Pool — Authorization Code grant): The user authenticates with Cognito via the web application hosted on AWS Amplify. Cognito issues a JWT access token for the session.
