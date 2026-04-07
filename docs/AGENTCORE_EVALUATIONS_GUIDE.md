@@ -422,6 +422,26 @@ for evaluator in evaluators.get("evaluatorSummaries", []):
 
 Use custom evaluators when built-in ones don't cover your domain-specific quality criteria (e.g., financial accuracy, medical safety, brand voice compliance).
 
+### Placeholder Reference
+
+Each evaluation level supports a fixed set of placeholders (single braces) that get replaced with actual trace data:
+
+| Level | Placeholder | Description |
+|---|---|---|
+| SESSION | `{context}` | User prompts, assistant responses, and tool calls across all turns |
+| SESSION | `{available_tools}` | Available tool calls including ID, parameters, and description |
+| TRACE | `{context}` | Previous turns + current turn's user prompt and tool calls |
+| TRACE | `{assistant_turn}` | The assistant response for the current turn |
+| TOOL_CALL | `{context}` | Previous turns + current turn's user prompt and prior tool calls |
+| TOOL_CALL | `{tool_turn}` | The tool call under evaluation |
+| TOOL_CALL | `{available_tools}` | Available tool calls including ID, parameters, and description |
+
+> **Important:** Use single braces `{placeholder}`, not double braces `{{placeholder}}`. The instruction must include at least one placeholder.
+
+### Create a Custom Evaluator (AWS SDK)
+
+The `create_evaluator` API uses a nested `evaluatorConfig` structure with `llmAsAJudge` containing the instructions, rating scale, and model config:
+
 ```python
 import boto3
 
@@ -430,32 +450,142 @@ control_client = boto3.client("bedrock-agentcore-control")
 response = control_client.create_evaluator(
     evaluatorName="domain_accuracy",
     description="Evaluates domain-specific accuracy for financial queries",
-    evaluationLevel="TRACE",
-    inferenceConfig={
-        "modelId": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "maxTokens": 500,
-        "temperature": 1.0
-    },
-    instructions="""Evaluate the agent's response for domain-specific accuracy 
-in financial contexts. Consider:
-1. Are financial terms used correctly?
-2. Are calculations accurate?
-3. Are regulatory references correct?
-
-{{input}} {{output}}""",
-    ratingScale={
-        "type": "NUMERIC",
-        "min": 0.0,
-        "max": 1.0,
-        "description": "0 = completely inaccurate, 1 = fully accurate"
+    level="TRACE",
+    evaluatorConfig={
+        "llmAsAJudge": {
+            "instructions": (
+                "You are evaluating the domain-specific accuracy of the assistant's response "
+                "in financial contexts. Consider:\n"
+                "1. Are financial terms used correctly?\n"
+                "2. Are calculations accurate?\n"
+                "3. Are regulatory references correct?\n\n"
+                "Context: {context}\n"
+                "Candidate Response: {assistant_turn}"
+            ),
+            "ratingScale": {
+                "numerical": [
+                    {
+                        "value": 1.0,
+                        "label": "Very Good",
+                        "definition": "Completely accurate, all facts and calculations correct"
+                    },
+                    {
+                        "value": 0.75,
+                        "label": "Good",
+                        "definition": "Mostly accurate with minor issues"
+                    },
+                    {
+                        "value": 0.5,
+                        "label": "OK",
+                        "definition": "Partially correct with notable errors"
+                    },
+                    {
+                        "value": 0.25,
+                        "label": "Poor",
+                        "definition": "Significant errors or misconceptions"
+                    },
+                    {
+                        "value": 0.0,
+                        "label": "Very Poor",
+                        "definition": "Completely incorrect or irrelevant"
+                    }
+                ]
+            },
+            "modelConfig": {
+                "bedrockEvaluatorModelConfig": {
+                    "modelId": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                    "inferenceConfig": {
+                        "maxTokens": 500,
+                        "temperature": 1.0
+                    }
+                }
+            }
+        }
     }
 )
 
 evaluator_arn = response["evaluatorArn"]
-print(f"Created custom evaluator: {evaluator_arn}")
+evaluator_id = evaluator_arn.split("/")[-1]
+print(f"Created custom evaluator: {evaluator_id}")
+```
+
+### Create a Custom Evaluator (Starter Toolkit SDK)
+
+```python
+import json
+from bedrock_agentcore_starter_toolkit import Evaluation
+
+eval_client = Evaluation(region="us-east-1")
+
+# Load config from JSON file (see config format below)
+with open("custom_evaluator_config.json") as f:
+    evaluator_config = json.load(f)
+
+custom_evaluator = eval_client.create_evaluator(
+    name="domain_accuracy",
+    level="TRACE",
+    description="Evaluates domain-specific accuracy for financial queries",
+    config=evaluator_config
+)
+```
+
+### Custom Evaluator Config JSON Format
+
+Save this as `custom_evaluator_config.json` for use with the Starter Toolkit SDK or AWS CLI:
+
+```json
+{
+    "llmAsAJudge": {
+        "modelConfig": {
+            "bedrockEvaluatorModelConfig": {
+                "modelId": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "inferenceConfig": {
+                    "maxTokens": 500,
+                    "temperature": 1.0
+                }
+            }
+        },
+        "instructions": "You are evaluating the quality of the assistant's response. Context: {context}\nCandidate Response: {assistant_turn}",
+        "ratingScale": {
+            "numerical": [
+                {"value": 1.0, "label": "Very Good", "definition": "Completely accurate"},
+                {"value": 0.75, "label": "Good", "definition": "Mostly accurate with minor issues"},
+                {"value": 0.5, "label": "OK", "definition": "Partially correct"},
+                {"value": 0.25, "label": "Poor", "definition": "Significant errors"},
+                {"value": 0.0, "label": "Very Poor", "definition": "Completely incorrect"}
+            ]
+        }
+    }
+}
+```
+
+### Add a Custom Evaluator to an Online Config
+
+After creating the evaluator, add it to your online evaluation config:
+
+```python
+import boto3
+
+control_client = boto3.client("bedrock-agentcore-control")
+
+# Get current evaluators
+config = control_client.get_online_evaluation_config(
+    onlineEvaluationConfigId="your-config-id"
+)
+current_evaluators = [e["evaluatorId"] for e in config.get("evaluators", [])]
+
+# Add the custom evaluator
+current_evaluators.append("domain_accuracy-XXXXXXXXXX")  # Use the ID from create_evaluator
+
+control_client.update_online_evaluation_config(
+    onlineEvaluationConfigId="your-config-id",
+    evaluators=[{"evaluatorId": eid} for eid in current_evaluators]
+)
 ```
 
 Custom evaluators can then be used in both online and on-demand evaluations just like built-in ones.
+
+> **Note:** The service automatically appends a standardization prompt to your instructions that enforces `reason` and `score` output fields. Do not include output formatting instructions in your evaluator instructions.
 
 ---
 
