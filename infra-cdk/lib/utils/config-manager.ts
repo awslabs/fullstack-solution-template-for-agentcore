@@ -36,6 +36,14 @@ export interface AppConfig {
     network_mode: NetworkMode
     /** VPC configuration. Required when network_mode is "VPC". */
     vpc?: VpcConfig
+    /**
+     * Optional path to a custom source directory containing agent Python code.
+     * When specified, the agent runtime will use Python files from this directory
+     * instead of the preset pattern directory. The directory should contain at minimum
+     * a basic_agent.py, requirements.txt, and optionally a Dockerfile (for docker deployment).
+     * Path can be absolute or relative to the current working directory.
+     */
+    source?: string
   }
 }
 
@@ -106,6 +114,27 @@ export class ConfigManager {
         }
       }
 
+      // Validate source directory if provided
+      // Resolve relative paths against the config file's directory
+      let source = parsedConfig.backend?.source
+      if (source) {
+        const configDir = path.dirname(path.resolve(configPath)) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+        const resolvedSource = path.resolve(configDir, source) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+        if (!fs.existsSync(resolvedSource)) {
+          throw new Error(
+            `backend.source directory '${source}' (resolved to '${resolvedSource}') does not exist. ` +
+            `Path is resolved relative to the config file directory '${configDir}'.`
+          )
+        }
+        if (!fs.statSync(resolvedSource).isDirectory()) {
+          throw new Error(
+            `backend.source '${source}' (resolved to '${resolvedSource}') is not a directory.`
+          )
+        }
+        // Store the resolved absolute path
+        source = resolvedSource
+      }
+
       return {
         stack_name_base: stackNameBase,
         admin_user_email: parsedConfig.admin_user_email || null,
@@ -114,6 +143,7 @@ export class ConfigManager {
           deployment_type: deploymentType,
           network_mode: networkMode,
           vpc: vpcConfig,
+          source: source,
         },
       }
     } catch (error) {

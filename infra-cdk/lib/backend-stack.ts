@@ -98,6 +98,7 @@ export class BackendStack extends cdk.NestedStack {
 
   private createAgentCoreRuntime(config: AppConfig): void {
     const pattern = config.backend?.pattern || "strands-single-agent"
+    const sourceDir = config.backend?.source // Resolved absolute path to custom source directory
 
     // Parameters
     this.agentName = new cdk.CfnParameter(this, "AgentName", {
@@ -113,7 +114,7 @@ export class BackendStack extends cdk.NestedStack {
     let agentRuntimeArtifact: agentcore.AgentRuntimeArtifact
     let zipPackagerResource: cdk.CustomResource | undefined
 
-    if (deploymentType === "zip" && (pattern === "claude-agent-sdk-single-agent" || pattern === "claude-agent-sdk-multi-agent")) {
+    if (!sourceDir && deploymentType === "zip" && (pattern === "claude-agent-sdk-single-agent" || pattern === "claude-agent-sdk-multi-agent")) {
       throw new Error(
         "claude-agent-sdk patterns require Docker deployment (deployment_type: docker) " +
         "because they need Node.js and the claude-code CLI installed at build time."
@@ -124,6 +125,9 @@ export class BackendStack extends cdk.NestedStack {
       // ZIP DEPLOYMENT: Use Lambda to package and upload to S3 (no Docker required)
       const repoRoot = path.resolve(__dirname, "..", "..") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
       const patternDir = path.join(repoRoot, "patterns", pattern) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+
+      // Use the custom source directory if specified, otherwise fall back to the pattern directory
+      const agentSourceDir = sourceDir || patternDir
 
       // Create S3 bucket for agent code
       const agentCodeBucket = new s3.Bucket(this, "AgentCodeBucket", {
@@ -148,15 +152,10 @@ export class BackendStack extends cdk.NestedStack {
       // Read agent code files and encode as base64
       const agentCode: Record<string, string> = {}
       
-      // Read pattern .py files
-      for (const file of fs.readdirSync(patternDir)) {
-        if (file.endsWith(".py")) {
-          const content = fs.readFileSync(path.join(patternDir, file)) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-          agentCode[file] = content.toString("base64")
-        }
-      }
+      // Read .py files from the agent source directory (custom source or pattern)
+      this.readDirRecursive(agentSourceDir, "", agentCode)
 
-      // Read shared modules (gateway/, tools/)
+      // Read shared modules (gateway/, tools/) from the app repo
       for (const module of ["gateway", "tools"]) {
         const moduleDir = path.join(repoRoot, module) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         if (fs.existsSync(moduleDir)) {
@@ -164,8 +163,14 @@ export class BackendStack extends cdk.NestedStack {
         }
       }
 
-      // Read requirements
-      const requirementsPath = path.join(patternDir, "requirements.txt") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      // Read requirements from the agent source directory
+      const requirementsPath = path.join(agentSourceDir, "requirements.txt") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      if (!fs.existsSync(requirementsPath)) {
+        throw new Error(
+          `requirements.txt not found in agent source directory '${agentSourceDir}'. ` +
+          `A requirements.txt file is required for ZIP deployment.`
+        )
+      }
       const requirements = fs.readFileSync(requirementsPath, "utf-8")
         .split("\n")
         .map(line => line.trim())
@@ -208,13 +213,33 @@ export class BackendStack extends cdk.NestedStack {
       )
     } else {
       // DOCKER DEPLOYMENT: Use container-based deployment
-      agentRuntimeArtifact = agentcore.AgentRuntimeArtifact.fromAsset(
-        path.resolve(__dirname, "..", ".."), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-        {
-          platform: ecr_assets.Platform.LINUX_ARM64,
-          file: `patterns/${pattern}/Dockerfile`,
+      if (sourceDir) {
+        // Custom source directory: treated as a self-contained project.
+        // The source directory is used directly as the Docker build context,
+        // and must contain its own Dockerfile with all necessary COPY/RUN instructions.
+        const dockerfilePath = path.join(sourceDir, "Dockerfile") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+        if (!fs.existsSync(dockerfilePath)) {
+          throw new Error(
+            `Dockerfile not found in source directory '${sourceDir}'. ` +
+            `A Dockerfile is required for Docker deployment.`
+          )
         }
-      )
+        agentRuntimeArtifact = agentcore.AgentRuntimeArtifact.fromAsset(
+          sourceDir,
+          {
+            platform: ecr_assets.Platform.LINUX_ARM64,
+            file: "Dockerfile",
+          }
+        )
+      } else {
+        agentRuntimeArtifact = agentcore.AgentRuntimeArtifact.fromAsset(
+          path.resolve(__dirname, "..", ".."), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+          {
+            platform: ecr_assets.Platform.LINUX_ARM64,
+            file: `patterns/${pattern}/Dockerfile`,
+          }
+        )
+      }
     }
 
     // Configure network mode based on config.yaml settings.
@@ -361,7 +386,9 @@ export class BackendStack extends cdk.NestedStack {
       requestHeaderConfiguration: {
         allowlistedHeaders: ["Authorization"],
       },
-      description: `${pattern} agent runtime for ${config.stack_name_base}`,
+      description: sourceDir
+        ? `Custom source agent runtime for ${config.stack_name_base} (from ${path.basename(sourceDir)})`
+        : `${pattern} agent runtime for ${config.stack_name_base}`,
     })
 
     // AGUI protocol override — CloudFormation doesn't support AGUI enum yet
