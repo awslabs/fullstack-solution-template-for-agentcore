@@ -153,7 +153,12 @@ export class BackendStack extends cdk.NestedStack {
       const agentCode: Record<string, string> = {}
       
       // Read .py files from the agent source directory (custom source or pattern)
-      this.readDirRecursive(agentSourceDir, "", agentCode)
+      for (const file of fs.readdirSync(agentSourceDir)) {
+        if (file.endsWith(".py")) {
+          const content = fs.readFileSync(path.join(agentSourceDir, file)) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+          agentCode[file] = content.toString("base64")
+        }
+      }
 
       // Read shared modules (gateway/, tools/) from the app repo
       for (const module of ["gateway", "tools"]) {

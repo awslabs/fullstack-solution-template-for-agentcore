@@ -65,6 +65,68 @@ FAST supports two deployment types for AgentCore Runtime. Set `deployment_type` 
 
 **ZIP packaging includes**: The `patterns/<your-pattern>/`, `gateway/`, and `tools/` directories are bundled together with dependencies from `requirements.txt`. This matches the `COPY` commands in the Docker deployment's Dockerfile.
 
+### Custom Source Directory
+
+Instead of using one of the preset patterns in `patterns/`, you can deploy your own agent code from a custom source directory. Set the `source` field in `config.yaml` to point to your directory:
+
+```yaml
+backend:
+  source: ./<directory to agent code> # Path relative to config file
+  deployment_type: docker
+```
+
+When `source` is set:
+
+- **Docker deployment**: The source directory is used directly as the Docker build context. It must contain a self-contained `Dockerfile` with all necessary `COPY`/`RUN` instructions — no files from the `app/` directory are included automatically.
+- **ZIP deployment**: Python files are read from the source directory instead of the pattern directory. The `requirements.txt` must be present in the source directory. Shared modules (`gateway/`, `tools/`) from the `app/` directory are still bundled.
+- The `pattern` field is ignored when `source` is set (for Docker deployment).
+- The path is resolved relative to the config file's directory.
+
+#### Source Directory Requirements
+
+Your source directory should contain at minimum:
+
+| File | Required For | Description |
+|------|-------------|-------------|
+| `basic_agent.py` | Both | Your agent entrypoint |
+| `requirements.txt` | Both | Python dependencies |
+| `Dockerfile` | Docker only | Self-contained Docker build instructions |
+
+#### Example: Simple Strands Chatbot
+
+A working example is provided in `examples/strands-single-agent/`. This is a simple conversational chatbot using the [Strands Agents](https://github.com/strands-agents/strands-agents) framework with Amazon Bedrock — no tools, no memory, no gateway integration.
+
+```
+examples/strands-single-agent/
+├── basic_agent.py      # Strands chatbot agent (no tools)
+├── Dockerfile          # Self-contained Docker build
+├── requirements.txt    # strands-agents + bedrock-agentcore
+└── README.md
+```
+
+The agent uses:
+- **`bedrock-agentcore`** — provides `BedrockAgentCoreApp` which handles the HTTP server, health checks, and AgentCore Runtime protocol
+- **`strands-agents`** — provides the `Agent` class and `BedrockModel` for conversational AI via Amazon Bedrock
+
+To deploy this example:
+
+```yaml
+# In config.yaml
+backend:
+  source: ./examples/strands-single-agent
+  deployment_type: docker
+```
+
+#### Creating Your Own Agent
+
+To create a custom agent, copy the example directory and modify:
+
+1. **`basic_agent.py`** — your agent logic (must serve HTTP on port 8080 with a `/ping` health check when using Docker deployment)
+2. **`requirements.txt`** — any Python dependencies your agent needs
+3. **`Dockerfile`** — the build instructions (must be self-contained for Docker deployment)
+
+The Dockerfile must be fully self-contained — all files it references must exist within the source directory. The source directory is used directly as the Docker build context.
+
 ### VPC Deployment (Private Network)
 
 By default, the AgentCore Runtime runs in PUBLIC network mode with internet access. To deploy the runtime into an existing VPC for private network isolation, set `network_mode: VPC` in `infra-cdk/config.yaml` and provide your VPC details.
