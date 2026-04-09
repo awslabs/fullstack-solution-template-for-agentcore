@@ -1,16 +1,28 @@
 """
 Authentication utilities for agent patterns.
 
-Provides secure user identity extraction from JWT tokens in the AgentCore Runtime
-RequestContext (prevents impersonation via prompt injection).
+Provides:
+- Secure user identity extraction from JWT tokens in the AgentCore Runtime
+  RequestContext (prevents impersonation via prompt injection).
+- OAuth2 client credentials flow for machine-to-machine Gateway authentication,
+  with user identity propagation via aws_client_metadata for Cognito V3
+  Pre-Token Lambda enrichment.
 """
 
+import base64
+import json
 import logging
+import os
 
+import boto3
 import jwt
+import requests
 from bedrock_agentcore.runtime import RequestContext
 
+from utils.ssm import get_ssm_parameter
+
 logger = logging.getLogger(__name__)
+
 
 def extract_user_id_from_context(context: RequestContext) -> str:
     """
@@ -73,3 +85,132 @@ def extract_user_id_from_context(context: RequestContext) -> str:
 
     logger.info("Extracted user_id from JWT: %s", user_id)
     return user_id
+
+
+def get_secret(secret_name: str) -> str:
+    """
+    Fetch a secret value from AWS Secrets Manager.
+
+    Args:
+        secret_name (str): The name or ARN of the secret to retrieve.
+
+    Returns:
+        str: The secret value as a string.
+
+    Raises:
+        ValueError: If the secret is not found or cannot be accessed.
+        RuntimeError: If there's an AWS service error.
+    """
+    region = os.environ.get(
+        "AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+    )
+    secrets_client = boto3.client("secretsmanager", region_name=region)
+
+    try:
+        response = secrets_client.get_secret_value(SecretId=secret_name)
+        return response["SecretString"]
+    except secrets_client.exceptions.ResourceNotFoundException:
+        raise ValueError(f"Secret not found: {secret_name}")
+    except secrets_client.exceptions.InvalidParameterException:
+        raise ValueError(f"Invalid secret parameter: {secret_name}")
+    except secrets_client.exceptions.InvalidRequestException:
+        raise ValueError(f"Invalid request for secret: {secret_name}")
+    except secrets_client.exceptions.DecryptionFailureException:
+        raise RuntimeError(f"Failed to decrypt secret: {secret_name}")
+    except secrets_client.exceptions.InternalServiceErrorException:
+        raise RuntimeError(
+            f"AWS Secrets Manager service error for secret: {secret_name}"
+        )
+    except Exception as e:
+        raise RuntimeError(
+            f"Unexpected error retrieving secret {secret_name}: {str(e)}"
+        )
+
+
+def get_gateway_access_token(user_id: str) -> str:
+    """
+    Get an OAuth2 access token using the client credentials flow, with user
+    identity propagated via aws_client_metadata.
+
+    This calls the Cognito /oauth2/token endpoint directly (instead of using the
+    @requires_access_token decorator) so that the verified user_id can be passed
+    as aws_client_metadata. The Cognito V3 Pre-Token Lambda reads this metadata
+    to inject user-specific claims (department, role) into the M2M access token,
+    enabling Cedar policy evaluation at the Gateway.
+
+    The user_id comes from the validated JWT in the Runtime's Session Context
+    (extracted by extract_user_id_from_context), not from the LLM or payload.
+    This ensures the identity chain is cryptographically secure end-to-end.
+
+    Args:
+        user_id (str): The authenticated user's ID (sub claim from validated JWT).
+
+    Returns:
+        str: A valid OAuth2 access token for Gateway authentication, enriched
+            with user identity claims by the V3 Pre-Token Lambda.
+
+    Raises:
+        KeyError: If the STACK_NAME environment variable is not set.
+        Exception: If the token request fails or the response is invalid.
+    """
+    stack_name = os.environ["STACK_NAME"]
+    region = os.environ.get(
+        "AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+    )
+
+    logger.info("Getting access token for stack: %s, region: %s", stack_name, region)
+
+    # Get Cognito configuration from SSM and Secrets Manager
+    cognito_domain = get_ssm_parameter(f"/{stack_name}/cognito_provider")
+    client_id = get_ssm_parameter(f"/{stack_name}/machine_client_id")
+    client_secret = get_secret(f"/{stack_name}/machine_client_secret")
+
+    logger.info("Cognito domain: %s", cognito_domain)
+    logger.info("Client ID: %s...", client_id[:10])
+
+    # Prepare OAuth2 token request
+    token_url = f"https://{cognito_domain}/oauth2/token"
+
+    # Create Basic Auth header (base64-encoded client_id:client_secret)
+    credentials = f"{client_id}:{client_secret}"
+    b64_credentials = base64.b64encode(credentials.encode()).decode()
+
+    headers = {
+        "Authorization": f"Basic {b64_credentials}",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+    # Include aws_client_metadata with verified_user_id so the Cognito V3
+    # Pre-Token Lambda can read it and inject user-specific claims into the
+    # M2M access token. This is the bridge between user auth and M2M auth.
+    # The metadata must be passed as a JSON string, not bracket notation.
+    client_metadata = json.dumps({"verified_user_id": user_id})
+
+    data = {
+        "grant_type": "client_credentials",
+        "scope": f"{stack_name}-gateway/read {stack_name}-gateway/write",
+        "aws_client_metadata": client_metadata,
+    }
+
+    logger.info("Requesting token from: %s", token_url)
+    logger.info("Scopes: %s", data["scope"])
+
+    # Request access token from Cognito
+    response = requests.post(url=token_url, headers=headers, data=data, timeout=30)
+
+    if response.status_code != 200:
+        logger.error("Token request failed: %s", response.status_code)
+        logger.error("Response: %s", response.text)
+        raise Exception(
+            f"Failed to get access token: {response.status_code} - {response.text}"
+        )
+
+    token_data = response.json()
+    access_token = token_data.get("access_token")
+
+    if not access_token:
+        logger.error("No access_token in response: %s", token_data)
+        raise Exception("No access_token in Cognito response")
+
+    logger.info("Successfully got access token: %s...", access_token[:20])
+    return access_token

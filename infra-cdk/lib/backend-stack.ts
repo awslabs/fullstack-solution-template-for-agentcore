@@ -650,6 +650,20 @@ export class BackendStack extends cdk.NestedStack {
       })
     )
 
+    // Policy Engine access — required for the Gateway to verify and evaluate Cedar policies.
+    // AuthorizeAction is needed on both the policy engine (to query policy decisions)
+    // and the gateway itself (to apply those decisions to incoming requests).
+    gatewayRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["bedrock-agentcore:GetPolicyEngine", "bedrock-agentcore:AuthorizeAction", "bedrock-agentcore:PartiallyAuthorizeActions"],
+        resources: [
+          `arn:aws:bedrock-agentcore:${this.region}:${this.account}:policy-engine/*`,
+          `arn:aws:bedrock-agentcore:${this.region}:${this.account}:gateway/*`,
+        ],
+      })
+    )
+
     // Load tool specification from JSON file
     const toolSpecPath = path.join(__dirname, "../../gateway/tools/sample_tool/tool_spec.json")
     const apiSpec = JSON.parse(require("fs").readFileSync(toolSpecPath, "utf8"))
@@ -803,6 +817,130 @@ export class BackendStack extends cdk.NestedStack {
     gateway.node.addDependency(this.machineClient)
     gateway.node.addDependency(gatewayRole)
 
+    // ========================================
+    // Cedar Policy Engine + Policy via Custom Resource
+    // ========================================
+    // AgentCore Policy uses a three-step process:
+    //   1. Create a Policy Engine → wait for ACTIVE
+    //   2. Create a Cedar Policy inside the engine → wait for ACTIVE
+    //   3. Attach the Policy Engine to the Gateway → wait for READY
+    //
+    // CfnGatewayPolicy is not available as an L1 construct in aws-cdk-lib, so we use a Custom
+    // Resource Lambda (same pattern as the OAuth2 Credential Provider).
+    //
+    // The Gateway's JWT Authorizer maps M2M JWT claims to Cedar principal tags:
+    //   JWT claim "department" → principal.getTag("department")
+    //   JWT claim "role"       → principal.getTag("role")
+    //   JWT claim "user_id"    → principal.getTag("user_id")
+    //
+    // The Cedar action name format is: "<TargetName>___<tool_name>" (triple underscore).
+    // Tool name comes from tool_spec.json: "text_analysis_tool"
+    // Target name is "sample-tool-target"
+    //
+    // THREE POLICY VERSIONS FOR DEMO TESTING:
+    // - Version 0: Permissive wildcard — deploy first to discover the exact
+    //   action name from CloudWatch logs, then switch to Version 1 or 2
+    // - Version 1: Guest has full access — all departments can use tools
+    // - Version 2: Guest denied — only finance/engineering can use tools
+    //
+    // To switch versions: change the policyDocument variable below, then run `cdk deploy`
+    //
+    // CEDAR POLICY SYNTAX NOTES:
+    // - The AgentCore create_policy API accepts ONE Cedar statement per policy.
+    //   To define multiple access rules, use the || (OR) operator within a single
+    //   permit statement rather than writing multiple permit statements.
+    // - Cedar is deny-by-default: if no permit statement matches a request, it is
+    //   automatically denied. An explicit forbid statement is not needed to block
+    //   access — simply omit the department from the permit's OR conditions.
+    // - If you need separate permit and forbid statements (e.g., for audit logging),
+    //   create multiple policies by updating the Custom Resource Lambda to call
+    //   create_policy() once per statement.
+
+    const cedarPolicyLambda = new PythonFunction(this, "CedarPolicyLambda", {
+      runtime: lambda.Runtime.PYTHON_3_13,
+      entry: path.join(__dirname, "..", "lambdas", "cedar-policy"),
+      handler: "handler",
+      timeout: cdk.Duration.minutes(14),
+      logGroup: new logs.LogGroup(this, "CedarPolicyLambdaLogGroup", {
+        logGroupName: `/aws/lambda/${config.stack_name_base}-cedar-policy`,
+        retention: logs.RetentionDays.ONE_WEEK,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
+    })
+
+    // Grant Lambda permissions for Policy Engine and Policy operations.
+    // The IAM actions use the "bedrock-agentcore:" prefix for policy engine
+    // and gateway operations.
+    cedarPolicyLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "bedrock-agentcore:CreatePolicyEngine",
+          "bedrock-agentcore:GetPolicyEngine",
+          "bedrock-agentcore:DeletePolicyEngine",
+          "bedrock-agentcore:ListPolicyEngines",
+          "bedrock-agentcore:CreatePolicy",
+          "bedrock-agentcore:GetPolicy",
+          "bedrock-agentcore:DeletePolicy",
+          "bedrock-agentcore:ListPolicies",
+        ],
+        resources: [
+          `arn:aws:bedrock-agentcore:${this.region}:${this.account}:policy-engine/*`,
+        ],
+      })
+    )
+
+    // Grant Lambda permissions to update the Gateway (attach/detach policy engine)
+    // and read Gateway configuration for the update_gateway call.
+    // iam:PassRole is required because update_gateway re-associates the Gateway's IAM role.
+    cedarPolicyLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "bedrock-agentcore:UpdateGateway",
+          "bedrock-agentcore:GetGateway",
+          "bedrock-agentcore:ManageResourceScopedPolicy",
+        ],
+        resources: [gateway.attrGatewayArn],
+      })
+    )
+
+    cedarPolicyLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["iam:PassRole"],
+        resources: [gatewayRole.roleArn],
+      })
+    )
+
+    const cedarPolicyProvider = new cr.Provider(this, "CedarPolicyProvider", {
+      onEventHandler: cedarPolicyLambda,
+    })
+
+    // Load Cedar policy from file and replace the gateway ARN placeholder.
+    // Edit gateway/policies/policy.cedar to change access control rules,
+    // then run `cdk deploy` to apply.
+    // Comment lines (starting with //) are stripped because the AgentCore
+    // create_policy API only accepts raw Cedar statements.
+    const policyDocument = fs.readFileSync(
+      path.join(__dirname, "../../gateway/policies/policy.cedar"), "utf-8"
+    )
+      .split("\n")
+      .filter((line: string) => !line.trimStart().startsWith("//"))
+      .join("\n")
+      .trim()
+      .replaceAll("{{GATEWAY_ARN}}", gateway.attrGatewayArn)
+
+    const cedarPolicy = new cdk.CustomResource(this, "GatewayPolicy", {
+      serviceToken: cedarPolicyProvider.serviceToken,
+      properties: {
+        GatewayIdentifier: gateway.attrGatewayIdentifier,
+        PolicyDocument: policyDocument,
+        PolicyEngineName: `${config.stack_name_base.replace(/-/g, "_")}_policy_engine`,
+        Description: "Department-based tool access control for AgentCore Policy demo",
+      },
+    })
+
+    // Policy must be created after the Gateway and its target are ready
+    cedarPolicy.node.addDependency(gatewayTarget)
+
     // Store AgentCore Gateway URL in SSM for AgentCore Runtime access
     new ssm.StringParameter(this, "GatewayUrlParam", {
       parameterName: `/${config.stack_name_base}/gateway_url`,
@@ -834,6 +972,16 @@ export class BackendStack extends cdk.NestedStack {
     new cdk.CfnOutput(this, "ToolLambdaArn", {
       description: "ARN of the sample tool Lambda",
       value: toolLambda.functionArn,
+    })
+
+    new cdk.CfnOutput(this, "PolicyEngineId", {
+      description: "ID of the Policy Engine for Cedar policies",
+      value: cedarPolicy.getAttString("PolicyEngineId"),
+    })
+
+    new cdk.CfnOutput(this, "CedarPolicyId", {
+      description: "ID of the Cedar policy for department-based access control",
+      value: cedarPolicy.getAttString("PolicyId"),
     })
   }
 

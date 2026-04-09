@@ -6,54 +6,69 @@ from langchain_aws import ChatBedrock
 from langchain_mcp_adapters.client import MultiServerMCPClient
 import os
 import boto3
-from bedrock_agentcore.identity.auth import requires_access_token
 from bedrock_agentcore.runtime import BedrockAgentCoreApp, RequestContext
 import traceback
 
 # Use official LangGraph AWS integration for memory
 from langgraph_checkpoint_aws import AgentCoreMemorySaver
 
-from utils.auth import extract_user_id_from_context
+from utils.auth import extract_user_id_from_context, get_gateway_access_token
 from utils.ssm import get_ssm_parameter
 
 app = BedrockAgentCoreApp()
 
-# OAuth2 Credential Provider decorator from AgentCore Identity SDK.
-# Automatically retrieves OAuth2 access tokens from the Token Vault (with caching)
-# or fetches fresh tokens from the configured OAuth2 provider when expired.
-# The provider_name references an OAuth2 Credential Provider registered in AgentCore Identity.
-@requires_access_token(
-    provider_name=os.environ["GATEWAY_CREDENTIAL_PROVIDER_NAME"],
-    auth_flow="M2M",
-    scopes=[]
-)
-async def _fetch_gateway_token(access_token: str) -> str:
-    """
-    Fetch fresh OAuth2 token for AgentCore Gateway authentication.
-    
-    This is async because it's called with 'await' in create_gateway_mcp_client().
-    The @requires_access_token decorator handles token retrieval and refresh:
-    1. Token Retrieval: Calls GetResourceOauth2Token API to fetch token from Token Vault
-    2. Automatic Refresh: Uses refresh tokens to renew expired access tokens
-    3. Error Orchestration: Handles missing tokens and OAuth flow management
-    
-    For M2M (Machine-to-Machine) flows, the decorator uses Client Credentials grant type.
-    The provider_name must match the Name field in the CDK OAuth2CredentialProvider resource.
-    """
-    return access_token
+# ========================================
+# Gateway Authentication: Two Approaches
+# ========================================
+# APPROACH 1 (Active): Direct Cognito token call with user identity propagation.
+#   Use this when the M2M token needs to carry user-specific claims (e.g., department,
+#   role) for Cedar policy evaluation at the Gateway. The user_id from the validated
+#   JWT is passed as aws_client_metadata to Cognito, where the V3 Pre-Token Lambda
+#   reads it and injects claims into the M2M token.
+#
+# APPROACH 2 (Commented out): @requires_access_token decorator from AgentCore Identity SDK.
+#   Use this for pure M2M authentication where no user identity is needed in the token.
+#   Simpler setup — the decorator handles token retrieval, caching, and refresh
+#   automatically via the Token Vault. However, it does not support passing
+#   aws_client_metadata, so the V3 Pre-Token Lambda cannot identify the user.
+#
+# To switch to Approach 2:
+#   1. Uncomment the decorator and _fetch_gateway_token() below
+#   2. In create_gateway_mcp_client(), replace get_gateway_access_token(user_id)
+#      with await _fetch_gateway_token()
+#   3. Remove the user_id parameter from create_gateway_mcp_client()
+#   4. Ensure GATEWAY_CREDENTIAL_PROVIDER_NAME env var is set in the CDK Runtime config
+
+# --- APPROACH 2: @requires_access_token decorator (commented out) ---
+# from bedrock_agentcore.identity.auth import requires_access_token
+#
+# @requires_access_token(
+#     provider_name=os.environ["GATEWAY_CREDENTIAL_PROVIDER_NAME"],
+#     auth_flow="M2M",
+#     scopes=[]
+# )
+# async def _fetch_gateway_token(access_token: str) -> str:
+#     """Fetch OAuth2 token via AgentCore Identity Token Vault (no user context)."""
+#     return access_token
 
 
-async def create_gateway_mcp_client() -> MultiServerMCPClient:
+async def create_gateway_mcp_client(user_id: str) -> MultiServerMCPClient:
     """
     Create an MCP client connected to the AgentCore Gateway with OAuth2 authentication.
 
     MCP (Model Context Protocol) is how agents communicate with tool providers.
     This creates a client that can talk to the AgentCore Gateway using OAuth2
     authentication. The Gateway then provides access to Lambda-based tools.
-    
-    This implementation avoids the "closure trap" by calling _fetch_gateway_token()
-    on every invocation of create_gateway_mcp_client(). Since this function is called
-    per-request in agent_stream(), it ensures fresh tokens for each request.
+
+    The user_id is passed to get_gateway_access_token() which includes it as
+    aws_client_metadata[verified_user_id] in the Cognito token request. The V3
+    Pre-Token Lambda reads this to inject user-specific claims into the M2M token.
+
+    This function is called per-request in agent_stream(), ensuring fresh tokens
+    for each request.
+
+    Args:
+        user_id (str): The authenticated user's ID for identity propagation.
     """
     stack_name = os.environ.get('STACK_NAME')
     if not stack_name:
@@ -69,8 +84,10 @@ async def create_gateway_mcp_client() -> MultiServerMCPClient:
     gateway_url = get_ssm_parameter(f'/{stack_name}/gateway_url')
     print(f"[AGENT] Gateway URL from SSM: {gateway_url}")
     
-    # Fetch fresh token on every call to avoid closure trap
-    fresh_token = await _fetch_gateway_token()
+    # Fetch fresh token with user identity propagation.
+    # The user_id flows to Cognito as aws_client_metadata[verified_user_id]
+    # so the V3 Pre-Token Lambda can inject user-specific claims into the M2M token.
+    fresh_token = get_gateway_access_token(user_id)
     
     # Create MCP client with Bearer token authentication
     gateway_client = MultiServerMCPClient({
@@ -166,10 +183,11 @@ async def agent_stream(payload, context: RequestContext):
         print(f"[STREAM] Starting streaming invocation for user: {user_id}, session: {session_id}")
         print(f"[STREAM] Query: {user_query}")
         
-        # Get OAuth2 access token and create Gateway MCP client
-        # The @requires_access_token decorator handles token fetching automatically
-        print("[STREAM] Creating Gateway MCP client (decorator handles OAuth2)...")
-        mcp_client = await create_gateway_mcp_client()
+        # Create Gateway MCP client with user identity propagation.
+        # The user_id flows from the validated JWT → get_gateway_access_token() →
+        # Cognito aws_client_metadata → V3 Pre-Token Lambda → M2M token claims.
+        print("[STREAM] Creating Gateway MCP client with user identity...")
+        mcp_client = await create_gateway_mcp_client(user_id)
         print("[STREAM] Gateway MCP client created successfully")
         
         print("[STREAM] Loading Gateway tools...")
