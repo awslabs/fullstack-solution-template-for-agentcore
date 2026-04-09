@@ -31,15 +31,15 @@
 // ========================================
 // Deploy this version first when setting up a new gateway target to discover
 // the exact action name from CloudWatch logs, then switch to a scoped version.
-//
-// permit(
-//   principal is AgentCore::OAuthUser,
-//   action,
-//   resource == AgentCore::Gateway::"{{GATEWAY_ARN}}"
-// )
-// when {
-//   principal.hasTag("department")
-// };
+
+permit(
+  principal is AgentCore::OAuthUser,
+  action,
+  resource == AgentCore::Gateway::"{{GATEWAY_ARN}}"
+)
+when {
+  principal.hasTag("department")
+};
 //
 // ========================================
 // VERSION 1: Guest Has Full Access (Testing "Allow" Case)
@@ -63,14 +63,14 @@
 // ========================================
 // Only finance and engineering can access the tool. Guests are denied
 // automatically because Cedar is deny-by-default — no explicit forbid needed.
-
-permit(
-  principal is AgentCore::OAuthUser,
-  action == AgentCore::Action::"sample-tool-target___text_analysis_tool",
-  resource == AgentCore::Gateway::"{{GATEWAY_ARN}}"
-)
-when {
-  principal.hasTag("department") &&
-  (principal.getTag("department") == "finance" ||
-   principal.getTag("department") == "engineering")
-};
+//
+// permit(
+//   principal is AgentCore::OAuthUser,
+//   action == AgentCore::Action::"sample-tool-target___text_analysis_tool",
+//   resource == AgentCore::Gateway::"{{GATEWAY_ARN}}"
+// )
+// when {
+//   principal.hasTag("department") &&
+//   (principal.getTag("department") == "finance" ||
+//    principal.getTag("department") == "engineering")
+// };
