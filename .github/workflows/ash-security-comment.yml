@@ -16,12 +16,17 @@ jobs:
     if: github.event.workflow_run.event == 'pull_request'
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: ash-security-results
           path: /tmp/ash-results
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Debug artifact contents
+        run: |
+          echo "Artifact contents:"
+          find /tmp/ash-results -type f | head -20
 
       - name: Get PR information
         id: pr-info
@@ -49,6 +54,8 @@ jobs:
           script: |
             const fs = require('fs');
             const commentPath = '/tmp/ash-results/pr_comment.md';
+            console.log('Looking for comment file at:', commentPath);
+            console.log('File exists:', fs.existsSync(commentPath));
 
             if (!fs.existsSync(commentPath)) {
               console.log('No comment file found in artifacts');

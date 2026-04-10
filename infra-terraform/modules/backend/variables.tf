@@ -17,7 +17,7 @@ variable "backend_pattern" {
 }
 
 variable "backend_deployment_type" {
-  description = "Deployment type: 'docker' (container via ECR) or 'zip' (Python package via S3)."
+  description = "Deployment type: 'docker' (container via ECR) or 'zip' (Python package via S3). Note: claude-agent-sdk patterns require 'docker'."
   type        = string
   default     = "docker"
 }

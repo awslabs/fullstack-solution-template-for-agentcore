@@ -17,5 +17,12 @@ COPY . .
 # Expose port
 EXPOSE 3000
 
+# Run as non-root user (node user is built into node:20-alpine)
+USER node
+
+# Healthcheck for container orchestration (dev server)
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD wget -qO- http://localhost:3000/ || exit 1
+
 # Start development server (--host exposes to Docker network)
 CMD ["npm", "run", "dev", "--", "--host"]

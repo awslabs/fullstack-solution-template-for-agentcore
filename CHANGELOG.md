@@ -7,8 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated architecture diagram with latest logos (`docs/architecture-diagram/FAST-architecture-20260403.png`)
+
+## [0.4.1] - 2026-03-25
+
 ### Added
 
+- AG-UI agent patterns for both Strands and LangGraph (`patterns/agui-strands-agent/`, `patterns/agui-langgraph-agent/`) with tool support (Gateway, Code Interpreter)
+- AG-UI streaming parser in frontend (`frontend/src/lib/agentcore-client/parsers/agui.ts`)
+- AG-UI integration documentation (`docs/AGUI_INTEGRATION.md`)
+- AgentCore Evaluations integration guide (`docs/AGENTCORE_EVALUATIONS_GUIDE.md`)
+- X-Ray VPC endpoint to private VPC deployment documentation
+
+### Changed
+
+- Restructured existing Strands and LangGraph agent patterns with modular `tools/` directories for Gateway and Code Interpreter
+- Simplified `basic_agent.py` and `langgraph_agent.py` by extracting tool definitions into separate modules
+- Updated OpenTelemetry distro version across all agent pattern Dockerfiles
+
+### Fixed
+
+- API Gateway cache encryption at rest enabled in both CDK and Terraform
+- ASH PR comment artifact consolidation and dependabot auto-merge workflow trigger
+- Security scanner false positive suppressions (nosemgrep/nosec) for CDK path operations, JWT decode, and zip-packager urlopen
+- Added USER directive to `Dockerfile.frontend.dev` (CKV_DOCKER_3)
+
+### Security
+
+- Updated `tj-actions/changed-files` to v47.0.5 (CVE fix for GHSA-mrrh-fwg8-r2c3 and GHSA-mcph-m25j-8j63)
+- Bumped `fast-xml-parser` and `@aws-sdk/xml-builder` in frontend
+- Bumped `flatted` from 3.3.3 to 3.4.2 in frontend
+- Bumped `langgraph` in patterns/langgraph-single-agent
+
+## [0.4.0] - 2026-03-12
+
+### Added
+
+- Claude Agent SDK agent pattern (`patterns/claude-agent-sdk/`) with single-agent and multi-agent variants
+- AgentCore client library (`frontend/src/lib/agentcore-client/`) with SSE streaming and parsers for Strands, LangGraph, and Bedrock Converse agents
+- Inline tool call rendering with message segments approach in the frontend
+- Markdown rendering with syntax highlighting and copy button for chat messages
+- Tool renderer registry and default `ToolCallDisplay` component for extensible tool output rendering
+- Streaming documentation update (`docs/STREAMING.md`) with new parser architecture and event flow
+- Local Docker testing for AgentCore with Docker Compose support (`docker/`)
+- GitHub repo-stats workflow for daily traffic tracking
+- ASH (Automated Security Helper) scan workflows for PR and full repository scanning
+- Dependabot auto-merge and PR labeler GitHub Actions workflows
+- JS/TS and Python linting workflows for pull requests
+- Prettier configuration and formatting for frontend source files
+- Prettier added to Makefile lint pipeline and frontend dev dependencies
+- READMEs for strands, langgraph, and claude-agent-sdk agent patterns
+- Permission boundary for CodeBuild temporary IAM role
 - VPC deployment mode (`network_mode: VPC`) for deploying AgentCore Runtime into an existing user-provided VPC for private network isolation
 - VPC configuration in `config.yaml` with `vpc_id`, `subnet_ids`, and optional `security_group_ids`
 - VPC configuration validation in `ConfigManager` for required fields when VPC mode is enabled
@@ -17,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CodeBuild-based deployment script (`scripts/deploy-with-codebuild.py`) that enables deploying FAST without requiring Docker
 - [Terraform] Full Terraform infrastructure alternative to CDK (`infra-terraform/`) with modules for Amplify Hosting, Cognito, and Backend (Runtime, Gateway, Memory, Feedback API, SSM)
 - [Terraform] Support for both Docker and Zip deployment types via `deployment_type` variable
+- [Terraform] OAuth2 Credential Provider support
+- [Terraform] VPC deployment mode with input/output parity to CDK
 - [Terraform] Dedicated scripts for frontend deployment (`deploy-frontend.py`, `deploy-frontend.sh`), Docker image build (`build-and-push-image.sh`), and agent testing (`test-agent.py`)
 - [Terraform] S3 backend configuration example (`backend.tf.example`) for remote state management
 - [Terraform] Version bump playbook (`TF_VERSION_BUMP_PLAYBOOK.md`) with independent versioning scheme
@@ -32,6 +85,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Removed `userId` from client invocation — user identity now extracted server-side from JWT to prevent impersonation via prompt injection
+- Split claude-agent-sdk into single-agent and multi-agent pattern variants
+- Frontend switched from `access_token` to `id_token` for AgentCore authentication (`access_token` lacks required `aud` claim)
+- Removed old JS service files, replaced by new `agentcore-client` library
 - Migrated Gateway authentication to AgentCore SDK `@requires_access_token` decorator
 - Simplified agent code in `patterns/strands-single-agent/basic_agent.py` and `patterns/langgraph-single-agent/langgraph_agent.py`
 - Use `cr.Provider` pattern for OAuth2 provider to avoid IAM propagation delays
@@ -41,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved Secrets Manager permissions from base `AgentCoreRole` utility class to backend-stack.ts for better separation of concerns
 - Updated `README.md` to reference new architecture diagram and clarify OAuth2 M2M authentication flow descriptions
 - Updated `test-scripts/README.md` to remove Docker container testing documentation
+- Updated contributing docs to use `main` branch instead of `develop`
 
 ### Removed
 
@@ -50,16 +108,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manual token fetching logic from agent code
 - Direct Secrets Manager access from agents
 - Wildcard Secrets Manager IAM permissions from base `AgentCoreRole` utility class
+- Old JS service files (replaced by `agentcore-client` library)
 
 ### Fixed
 
+- LangGraph plain string content handling in `AIMessageChunk`
+- Test-agent `user_id` bug, added streaming parser and dynamic tool name lookup to test scripts
+- Frontend build issues: unused `sessionId` param and excluded test directory from `tsc`
+- Repo-stats workflow failing on forks
+- Real VPC/subnet IDs replaced with placeholders in `config.yaml`
+- Backend agent entrypoints
+- Docker Compose v2 syntax and outdated `userId` references in docs
+- JWT auth compatibility, Vite host binding, and credential docs
 - Stale token errors in agents by implementing fresh token retrieval on MCP Gateway reconnection (Strands) and per-request (LangGraph)
 - IAM permission scoping to prevent overly broad wildcard access
+- Removed `iam:PutRolePolicy` from CodeBuild permission boundary, added `cdk bootstrap`, fixed region detection
+- Resolved all ESLint warnings in frontend
+- CI: pinned `tj-actions/changed-files` to SHA and bumped Node to 20
 
 ### Security
 
 - Enhanced security by delegating OAuth2 token management to AgentCore Identity service
 - Improved token lifecycle management with automatic refresh and error handling via Token Vault
+- Bumped `hono` from 4.11.9 to 4.12.7 in frontend
+- Bumped `@hono/node-server` in frontend
+- Bumped `rollup` from 4.56.0 to 4.59.0 in frontend
+- Bumped `minimatch` in frontend and `aws-cdk-lib` in infra-cdk
+- Bumped `fast-xml-parser` and `@aws-sdk/xml-builder` in frontend and infra-cdk
+- Bumped `qs` from 6.14.1 to 6.14.2 in frontend
+- Bumped `langgraph` in patterns/langgraph-single-agent
+- Bumped `@aws-sdk/client-bedrock-agentcore` in infra-cdk
 
 ## [0.3.1] - 2026-02-11
 

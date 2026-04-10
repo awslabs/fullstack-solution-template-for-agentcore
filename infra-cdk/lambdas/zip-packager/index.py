@@ -60,7 +60,9 @@ def send_response(
         headers={"Content-Type": "application/json"},
         method="PUT",
     )
-    urllib.request.urlopen(req)
+    urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected  # nosec B310 B113 — URL is the CloudFormation pre-signed ResponseURL, not user-controlled
+        req
+    )
 
 
 def download_wheels(requirements: list[str], download_dir: Path) -> None:

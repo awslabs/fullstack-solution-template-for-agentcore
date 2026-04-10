@@ -1,0 +1,9 @@
+# LangGraph AG-UI agent dependencies
+copilotkit==0.1.83
+langchain==1.2.10
+langgraph==1.0.10
+langchain-aws==1.4.1
+langchain-mcp-adapters==0.2.2
+langgraph-checkpoint-aws==1.0.6
+bedrock-agentcore==1.4.7
+PyJWT[crypto]==2.12.1

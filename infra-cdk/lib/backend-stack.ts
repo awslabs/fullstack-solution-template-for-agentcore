@@ -102,7 +102,7 @@ export class BackendStack extends cdk.NestedStack {
     // Parameters
     this.agentName = new cdk.CfnParameter(this, "AgentName", {
       type: "String",
-      default: "StrandsAgent",
+      default: "FASTAgent",
       description: "Name for the agent runtime",
     })
 
@@ -113,10 +113,17 @@ export class BackendStack extends cdk.NestedStack {
     let agentRuntimeArtifact: agentcore.AgentRuntimeArtifact
     let zipPackagerResource: cdk.CustomResource | undefined
 
+    if (deploymentType === "zip" && (pattern === "claude-agent-sdk-single-agent" || pattern === "claude-agent-sdk-multi-agent")) {
+      throw new Error(
+        "claude-agent-sdk patterns require Docker deployment (deployment_type: docker) " +
+        "because they need Node.js and the claude-code CLI installed at build time."
+      )
+    }
+
     if (deploymentType === "zip") {
       // ZIP DEPLOYMENT: Use Lambda to package and upload to S3 (no Docker required)
-      const repoRoot = path.resolve(__dirname, "..", "..")
-      const patternDir = path.join(repoRoot, "patterns", pattern)
+      const repoRoot = path.resolve(__dirname, "..", "..") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      const patternDir = path.join(repoRoot, "patterns", pattern) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
 
       // Create S3 bucket for agent code
       const agentCodeBucket = new s3.Bucket(this, "AgentCodeBucket", {
@@ -130,7 +137,7 @@ export class BackendStack extends cdk.NestedStack {
       const packagerLambda = new lambda.Function(this, "ZipPackagerLambda", {
         runtime: lambda.Runtime.PYTHON_3_12,
         handler: "index.handler",
-        code: lambda.Code.fromAsset(path.join(__dirname, "..", "lambdas", "zip-packager")),
+        code: lambda.Code.fromAsset(path.join(__dirname, "..", "lambdas", "zip-packager")), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         timeout: cdk.Duration.minutes(10),
         memorySize: 1024,
         ephemeralStorageSize: cdk.Size.gibibytes(2),
@@ -144,21 +151,21 @@ export class BackendStack extends cdk.NestedStack {
       // Read pattern .py files
       for (const file of fs.readdirSync(patternDir)) {
         if (file.endsWith(".py")) {
-          const content = fs.readFileSync(path.join(patternDir, file))
+          const content = fs.readFileSync(path.join(patternDir, file)) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
           agentCode[file] = content.toString("base64")
         }
       }
 
       // Read shared modules (gateway/, tools/)
       for (const module of ["gateway", "tools"]) {
-        const moduleDir = path.join(repoRoot, module)
+        const moduleDir = path.join(repoRoot, module) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         if (fs.existsSync(moduleDir)) {
           this.readDirRecursive(moduleDir, module, agentCode)
         }
       }
 
       // Read requirements
-      const requirementsPath = path.join(patternDir, "requirements.txt")
+      const requirementsPath = path.join(patternDir, "requirements.txt") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
       const requirements = fs.readFileSync(requirementsPath, "utf-8")
         .split("\n")
         .map(line => line.trim())
@@ -202,7 +209,7 @@ export class BackendStack extends cdk.NestedStack {
     } else {
       // DOCKER DEPLOYMENT: Use container-based deployment
       agentRuntimeArtifact = agentcore.AgentRuntimeArtifact.fromAsset(
-        path.resolve(__dirname, "..", ".."),
+        path.resolve(__dirname, "..", ".."), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         {
           platform: ecr_assets.Platform.LINUX_ARM64,
           file: `patterns/${pattern}/Dockerfile`,
@@ -334,6 +341,11 @@ export class BackendStack extends cdk.NestedStack {
       GATEWAY_CREDENTIAL_PROVIDER_NAME: `${config.stack_name_base}-runtime-gateway-auth`, // Used by @requires_access_token decorator to look up the correct provider
     }
 
+    // Add claude-agent-sdk specific environment variable
+    if (pattern === "claude-agent-sdk-single-agent" || pattern === "claude-agent-sdk-multi-agent") {
+      envVars["CLAUDE_CODE_USE_BEDROCK"] = "1"
+    }
+
     // Create the runtime using L2 construct
     // requestHeaderConfiguration allows the agent to read the Authorization header
     // from RequestContext.request_headers, which is needed to securely extract the
@@ -351,6 +363,13 @@ export class BackendStack extends cdk.NestedStack {
       },
       description: `${pattern} agent runtime for ${config.stack_name_base}`,
     })
+
+    // AGUI protocol override — CloudFormation doesn't support AGUI enum yet
+    // (only MCP | HTTP | A2A). Runtime deploys as HTTP, which also works properly.
+    // if (pattern.startsWith("agui-")) {
+    //   const cfnRuntime = this.agentRuntime.node.defaultChild as cdk.CfnResource
+    //   cfnRuntime.addPropertyOverride("ProtocolConfiguration", "AGUI")
+    // }
 
     // Make sure that ZIP is uploaded before Runtime is created
     if (zipPackagerResource) {
@@ -487,7 +506,7 @@ export class BackendStack extends cdk.NestedStack {
       functionName: `${config.stack_name_base}-feedback`,
       runtime: lambda.Runtime.PYTHON_3_13,
       architecture: lambda.Architecture.ARM_64,
-      entry: path.join(__dirname, "..", "lambdas", "feedback"),
+      entry: path.join(__dirname, "..", "lambdas", "feedback"), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
       handler: "handler",
       environment: {
         TABLE_NAME: feedbackTable.tableName,
@@ -532,6 +551,7 @@ export class BackendStack extends cdk.NestedStack {
         throttlingRateLimit: 100,
         throttlingBurstLimit: 200,
         cachingEnabled: true,
+        cacheDataEncrypted: true,
         cacheClusterEnabled: true,
         cacheClusterSize: "0.5",
         cacheTtl: cdk.Duration.minutes(5),
@@ -589,7 +609,7 @@ export class BackendStack extends cdk.NestedStack {
     const toolLambda = new lambda.Function(this, "SampleToolLambda", {
       runtime: lambda.Runtime.PYTHON_3_13,
       handler: "sample_tool_lambda.handler",
-      code: lambda.Code.fromAsset(path.join(__dirname, "../../gateway/tools/sample_tool")),
+      code: lambda.Code.fromAsset(path.join(__dirname, "../../gateway/tools/sample_tool")), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
       timeout: cdk.Duration.seconds(30),
       logGroup: new logs.LogGroup(this, "SampleToolLambdaLogGroup", {
         logGroupName: `/aws/lambda/${config.stack_name_base}-sample-tool`,
@@ -665,7 +685,7 @@ export class BackendStack extends cdk.NestedStack {
     )
 
     // Load tool specification from JSON file
-    const toolSpecPath = path.join(__dirname, "../../gateway/tools/sample_tool/tool_spec.json")
+    const toolSpecPath = path.join(__dirname, "../../gateway/tools/sample_tool/tool_spec.json") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const apiSpec = JSON.parse(require("fs").readFileSync(toolSpecPath, "utf8"))
 
     // Cognito OAuth2 configuration for gateway
@@ -680,7 +700,7 @@ export class BackendStack extends cdk.NestedStack {
     const oauth2ProviderLambda = new lambda.Function(this, "OAuth2ProviderLambda", {
       runtime: lambda.Runtime.PYTHON_3_13,
       handler: "index.handler",
-      code: lambda.Code.fromAsset(path.join(__dirname, "..", "lambdas", "oauth2-provider")),
+      code: lambda.Code.fromAsset(path.join(__dirname, "..", "lambdas", "oauth2-provider")), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
       timeout: cdk.Duration.minutes(5),
       logGroup: new logs.LogGroup(this, "OAuth2ProviderLambdaLogGroup", {
         logGroupName: `/aws/lambda/${config.stack_name_base}-oauth2-provider`,
@@ -1131,8 +1151,8 @@ export class BackendStack extends cdk.NestedStack {
    */
   private readDirRecursive(dirPath: string, prefix: string, output: Record<string, string>): void {
     for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
-      const fullPath = path.join(dirPath, entry.name)
-      const relativePath = path.join(prefix, entry.name)
+      const fullPath = path.join(dirPath, entry.name) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      const relativePath = path.join(prefix, entry.name) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
 
       if (entry.isDirectory()) {
         // Skip __pycache__ directories

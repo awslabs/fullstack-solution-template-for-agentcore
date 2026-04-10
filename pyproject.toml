@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fullstack-agentcore-solution-template"
-version = "0.3.1"
+version = "0.4.1"
 description = "Fullstack AgentCore Solution Template - A template for building AgentCore applications"
 readme = "README.md"
 license = { text = "Apache-2.0" }

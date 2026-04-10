@@ -117,6 +117,7 @@ When deploying in VPC mode, the runtime runs in private subnets without internet
 | `com.amazonaws.{region}.ecr.dkr` | ECR Docker (Docker deployment) | Interface |
 | `com.amazonaws.{region}.s3` | S3 (ZIP deployment, ECR layers) | Gateway |
 | `com.amazonaws.{region}.dynamodb` | DynamoDB (feedback table) | Gateway |
+| `com.amazonaws.{region}.xray` | X-Ray (OTel trace export) | Interface |
 
 Replace `{region}` with your deployment region (e.g. `us-east-1`).
 

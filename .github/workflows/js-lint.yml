@@ -1,6 +1,8 @@
 name: JavaScript/TypeScript Code Quality
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 

@@ -35,13 +35,13 @@ variable "admin_user_email" {
 # =============================================================================
 
 variable "backend_pattern" {
-  description = "Agent pattern to deploy. Available patterns: strands-single-agent, langgraph-single-agent"
+  description = "Agent pattern to deploy. Available patterns: strands-single-agent, langgraph-single-agent, claude-agent-sdk-single-agent, claude-agent-sdk-multi-agent"
   type        = string
   default     = "strands-single-agent"
 
   validation {
-    condition     = contains(["strands-single-agent", "langgraph-single-agent"], var.backend_pattern)
-    error_message = "Backend pattern must be one of: strands-single-agent, langgraph-single-agent."
+    condition     = contains(["strands-single-agent", "langgraph-single-agent", "claude-agent-sdk-single-agent", "claude-agent-sdk-multi-agent"], var.backend_pattern)
+    error_message = "Backend pattern must be one of: strands-single-agent, langgraph-single-agent, claude-agent-sdk-single-agent, claude-agent-sdk-multi-agent."
   }
 }
 

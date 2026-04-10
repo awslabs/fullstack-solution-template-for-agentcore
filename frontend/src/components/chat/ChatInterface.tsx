@@ -19,7 +19,7 @@ export default function ChatInterface() {
   const [input, setInput] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [client, setClient] = useState<AgentCoreClient | null>(null)
-  const [sessionId] = useState(() => crypto.randomUUID())
+  const [sessionId, setSessionId] = useState(() => crypto.randomUUID())
 
   const { isLoading, setIsLoading } = useGlobal()
   const auth = useAuth()
@@ -245,13 +245,13 @@ export default function ChatInterface() {
     }
   }
 
-  // Start a new chat (generates new session ID)
+  // Start a new chat by clearing messages and generating a fresh session ID.
+  // A new UUID is required so the backend treats this as a distinct conversation context.
   const startNewChat = () => {
     setMessages([])
     setInput("")
     setError(null)
-    // Note: sessionId stays the same for the component lifecycle
-    // If you want a new session ID, you'd need to remount the component
+    setSessionId(crypto.randomUUID())
   }
 
   // Check if this is the initial state (no messages)

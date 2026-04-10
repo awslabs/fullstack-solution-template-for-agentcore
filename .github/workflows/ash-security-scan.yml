@@ -1,6 +1,8 @@
 name: ASH Security Scan
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -17,7 +19,7 @@ jobs:
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46
+        uses: tj-actions/changed-files@22103cc46bda19c2b464ffe86db46df6922fd323 # v47.0.5
         with:
           files: |
             **/*.py
@@ -200,25 +202,24 @@ jobs:
             echo "has_findings=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Save PR metadata
+      - name: Prepare artifacts
         if: steps.changed-files.outputs.any_changed == 'true'
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          echo "${PR_NUMBER}" > /tmp/pr_number.txt
-          echo "${PR_SHA}" > /tmp/pr_sha.txt
+          mkdir -p /tmp/ash-artifacts
+          echo "${PR_NUMBER}" > /tmp/ash-artifacts/pr_number.txt
+          echo "${PR_SHA}" > /tmp/ash-artifacts/pr_sha.txt
+          cp /tmp/pr_comment.md /tmp/ash-artifacts/pr_comment.md
+          cp -r /tmp/ash-scan/.ash/ /tmp/ash-artifacts/.ash/ 2>/dev/null || true
 
       - name: Upload ASH results and PR metadata
         if: steps.changed-files.outputs.any_changed == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: ash-security-results
-          path: |
-            /tmp/ash-scan/.ash/
-            /tmp/pr_comment.md
-            /tmp/pr_number.txt
-            /tmp/pr_sha.txt
+          path: /tmp/ash-artifacts/
           retention-days: 30
 
       - name: Security scan summary

@@ -384,6 +384,7 @@ resource "aws_api_gateway_method_settings" "all" {
     throttling_rate_limit  = local.api_throttling_rate_limit
     throttling_burst_limit = local.api_throttling_burst_limit
     caching_enabled        = true
+    cache_data_encrypted   = true
     cache_ttl_in_seconds   = local.api_cache_ttl_seconds
     logging_level          = "INFO"
     metrics_enabled        = true

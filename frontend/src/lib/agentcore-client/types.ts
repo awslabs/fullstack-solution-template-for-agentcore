@@ -1,8 +1,12 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-/** Supported agent framework patterns */
-export type AgentPattern = "strands-single-agent" | "langgraph-single-agent"
+/** Supported agent pattern prefixes — determines the frontend parser */
+export type AgentPattern =
+  | `agui-${string}`
+  | `strands-${string}`
+  | `langgraph-${string}`
+  | `claude-${string}`
 
 /** Configuration for AgentCoreClient */
 export interface AgentCoreConfig {

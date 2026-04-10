@@ -18,7 +18,7 @@ export class FastMainStack extends cdk.Stack {
 
   constructor(scope: Construct, id: string, props: FastAmplifyStackProps) {
     const description =
-      "Fullstack AgentCore Solution Template - Main Stack (v0.3.1) (uksb-v6dos0t5g8)"
+      "Fullstack AgentCore Solution Template - Main Stack (v0.4.1) (uksb-v6dos0t5g8)"
     super(scope, id, { ...props, description })
 
     // Step 1: Create the Amplify stack to get the predictable domain

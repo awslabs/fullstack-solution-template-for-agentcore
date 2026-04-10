@@ -12,15 +12,15 @@ ENV UV_SYSTEM_PYTHON=1 \
     OTEL_PYTHON_LOG_CORRELATION=true \
     PYTHONUNBUFFERED=1
 
-# Copy pyproject.toml and gateway package for FAST installation
+# Copy pyproject.toml and shared packages for installation
 COPY pyproject.toml .
 COPY gateway/ gateway/
-COPY tools/ tools/
+COPY tools/ agentcore_tools/
 
 # Copy and install agent-specific requirements first
 COPY patterns/strands-single-agent/requirements.txt requirements.txt
 RUN uv pip install --no-cache -r requirements.txt && \
-    uv pip install --no-cache aws-opentelemetry-distro==0.10.1
+    uv pip install --no-cache aws-opentelemetry-distro==0.16.0
 
 # Install FAST package with only core dependencies (no dev/agent optional deps)
 RUN uv pip install --no-cache -e . --no-deps && \
@@ -32,12 +32,12 @@ USER bedrock_agentcore
 
 EXPOSE 8080
 
-# Copy agent code files
+# Copy agent code and tools
 COPY patterns/strands-single-agent/basic_agent.py .
-COPY patterns/strands-single-agent/strands_code_interpreter.py .
+COPY patterns/strands-single-agent/tools/ tools/
 COPY patterns/utils/ utils/
 
-# Healthcheck using Python (no extra dependencies needed)
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/ping', timeout=2)" || exit 1
 

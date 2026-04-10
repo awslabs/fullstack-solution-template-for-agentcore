@@ -30,7 +30,7 @@ admin_user_email = null  # Example: "admin@example.com"
 # -----------------------------------------------------------------------------
 
 # Agent pattern to deploy
-# Available patterns: strands-single-agent, langgraph-single-agent
+# Available patterns: strands-single-agent, langgraph-single-agent, claude-agent-sdk-single-agent, claude-agent-sdk-multi-agent
 backend_pattern = "strands-single-agent"
 
 # Deployment type for AgentCore Runtime

@@ -10,6 +10,9 @@ on:
         - cron: "0 11 * * *"
     workflow_dispatch: # Allow manual triggering from the Actions tab.
 
+permissions:
+    contents: write
+
 jobs:
     collect-stats:
         name: collect-repo-stats

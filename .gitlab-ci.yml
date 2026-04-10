@@ -28,6 +28,9 @@ developer_tests:
       - apt-get update -y
       - apt-get install make -y
       - pip install ruff
+      - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+      - apt-get install -y nodejs
+      - cd frontend && npm ci && cd ..
 
   script:
       - make lint-cicd

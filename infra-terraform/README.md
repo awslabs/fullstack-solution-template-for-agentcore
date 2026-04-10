@@ -66,7 +66,7 @@ Terraform uses flat variables with a `backend_` prefix to mirror the CDK's neste
 | `backend.vpc.subnet_ids` | `backend_vpc_subnet_ids` |
 | `backend.vpc.security_group_ids` | `backend_vpc_security_group_ids` |
 
-Values that are hardcoded in CDK (not in `config.yaml`) are defined as module-internal locals in Terraform: agent name (`StrandsAgent`), memory event expiry (30 days), callback URLs, and password minimum length.
+Values that are hardcoded in CDK (not in `config.yaml`) are defined as module-internal locals in Terraform: agent name (`FASTAgent`), memory event expiry (30 days), callback URLs, and password minimum length.
 
 ## Module Structure
 
