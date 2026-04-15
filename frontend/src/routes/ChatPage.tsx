@@ -13,7 +13,8 @@ export default function ChatPage() {
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-4xl">Please sign in</p>
+        <h1 className="text-3xl font-bold" style={{ fontFamily: 'Lora, serif' }}>Docent Admin</h1>
+        <p className="text-gray-500">Sign in to manage the Docent platform</p>
         <Button onClick={() => signIn()}>Sign In</Button>
       </div>
     )

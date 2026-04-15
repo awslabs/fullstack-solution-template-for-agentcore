@@ -281,8 +281,25 @@ export default function ChatInterface() {
 
           {/* Centered welcome message */}
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Welcome to FAST Chat</h2>
-            <p className="text-gray-600 mt-2">Ask me anything to get started</p>
+            <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Lora, serif' }}>Docent Admin</h2>
+            <p className="text-gray-500 mt-2" style={{ fontFamily: 'Inter, sans-serif' }}>Manage museums, galleries, exhibits, tours, reviews, users, and content.</p>
+            <div className="flex flex-wrap justify-center gap-2 mt-6">
+              {[
+                "Show platform stats",
+                "List all SF museums",
+                "Recent reviews",
+                "List journal entries",
+              ].map(q => (
+                <button
+                  key={q}
+                  onClick={() => { setInput(q); sendMessage(q); }}
+                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-full hover:bg-gray-50 text-gray-600"
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Centered input */}

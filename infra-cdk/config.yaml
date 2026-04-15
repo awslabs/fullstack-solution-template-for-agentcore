@@ -1,27 +1,8 @@
-stack_name_base: FAST-stack
+stack_name_base: docent-agent
 
-# Optional: Set to automatically create an admin user and email credentials
-# If not provided, you'll need to manually create users via AWS Console
-admin_user_email: # Example: admin@example.com
+admin_user_email: skyjung@docentofficial.com
 
 backend:
-  pattern: strands-single-agent # See patterns/ for available options
-  # Pattern prefix determines the frontend parser:
-  #   agui-*      → AG-UI parser      (e.g. agui-strands-agent)
-  #   strands-*   → Strands parser    (e.g. strands-single-agent)
-  #   langgraph-* → LangGraph parser  (e.g. langgraph-single-agent)
-  #   claude-*    → Claude parser     (e.g. claude-agent-sdk-single-agent)
-  # The folder name must match exactly and start with the desired parser prefix.
-  deployment_type: docker # Available deployment types: docker (default), zip (not supported for claude-agent-sdk)
-  network_mode: PUBLIC # Available network modes: PUBLIC (default), VPC
-
-  # VPC configuration - required when network_mode is VPC
-  # Your VPC must have the necessary VPC endpoints for AWS services.
-  # See docs/DEPLOYMENT.md for the full list of required VPC endpoints.
-  # vpc:
-  #   vpc_id: vpc-0abc1234def56789a
-  #   subnet_ids:
-  #     - subnet-aaaa1111bbbb2222c
-  #     - subnet-cccc3333dddd4444e
-  #   security_group_ids:  # Optional - a default SG is created if omitted
-  #     - sg-0abc1234def56789a
+  pattern: strands-single-agent
+  deployment_type: docker
+  network_mode: PUBLIC
