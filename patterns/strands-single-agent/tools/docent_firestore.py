@@ -139,6 +139,23 @@ def get_stats() -> str:
     return json.dumps(stats)
 
 
+@tool
+def today_activity(date_str: str = "") -> str:
+    """Get today's activity: new users and reviews created today (or a given date YYYY-MM-DD). Fast single-query summary."""
+    import datetime
+    if date_str:
+        day = datetime.date.fromisoformat(date_str)
+    else:
+        day = datetime.date.today()
+    start_ts = int(datetime.datetime.combine(day, datetime.time.min).timestamp())
+    end_ts = int(datetime.datetime.combine(day, datetime.time.max).timestamp())
+
+    db = get_firestore_client()
+    new_users = [_serialize(d) for d in db.collection("users").where("createdAt", ">=", start_ts).where("createdAt", "<=", end_ts).stream()]
+    new_reviews = [_serialize(d) for d in db.collection("reviews").where("createdAt", ">=", start_ts).where("createdAt", "<=", end_ts).stream()]
+    return json.dumps({"date": str(day), "new_users": len(new_users), "new_reviews": len(new_reviews), "users": new_users, "reviews": new_reviews}, default=str)
+
+
 # Export all tools as a list for the agent
 ALL_TOOLS = [
     list_documents,
@@ -152,4 +169,5 @@ ALL_TOOLS = [
     delete_subcollection_doc,
     count_documents,
     get_stats,
+    today_activity,
 ]

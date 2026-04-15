@@ -68,6 +68,9 @@ export class AgentCoreClient {
     // User identity is extracted server-side from the validated JWT token
     // (Authorization header), not sent in the payload body. This prevents
     // impersonation via prompt injection.
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 120000) // 2 min timeout
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -77,7 +80,10 @@ export class AgentCoreClient {
         "X-Amzn-Bedrock-AgentCore-Runtime-Session-Id": sessionId,
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     })
+
+    clearTimeout(timeout)
 
     if (!response.ok) {
       const errorText = await response.text()
