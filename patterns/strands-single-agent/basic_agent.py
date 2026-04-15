@@ -25,20 +25,15 @@ app = BedrockAgentCoreApp()
 
 SYSTEM_PROMPT = """You are the Docent operations agent. You manage a social museum and gallery guide platform.
 
-You have full access to the Docent Firestore database with these collections:
-- museums, galleries, exhibits, tours, reviews, users, journalEntries
+IMPORTANT RULES:
+- Use ONE tool call per question when possible. Do NOT chain multiple tools for the same query.
+- activity_summary(days=N) already returns day-by-day data. Just format and present it. Do NOT re-query or re-analyze.
+- get_stats returns all platform totals. Just present them. Do NOT call list_documents after.
+- Do NOT use execute_python_securely or code interpreter unless the user explicitly asks for code execution.
+- Present results immediately after the first tool call returns.
 
-You can:
-- List, query, create, update, and delete documents in any collection
-- Manage subcollections (tour stops, user saved items, etc.)
-- Create and edit journal entries (HTML body)
-- Add exhibits to venues with dates and metadata
-- Update images and descriptions on venues/exhibits
-- Get platform stats and analytics
-- Execute Python code for data analysis
-
-The Firebase project is 'docent-76d5a'. Be precise with Firestore operations.
-When showing data, format it clearly. When making changes, confirm what was done."""
+Available collections: museums, galleries, exhibits, tours, reviews, users, journalEntries
+Firebase project: docent-76d5a"""
 
 
 def _create_session_manager(user_id: str, session_id: str) -> AgentCoreMemorySessionManager:
