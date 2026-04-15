@@ -5,7 +5,6 @@ import { ChatHeader } from "./ChatHeader"
 import { ChatInput } from "./ChatInput"
 import { ChatMessages } from "./ChatMessages"
 import { ChatSidebar } from "./ChatSidebar"
-import { StatsCards } from "./StatsCards"
 import { Message, MessageSegment, ToolCall, ChatSession, ChatCategory, CATEGORY_CONFIG } from "./types"
 
 import { useGlobal } from "@/app/context/GlobalContext"
@@ -237,7 +236,6 @@ export default function ChatInterface() {
                 )}
                 <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Lora, serif' }}>Docent Admin</h2>
                 <p className="text-gray-500 mt-2 mb-6" style={{ fontFamily: 'Inter, sans-serif' }}>Manage museums, galleries, exhibits, tours, reviews, users, and content.</p>
-                <StatsCards />
                 <div className="flex flex-wrap justify-center gap-2">
                   {["Show platform stats", "List all SF museums", "Recent reviews", "List journal entries"].map(q => (
                     <button key={q} onClick={() => { setInput(q); sendMessage(q) }}
