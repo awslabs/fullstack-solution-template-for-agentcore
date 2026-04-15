@@ -140,20 +140,27 @@ def get_stats() -> str:
 
 
 @tool
-def today_activity(date_str: str = "") -> str:
-    """Get today's activity: new users and reviews created today (or a given date YYYY-MM-DD). Fast single-query summary."""
+def activity_summary(days: int = 1) -> str:
+    """Get activity summary for the last N days (default 1 = today). Returns new users and reviews per day. Use days=7 for a weekly summary. Single efficient query."""
     import datetime
-    if date_str:
-        day = datetime.date.fromisoformat(date_str)
-    else:
-        day = datetime.date.today()
-    start_ts = int(datetime.datetime.combine(day, datetime.time.min).timestamp())
-    end_ts = int(datetime.datetime.combine(day, datetime.time.max).timestamp())
+    now = datetime.date.today()
+    start = now - datetime.timedelta(days=days - 1)
+    start_ts = int(datetime.datetime.combine(start, datetime.time.min).timestamp())
 
     db = get_firestore_client()
-    new_users = [_serialize(d) for d in db.collection("users").where("createdAt", ">=", start_ts).where("createdAt", "<=", end_ts).stream()]
-    new_reviews = [_serialize(d) for d in db.collection("reviews").where("createdAt", ">=", start_ts).where("createdAt", "<=", end_ts).stream()]
-    return json.dumps({"date": str(day), "new_users": len(new_users), "new_reviews": len(new_reviews), "users": new_users, "reviews": new_reviews}, default=str)
+    users = [d.to_dict() for d in db.collection("users").where("createdAt", ">=", start_ts).stream()]
+    reviews = [d.to_dict() for d in db.collection("reviews").where("createdAt", ">=", start_ts).stream()]
+
+    daily = {}
+    for i in range(days):
+        day = start + datetime.timedelta(days=i)
+        day_start = int(datetime.datetime.combine(day, datetime.time.min).timestamp())
+        day_end = int(datetime.datetime.combine(day, datetime.time.max).timestamp())
+        daily[str(day)] = {
+            "new_users": sum(1 for u in users if day_start <= u.get("createdAt", 0) <= day_end),
+            "new_reviews": sum(1 for r in reviews if day_start <= r.get("createdAt", 0) <= day_end),
+        }
+    return json.dumps({"period": f"{start} to {now}", "days": days, "daily": daily, "totals": {"new_users": len(users), "new_reviews": len(reviews)}}, default=str)
 
 
 # Export all tools as a list for the agent
@@ -169,5 +176,5 @@ ALL_TOOLS = [
     delete_subcollection_doc,
     count_documents,
     get_stats,
-    today_activity,
+    activity_summary,
 ]
