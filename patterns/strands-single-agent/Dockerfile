@@ -10,7 +10,8 @@ ENV UV_SYSTEM_PYTHON=1 \
     UV_COMPILE_BYTECODE=1 \
     DOCKER_CONTAINER=1 \
     OTEL_PYTHON_LOG_CORRELATION=true \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    FIREBASE_PROJECT_ID=docent-76d5a
 
 # Copy pyproject.toml and shared packages for installation
 COPY pyproject.toml .
