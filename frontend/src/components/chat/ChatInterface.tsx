@@ -6,7 +6,7 @@ import { ChatInput } from "./ChatInput"
 import { ChatMessages } from "./ChatMessages"
 import { ChatSidebar } from "./ChatSidebar"
 import { StatsCards } from "./StatsCards"
-import { Message, MessageSegment, ToolCall, ChatSession } from "./types"
+import { Message, MessageSegment, ToolCall, ChatSession, ChatCategory, CATEGORY_CONFIG } from "./types"
 
 import { useGlobal } from "@/app/context/GlobalContext"
 import { AgentCoreClient } from "@/lib/agentcore-client"
@@ -30,6 +30,7 @@ export default function ChatInterface() {
   const [currentSessionId, setCurrentSessionId] = useState<string>(
     () => localStorage.getItem(CURRENT_KEY) || crypto.randomUUID()
   )
+  const [currentCategory, setCurrentCategory] = useState<ChatCategory>("general")
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -73,7 +74,7 @@ export default function ChatInterface() {
       if (existing) {
         updated = prev.map(s => s.id === currentSessionId ? { ...s, history: msgs, endDate: now } : s)
       } else {
-        updated = [{ id: currentSessionId, name, history: msgs, startDate: now, endDate: now }, ...prev]
+        updated = [{ id: currentSessionId, name, history: msgs, startDate: now, endDate: now, category: currentCategory }, ...prev]
       }
       saveSessions(updated)
       return updated
@@ -93,6 +94,13 @@ export default function ChatInterface() {
     setInput("")
     setIsLoading(true)
 
+    // Build the actual prompt with category context and chart instructions
+    const catHint = CATEGORY_CONFIG[currentCategory].systemHint
+    const chartInstruction = currentCategory === "analytics"
+      ? '\n\nWhen presenting numerical data that could be visualized, include a chart block like:\n```chart\n{"type":"bar","data":[{"name":"X","value":1}],"xKey":"name","yKey":"value","title":"Chart Title"}\n```\nSupported types: bar, pie, line.'
+      : ""
+    const fullPrompt = catHint ? `[Context: ${catHint}${chartInstruction}]\n\n${userMessage}` : userMessage
+
     try {
       const accessToken = auth.user?.access_token
       if (!accessToken) throw new Error("Authentication required.")
@@ -109,7 +117,7 @@ export default function ChatInterface() {
         })
       }
 
-      await client.invoke(userMessage, currentSessionId, accessToken, event => {
+      await client.invoke(fullPrompt, currentSessionId, accessToken, event => {
         switch (event.type) {
           case "text": {
             const prev = segments[segments.length - 1]
@@ -180,18 +188,19 @@ export default function ChatInterface() {
     }
   }
 
-  const startNewChat = () => {
+  const startNewChat = (category?: ChatCategory) => {
     const newId = crypto.randomUUID()
     setCurrentSessionId(newId)
+    setCurrentCategory(category || "general")
     setMessages([])
     setInput("")
     setError(null)
   }
 
   const selectSession = (session: ChatSession) => {
-    // Save current before switching
     if (messages.length > 0) persistMessages(messages)
     setCurrentSessionId(session.id)
+    setCurrentCategory(session.category || "general")
     setError(null)
   }
 
@@ -221,6 +230,11 @@ export default function ChatInterface() {
             <>
               <div className="grow" />
               <div className="text-center mb-4">
+                {currentCategory !== "general" && (
+                  <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full border mb-3 ${CATEGORY_CONFIG[currentCategory].color}`}>
+                    {CATEGORY_CONFIG[currentCategory].icon} {CATEGORY_CONFIG[currentCategory].label}
+                  </span>
+                )}
                 <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Lora, serif' }}>Docent Admin</h2>
                 <p className="text-gray-500 mt-2 mb-6" style={{ fontFamily: 'Inter, sans-serif' }}>Manage museums, galleries, exhibits, tours, reviews, users, and content.</p>
                 <StatsCards />

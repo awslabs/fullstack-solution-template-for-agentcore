@@ -6,6 +6,10 @@ import { Message } from "./types"
 import { FeedbackDialog } from "./FeedbackDialog"
 import { getToolRenderer } from "@/hooks/useToolRenderer"
 import { MarkdownRenderer } from "./MarkdownRenderer"
+import { renderContentWithCharts } from "./ChartRenderer"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts"
+
+const COLORS = ["#6366f1", "#8b5cf6", "#a78bfa", "#c4b5fd", "#ddd6fe", "#ede9fe", "#818cf8", "#4f46e5"]
 
 interface ChatMessageProps {
   message: Message
@@ -42,28 +46,55 @@ export function ChatMessage({
   }
 
   const renderAssistantContent = () => {
-    // If segments exist, render them in order (interleaved text + tools)
     if (message.segments && message.segments.length > 0) {
       return message.segments.map((seg, i) => {
         if (seg.type === "text") {
-          return <MarkdownRenderer key={i} content={seg.content} />
+          const { text, charts } = renderContentWithCharts(seg.content)
+          return (
+            <div key={i}>
+              {text && <MarkdownRenderer content={text} />}
+              {charts.map((chart, ci) => (
+                <div key={ci} className="my-4 p-4 bg-gray-50 rounded-lg border">
+                  {chart.title && <p className="text-sm font-medium text-gray-700 mb-3">{chart.title}</p>}
+                  <ResponsiveContainer width="100%" height={280}>
+                    {chart.type === "pie" ? (
+                      <PieChart><Pie data={chart.data} dataKey={chart.yKey} nameKey={chart.xKey} cx="50%" cy="50%" outerRadius={100} label={({ name, value }) => `${name}: ${value}`}>{chart.data.map((_, j) => <Cell key={j} fill={COLORS[j % COLORS.length]} />)}</Pie><Tooltip /></PieChart>
+                    ) : chart.type === "line" ? (
+                      <LineChart data={chart.data}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey={chart.xKey} tick={{ fontSize: 12 }} /><YAxis tick={{ fontSize: 12 }} /><Tooltip /><Line type="monotone" dataKey={chart.yKey} stroke="#6366f1" strokeWidth={2} /></LineChart>
+                    ) : (
+                      <BarChart data={chart.data}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey={chart.xKey} tick={{ fontSize: 12 }} angle={-30} textAnchor="end" height={60} /><YAxis tick={{ fontSize: 12 }} /><Tooltip /><Bar dataKey={chart.yKey} fill="#6366f1" radius={[4, 4, 0, 0]} /></BarChart>
+                    )}
+                  </ResponsiveContainer>
+                </div>
+              ))}
+            </div>
+          )
         }
         const render = getToolRenderer(seg.toolCall.name)
         if (!render) return null
         return (
           <div key={seg.toolCall.toolUseId} className="my-1">
-            {render({
-              name: seg.toolCall.name,
-              args: seg.toolCall.input,
-              status: seg.toolCall.status,
-              result: seg.toolCall.result,
-            })}
+            {render({ name: seg.toolCall.name, args: seg.toolCall.input, status: seg.toolCall.status, result: seg.toolCall.result })}
           </div>
         )
       })
     }
-    // Fallback: just render content as markdown
-    return <MarkdownRenderer content={message.content} />
+    const { text, charts } = renderContentWithCharts(message.content)
+    return (
+      <>
+        {text && <MarkdownRenderer content={text} />}
+        {charts.map((chart, ci) => (
+          <div key={ci} className="my-4 p-4 bg-gray-50 rounded-lg border">
+            {chart.title && <p className="text-sm font-medium text-gray-700 mb-3">{chart.title}</p>}
+            <ResponsiveContainer width="100%" height={280}>
+              {chart.type === "bar" ? (
+                <BarChart data={chart.data}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey={chart.xKey} tick={{ fontSize: 12 }} /><YAxis tick={{ fontSize: 12 }} /><Tooltip /><Bar dataKey={chart.yKey} fill="#6366f1" radius={[4, 4, 0, 0]} /></BarChart>
+              ) : <BarChart data={chart.data}><Bar dataKey={chart.yKey} fill="#6366f1" /></BarChart>}
+            </ResponsiveContainer>
+          </div>
+        ))}
+      </>
+    )
   }
 
   return (
