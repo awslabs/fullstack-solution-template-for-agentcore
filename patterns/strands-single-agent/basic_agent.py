@@ -52,14 +52,17 @@ def _create_session_manager(
 
     use_ltm = os.environ.get("USE_LONG_TERM_MEMORY", "false").lower() == "true"
 
+    top_k = int(os.environ.get("LTM_TOP_K", "10"))
+    relevance_score = float(os.environ.get("LTM_RELEVANCE_SCORE", "0.3"))
+
     # Only pass retrieval_config when LTM is explicitly enabled.
     # Omitting it means the session manager uses short-term memory only,
     # which avoids the $0.50/1,000 retrieval and $0.75/1,000 storage costs.
     retrieval_config = (
         {
             "/facts/{actorId}": RetrievalConfig(
-                top_k=10,
-                relevance_score=0.3,
+                top_k=top_k,
+                relevance_score=relevance_score,
             )
         }
         if use_ltm

@@ -43,6 +43,16 @@ export interface AppConfig {
      * Defaults to false.
      */
     use_long_term_memory: boolean
+    /**
+     * Number of facts to retrieve per turn when long-term memory is enabled.
+     * Maps to the top_k parameter of RetrievalConfig. Defaults to 10.
+     */
+    ltm_top_k: number
+    /**
+     * Minimum similarity threshold for long-term memory retrieval.
+     * Maps to the relevance_score parameter of RetrievalConfig. Defaults to 0.3.
+     */
+    ltm_relevance_score: number
   }
 }
 
@@ -134,6 +144,8 @@ export class ConfigManager {
           network_mode: networkMode,
           vpc: vpcConfig,
           use_long_term_memory: parsedConfig.backend?.use_long_term_memory === true,
+          ltm_top_k: parsedConfig.backend?.ltm_top_k ?? 10,
+          ltm_relevance_score: parsedConfig.backend?.ltm_relevance_score ?? 0.3,
         },
       }
     } catch (error) {

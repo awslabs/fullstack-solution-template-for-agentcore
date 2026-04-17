@@ -20,6 +20,8 @@ backend:
   # Set to true when you want to try persistent cross-session memory, which is keyed off of the
   # Cognito userId.
   use_long_term_memory: false
+  ltm_top_k: 10             # Number of facts to retrieve per turn (default: 10)
+  ltm_relevance_score: 0.3  # Minimum similarity threshold for retrieval (default: 0.3)
 
   # VPC configuration - required when network_mode is VPC
   # Your VPC must have the necessary VPC endpoints for AWS services.

@@ -356,6 +356,10 @@ export class BackendStack extends cdk.NestedStack {
       // The memory resource always includes the SemanticMemoryStrategy (no cost to define it),
       // but retrieval is only performed when this is "true". See config.yaml: use_long_term_memory.
       USE_LONG_TERM_MEMORY: config.backend.use_long_term_memory ? "true" : "false",
+      // Retrieval tuning for long-term memory. Only used when USE_LONG_TERM_MEMORY is "true".
+      // See config.yaml: ltm_top_k and ltm_relevance_score.
+      LTM_TOP_K: String(config.backend.ltm_top_k),
+      LTM_RELEVANCE_SCORE: String(config.backend.ltm_relevance_score),
     }
 
     // Add claude-agent-sdk specific environment variable
