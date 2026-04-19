@@ -112,6 +112,7 @@ export class BackendStack extends cdk.NestedStack {
     // Create the agent runtime artifact based on deployment type
     let agentRuntimeArtifact: agentcore.AgentRuntimeArtifact
     let zipPackagerResource: cdk.CustomResource | undefined
+    let zipContentHash: string | undefined
 
     if (
       deploymentType === "zip" &&
@@ -159,12 +160,28 @@ export class BackendStack extends cdk.NestedStack {
         }
       }
 
-      // Read shared modules (gateway/, tools/)
-      for (const module of ["gateway", "tools"]) {
-        const moduleDir = path.join(repoRoot, module) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-        if (fs.existsSync(moduleDir)) {
-          this.readDirRecursive(moduleDir, module, agentCode)
-        }
+      // Read shared gateway/ module from repo root (mirrors Docker: COPY gateway/ gateway/)
+      const gatewayDir = path.join(repoRoot, "gateway") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      if (fs.existsSync(gatewayDir)) {
+        this.readDirRecursive(gatewayDir, "gateway", agentCode)
+      }
+
+      // Read root tools/ as agentcore_tools/ (mirrors Docker: COPY tools/ agentcore_tools/)
+      const rootToolsDir = path.join(repoRoot, "tools") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      if (fs.existsSync(rootToolsDir)) {
+        this.readDirRecursive(rootToolsDir, "agentcore_tools", agentCode)
+      }
+
+      // Read pattern-specific tools/ (mirrors Docker: COPY patterns/{pattern}/tools/ tools/)
+      const patternToolsDir = path.join(patternDir, "tools") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      if (fs.existsSync(patternToolsDir)) {
+        this.readDirRecursive(patternToolsDir, "tools", agentCode)
+      }
+
+      // Read shared utils/ (mirrors Docker: COPY patterns/utils/ utils/)
+      const sharedUtilsDir = path.join(repoRoot, "patterns", "utils") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      if (fs.existsSync(sharedUtilsDir)) {
+        this.readDirRecursive(sharedUtilsDir, "utils", agentCode)
       }
 
       // Read requirements
@@ -178,6 +195,7 @@ export class BackendStack extends cdk.NestedStack {
       // Create hash for change detection
       // We use this to trigger update when content changes
       const contentHash = this.hashContent(JSON.stringify({ requirements, agentCode }))
+      zipContentHash = contentHash
 
       // Custom Resource to trigger packaging
       const provider = new cr.Provider(this, "ZipPackagerProvider", {
@@ -382,7 +400,7 @@ export class BackendStack extends cdk.NestedStack {
       requestHeaderConfiguration: {
         allowlistedHeaders: ["Authorization"],
       },
-      description: `${pattern} agent runtime for ${config.stack_name_base}`,
+      description: `${pattern} agent runtime for ${config.stack_name_base}${zipContentHash ? ` [${zipContentHash.slice(0, 8)}]` : ""}`,
     })
 
     // AGUI protocol override — CloudFormation doesn't support AGUI enum yet
