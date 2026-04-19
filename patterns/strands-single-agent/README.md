@@ -5,7 +5,7 @@ This pattern uses the [Strands Agents](https://github.com/strands-agents/strands
 ## Features
 
 - **Token-Level Streaming**: True token-by-token streaming via `agent.stream_async()`
-- **AgentCore Memory**: Conversation history persisted across requests via `AgentCoreMemorySessionManager`
+- **AgentCore Memory**: Conversation history persisted across requests via `AgentCoreMemorySessionManager`, with optional long-term memory for cross-session fact recall
 - **Code Interpreter**: Secure Python execution via `StrandsCodeInterpreterTools`
 - **Gateway Integration**: Access Lambda-based tools through AgentCore Gateway (MCP protocol with OAuth2 auth)
 - **Secure Identity**: User identity extracted from validated JWT token (`RequestContext`), not from payload
@@ -67,12 +67,22 @@ The agent yields SSE `data: {json}` lines via `agent.stream_async()`. The fronte
 
 ## Memory Integration
 
-This pattern uses **AgentCore Memory** for conversation persistence:
+This pattern uses **AgentCore Memory** for conversation persistence and optional long-term recall:
 
+**Short-term memory** (always active):
 1. `MEMORY_ID` environment variable provides the memory resource ID
 2. `AgentCoreMemoryConfig` is initialized with `memory_id`, `session_id`, and `actor_id` (user ID)
 3. `AgentCoreMemorySessionManager` handles storing/retrieving conversation history
 4. Memory is tied to the `runtimeSessionId` from the client
+
+**Long-term memory** (opt-in via `use_long_term_memory: true` in `config.yaml`):
+1. The CDK stack passes `USE_LONG_TERM_MEMORY=true` to the agent runtime
+2. The agent configures a `RetrievalConfig` for the `/facts/{actorId}` namespace
+3. AgentCore extracts facts from conversations asynchronously and stores them per user (keyed by Cognito `userId`)
+4. On each turn, relevant facts are retrieved and injected into the agent context, enabling cross-session personalization
+5. Additional costs apply: $0.75/1,000 records stored + $0.50/1,000 retrieval calls
+
+See [Memory Integration Guide](../../docs/MEMORY_INTEGRATION.md) for full details.
 
 ## Security
 
