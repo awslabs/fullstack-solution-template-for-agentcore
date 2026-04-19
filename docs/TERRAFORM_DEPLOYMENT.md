@@ -8,7 +8,7 @@ This guide walks you through deploying the Fullstack AgentCore Solution Template
 
 Before deploying, ensure you have:
 
-- **Terraform** >= 1.5.0 (see [Install Terraform](https://developer.hashicorp.com/terraform/install))
+- **Terraform** >= 1.11.0 (see [Install Terraform](https://developer.hashicorp.com/terraform/install)). Required for S3 native state locking -- see [State Management](../infra-terraform/README.md#state-management) for remote backend setup.
 - **AWS CLI** configured with credentials (`aws configure`) - see [AWS CLI Configuration guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
 - **Python 3.11+** (for the frontend deployment script)
 - **Docker** (only required for `backend_deployment_type = "docker"`) - see [Install Docker Engine](https://docs.docker.com/engine/install/). Verify with `docker ps`. Alternatively, [Finch](https://github.com/runfinch/finch) can be used on Mac. See [below](#docker-cross-platform-build-setup-required-for-non-arm-machines) if you have a non-ARM machine.
