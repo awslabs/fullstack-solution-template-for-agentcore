@@ -113,10 +113,13 @@ export class BackendStack extends cdk.NestedStack {
     let agentRuntimeArtifact: agentcore.AgentRuntimeArtifact
     let zipPackagerResource: cdk.CustomResource | undefined
 
-    if (deploymentType === "zip" && (pattern === "claude-agent-sdk-single-agent" || pattern === "claude-agent-sdk-multi-agent")) {
+    if (
+      deploymentType === "zip" &&
+      (pattern === "claude-agent-sdk-single-agent" || pattern === "claude-agent-sdk-multi-agent")
+    ) {
       throw new Error(
         "claude-agent-sdk patterns require Docker deployment (deployment_type: docker) " +
-        "because they need Node.js and the claude-code CLI installed at build time."
+          "because they need Node.js and the claude-code CLI installed at build time."
       )
     }
 
@@ -147,7 +150,7 @@ export class BackendStack extends cdk.NestedStack {
 
       // Read agent code files and encode as base64
       const agentCode: Record<string, string> = {}
-      
+
       // Read pattern .py files
       for (const file of fs.readdirSync(patternDir)) {
         if (file.endsWith(".py")) {
@@ -166,7 +169,8 @@ export class BackendStack extends cdk.NestedStack {
 
       // Read requirements
       const requirementsPath = path.join(patternDir, "requirements.txt") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-      const requirements = fs.readFileSync(requirementsPath, "utf-8")
+      const requirements = fs
+        .readFileSync(requirementsPath, "utf-8")
         .split("\n")
         .map(line => line.trim())
         .filter(line => line && !line.startsWith("#"))
@@ -241,7 +245,16 @@ export class BackendStack extends cdk.NestedStack {
         Name: cdk.Names.uniqueResourceName(this, { maxLength: 48 }),
         EventExpiryDuration: 30,
         Description: `Short-term memory for ${config.stack_name_base} agent`,
-        MemoryStrategies: [], // Empty array = short-term only (conversation history)
+        MemoryStrategies: [
+          {
+            // Extracts and stores factual information shared by the user across sessions.
+            // Stored under /facts/{actorId} — retrieved on each turn to personalise responses.
+            SemanticMemoryStrategy: {
+              Name: "FactExtractor",
+              Namespaces: ["/facts/{actorId}"],
+            },
+          },
+        ],
         MemoryExecutionRoleArn: agentRole.roleArn,
         Tags: {
           Name: `${config.stack_name_base}_Memory`,
@@ -339,6 +352,14 @@ export class BackendStack extends cdk.NestedStack {
       MEMORY_ID: memoryId,
       STACK_NAME: config.stack_name_base,
       GATEWAY_CREDENTIAL_PROVIDER_NAME: `${config.stack_name_base}-runtime-gateway-auth`, // Used by @requires_access_token decorator to look up the correct provider
+      // Controls whether the agent activates long-term semantic memory retrieval.
+      // The memory resource always includes the SemanticMemoryStrategy (no cost to define it),
+      // but retrieval is only performed when this is "true". See config.yaml: use_long_term_memory.
+      USE_LONG_TERM_MEMORY: config.backend.use_long_term_memory ? "true" : "false",
+      // Retrieval tuning for long-term memory. Only used when USE_LONG_TERM_MEMORY is "true".
+      // See config.yaml: ltm_top_k and ltm_relevance_score.
+      LTM_TOP_K: String(config.backend.ltm_top_k),
+      LTM_RELEVANCE_SCORE: String(config.backend.ltm_relevance_score),
     }
 
     // Add claude-agent-sdk specific environment variable
@@ -767,8 +788,6 @@ export class BackendStack extends cdk.NestedStack {
       },
     })
 
-
-
     // Store for use in createAgentCoreRuntime()
     this.runtimeCredentialProvider = runtimeCredentialProvider
 
@@ -935,8 +954,6 @@ export class BackendStack extends cdk.NestedStack {
       ),
       description: "Machine Client Secret for M2M authentication",
     })
-
-
   }
 
   /**
@@ -964,18 +981,16 @@ export class BackendStack extends cdk.NestedStack {
 
       // Import the user-specified subnets by their IDs.
       // These subnets must exist within the VPC specified above.
-      const subnets: ec2.ISubnet[] = vpcConfig.subnet_ids.map(
-        (subnetId: string, index: number) =>
-          ec2.Subnet.fromSubnetId(this, `ImportedSubnet${index}`, subnetId)
+      const subnets: ec2.ISubnet[] = vpcConfig.subnet_ids.map((subnetId: string, index: number) =>
+        ec2.Subnet.fromSubnetId(this, `ImportedSubnet${index}`, subnetId)
       )
 
       // Build the VPC config props for the AgentCore L2 construct.
       // Security groups are optional — if not provided, the construct creates a default one.
       const securityGroups =
         vpcConfig.security_group_ids && vpcConfig.security_group_ids.length > 0
-          ? vpcConfig.security_group_ids.map(
-              (sgId: string, index: number) =>
-                ec2.SecurityGroup.fromSecurityGroupId(this, `ImportedSG${index}`, sgId)
+          ? vpcConfig.security_group_ids.map((sgId: string, index: number) =>
+              ec2.SecurityGroup.fromSecurityGroupId(this, `ImportedSG${index}`, sgId)
             )
           : undefined
 
