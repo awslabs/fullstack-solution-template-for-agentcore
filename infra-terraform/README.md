@@ -143,25 +143,85 @@ The modules are deployed in this order:
 
 ## State Management
 
-By default, Terraform uses **local state** (`terraform.tfstate`). For team collaboration, use the S3 backend:
+By default, Terraform uses **local state** (`terraform.tfstate`). For team collaboration, use the S3 backend with native locking (`use_lockfile`, requires Terraform >= 1.11) and bucket versioning:
 
 ```bash
-# 1. Create S3 bucket & DynamoDB table (one-time)
+# 1. Create the state bucket (one-time)
 aws s3 mb s3://YOUR-BUCKET-NAME --region us-east-1
-aws dynamodb create-table --table-name terraform-locks \
-  --attribute-definitions AttributeName=LockID,AttributeType=S \
-  --key-schema AttributeName=LockID,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST --region us-east-1
 
-# 2. Copy and edit the backend config
+# 2. Enable versioning (keeps prior state objects for rollback)
+aws s3api put-bucket-versioning \
+  --bucket YOUR-BUCKET-NAME \
+  --versioning-configuration Status=Enabled
+
+# 3. Block public access on the state bucket
+aws s3api put-public-access-block \
+  --bucket YOUR-BUCKET-NAME \
+  --public-access-block-configuration \
+    BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+
+# 4. Copy and edit the backend config
 cp backend.tf.example backend.tf
 # Edit backend.tf with your bucket name
 
-# 3. Migrate state
+# 5. Migrate state
 terraform init -migrate-state
 ```
 
 See `backend.tf.example` for the full configuration.
+
+### Rolling back state
+
+With bucket versioning enabled, a prior `terraform.tfstate` object can be restored without `terraform state` surgery. **Only do this when no operator is running Terraform against the stack** -- coordinate before restoring.
+
+```bash
+# 1. List historical versions of the state object
+aws s3api list-object-versions \
+  --bucket YOUR-BUCKET-NAME \
+  --prefix fast/terraform.tfstate
+
+# 2. Restore a prior version by copying it over the current object
+aws s3api copy-object \
+  --bucket YOUR-BUCKET-NAME \
+  --key fast/terraform.tfstate \
+  --copy-source "YOUR-BUCKET-NAME/fast/terraform.tfstate?versionId=<PRIOR_VERSION_ID>"
+
+# 3. Run plan first to verify the drift matches expectations before any apply
+terraform plan
+```
+
+Versioning is **not retroactive**: only state objects written after versioning was enabled can be recovered. Enable versioning on day one, not after an incident.
+
+### Migrating from DynamoDB-only locking
+
+Earlier versions of this template used a DynamoDB `terraform-locks` table. To migrate, use a two-phase rollout so teams running both old and new configs remain safe. Every operator must be on Terraform >= 1.11 before starting.
+
+**Phase 1 -- dual-lock transition.** Temporarily keep both locks active so any `apply` from either config is protected:
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "YOUR-BUCKET-NAME"
+    key            = "fast/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-locks"   # keep during transition
+    use_lockfile   = true                # new
+    encrypt        = true
+  }
+}
+```
+
+Run `terraform init -reconfigure` and have every operator pull the dual-lock config before phase 2.
+
+If versioning was not enabled on the existing bucket, enable it now with the `put-bucket-versioning` command above. Prior state objects are not recoverable retroactively.
+
+**Phase 2 -- cut over to S3-only.** Once everyone is on the dual-lock config, remove `dynamodb_table` (matching the shipped `backend.tf.example`), run `terraform init -reconfigure`, then delete the table:
+
+```bash
+aws dynamodb delete-table --table-name terraform-locks --region us-east-1
+```
+
+The `dynamodb_table` argument is deprecated in Terraform 1.11 and may be removed in a future major release, so do not stay on the dual-lock config indefinitely.
 
 ## Resource Reference
 

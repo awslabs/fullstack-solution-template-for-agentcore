@@ -7,9 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- [Terraform] S3 state bucket versioning and documented state rollback procedure in `infra-terraform/README.md`
+
 ### Changed
 
 - Updated architecture diagram with latest logos (`docs/architecture-diagram/FAST-architecture-20260403.png`)
+- [Terraform] Switched state backend from DynamoDB-based locking to S3 native locking (`use_lockfile`); Terraform >= 1.11 now required. Migration guidance for existing deployments in `infra-terraform/README.md`
+
+### Security
+
+- [Terraform] Public-access-block recommended on state bucket prerequisites
 
 ## [0.4.1] - 2026-03-25
 
