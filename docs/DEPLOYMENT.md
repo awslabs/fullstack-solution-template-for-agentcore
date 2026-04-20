@@ -6,7 +6,9 @@ This guide walks you through deploying the Fullstack AgentCore Solution Template
 
 ## Prerequisites
 
-Before deploying, ensure you have:
+> **Note:** If you prefer not to install local tooling, see [Option B: Deploy via CodeBuild](#option-b-deploy-via-codebuild) — requires only Python 3.8+ and AWS CLI.
+
+For local deployment (Option A), ensure you have:
 
 - **Node.js 20+** installed (see [AWS guide for installing Node.js on EC2](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-up-node-on-ec2-instance.html))
 - **AWS CLI** configured with credentials (`aws configure`) - see [AWS CLI Configuration guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
@@ -144,7 +146,8 @@ The CDK stack auto-creates a security group for the AgentCore Runtime. This same
 ## Deployment Steps
 
 ### TL;DR version
-Here are the commands to deploy backend and frontend:
+
+**Full local setup (Node.js + Docker + CDK):**
 ```bash
 cd infra-cdk
 npm install
@@ -154,15 +157,14 @@ cd ..
 python scripts/deploy-frontend.py
 ```
 
-### Deploy Without Local Tooling (via CodeBuild)
-
-If you don't have Node.js, Docker, or CDK installed locally, you can deploy entirely in the cloud using a temporary CodeBuild project. Requires only Python 3.8+ and AWS CLI:
-
+**No local tooling (just Python + AWS CLI):**
 ```bash
 python scripts/deploy-with-codebuild.py
 ```
 
-See `scripts/README.md` for details and required IAM permissions.
+### Option A: Deploy Locally (CDK + Docker)
+
+This path requires the full set of prerequisites listed above (Node.js, Docker, CDK, Python).
 
 ### 1. Install Dependencies
 
@@ -246,6 +248,29 @@ You will see the URL for application in the script's output, which will look sim
 1. Sign in with the Cognito user you created
 1. You'll be prompted to change your temporary password on first login
 
+---
+
+### Option B: Deploy via CodeBuild
+
+Requires only Python 3.8+ and AWS CLI — no Node.js, Docker, or CDK needed.
+
+1. Edit `infra-cdk/config.yaml` (see [Configuration](#configuration) above)
+2. Run:
+
+```bash
+python scripts/deploy-with-codebuild.py
+```
+
+The script packages your source, creates (or reuses) a CodeBuild project, and runs the full CDK + frontend deploy in the cloud. Build logs stream to your terminal.
+
+To remove the persistent CodeBuild resources when done:
+
+```bash
+python scripts/cleanup-codebuild-project.py
+```
+
+See `scripts/README.md` for details and required IAM permissions.
+
 ## Post-Deployment
 
 ### Updating the Application
@@ -280,7 +305,13 @@ cd infra-cdk
 cdk destroy --force
 ```
 
-**Warning**: This will delete all data including S3 buckets created during deployment and ECR images.
+If you deployed via CodeBuild (Option B), also remove the persistent build resources:
+
+```bash
+python scripts/cleanup-codebuild-project.py
+```
+
+**Warning**: `cdk destroy` will delete all data including S3 buckets created during deployment and ECR images.
 
 ## Troubleshooting
 
