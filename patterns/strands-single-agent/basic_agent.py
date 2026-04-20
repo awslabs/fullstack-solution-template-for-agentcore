@@ -4,7 +4,10 @@ import json
 import logging
 import os
 
-from bedrock_agentcore.memory.integrations.strands.config import AgentCoreMemoryConfig
+from bedrock_agentcore.memory.integrations.strands.config import (
+    AgentCoreMemoryConfig,
+    RetrievalConfig,
+)
 from bedrock_agentcore.memory.integrations.strands.session_manager import (
     AgentCoreMemorySessionManager,
 )
@@ -29,11 +32,48 @@ SYSTEM_PROMPT = (
 def _create_session_manager(
     user_id: str, session_id: str
 ) -> AgentCoreMemorySessionManager:
+    """Create an AgentCore memory session manager, optionally with long-term semantic retrieval.
+
+    When the USE_LONG_TERM_MEMORY environment variable is "true", configures retrieval
+    from the /facts/{actorId} namespace so the agent recalls facts across sessions.
+    When false (default), only short-term memory (conversation history) is active,
+    avoiding the additional storage and retrieval costs of long-term memory.
+
+    Args:
+        user_id: Unique identifier for the user (actor), extracted from the JWT sub claim.
+        session_id: Unique identifier for the current conversation session.
+
+    Returns:
+        An AgentCoreMemorySessionManager bound to the user and session.
+    """
     memory_id = os.environ.get("MEMORY_ID")
     if not memory_id:
         raise ValueError("MEMORY_ID environment variable is required")
+
+    use_ltm = os.environ.get("USE_LONG_TERM_MEMORY", "false").lower() == "true"
+
+    top_k = int(os.environ.get("LTM_TOP_K", "10"))
+    relevance_score = float(os.environ.get("LTM_RELEVANCE_SCORE", "0.3"))
+
+    # Only pass retrieval_config when LTM is explicitly enabled.
+    # Omitting it means the session manager uses short-term memory only,
+    # which avoids the $0.50/1,000 retrieval and $0.75/1,000 storage costs.
+    retrieval_config = (
+        {
+            "/facts/{actorId}": RetrievalConfig(
+                top_k=top_k,
+                relevance_score=relevance_score,
+            )
+        }
+        if use_ltm
+        else None
+    )
+
     config = AgentCoreMemoryConfig(
-        memory_id=memory_id, session_id=session_id, actor_id=user_id
+        memory_id=memory_id,
+        session_id=session_id,
+        actor_id=user_id,
+        retrieval_config=retrieval_config,
     )
     return AgentCoreMemorySessionManager(
         agentcore_memory_config=config,

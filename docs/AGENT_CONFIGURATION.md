@@ -16,6 +16,7 @@ A basic conversational agent using the Strands framework with AgentCore Memory i
 
 - Multi-turn conversational chat
 - Maintains conversation history with short-term memory
+- **Optional long-term memory**: When `use_long_term_memory: true` is set in `config.yaml`, the agent uses a `SemanticMemoryStrategy` to extract and recall facts across sessions (keyed by Cognito user ID). See [Memory Integration Guide](MEMORY_INTEGRATION.md#enabling-long-term-memory) for details.
 - Streams responses for better UX
 - Authenticated via Cognito (user identity tracked in memory)
 

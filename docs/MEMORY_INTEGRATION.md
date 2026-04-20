@@ -6,6 +6,46 @@ AgentCore provides two types of memory: **short-term memory** stores raw convers
 
 ---
 
+## Enabling Long-Term Memory
+
+Long-term memory (LTM) is supported on the **`strands-single-agent`** pattern. It uses a `SemanticMemoryStrategy` to automatically extract and store facts from conversations, enabling the agent to recall information across sessions. Facts are keyed by the Cognito `userId`, so each user gets their own persistent memory.
+
+### How It Works
+
+1. **Infrastructure**: The CDK stack always creates the `SemanticMemoryStrategy` on the memory resource (there is no cost to simply define the strategy). A `USE_LONG_TERM_MEMORY` environment variable is passed to the agent runtime.
+2. **Agent behavior**: When `USE_LONG_TERM_MEMORY` is `"true"`, the Strands agent's `AgentCoreMemorySessionManager` is configured with a `retrieval_config` that reads from the `/facts/{actorId}` namespace on each turn. When `"false"` (the default), only short-term conversation history is active.
+3. **Fact extraction**: AgentCore processes conversation events asynchronously and extracts factual information (e.g., "the user lives in Seattle", "the user prefers Python"). These facts are stored under `/facts/{actorId}` and retrieved on subsequent turns to personalize responses.
+
+### Configuration
+
+Toggle LTM in `infra-cdk/config.yaml`:
+
+```yaml
+backend:
+  use_long_term_memory: true   # Enable long-term semantic memory retrieval
+```
+
+Then redeploy:
+
+```bash
+cd infra-cdk && cdk deploy --all
+```
+
+### Cost Considerations
+
+LTM incurs additional charges beyond short-term memory:
+
+- **Storage**: $0.75 per 1,000 memory records stored
+- **Retrieval**: $0.50 per 1,000 retrieval calls
+
+When `use_long_term_memory` is `false`, neither cost applies — short-term memory (conversation history) is the only active feature.
+
+### Other Patterns
+
+The **`langgraph-single-agent`** pattern does not currently use long-term memory. It uses `AgentCoreMemorySaver` as a LangGraph checkpointer for short-term conversation persistence only. See the LangGraph section below for details on adding long-term memory via `AgentCoreMemoryStore`.
+
+---
+
 ## Step 1: Configure Memory with CDK
 
 Memory resources are created using [CloudFormation L1 constructs](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-bedrockagentcore-memory.html). **L2 constructs will be available in future releases.**
@@ -154,6 +194,32 @@ config = AgentCoreMemoryConfig(
         "/preferences/{actorId}": RetrievalConfig(top_k=5, relevance_score=0.7),
         "/facts/{actorId}": RetrievalConfig(top_k=10, relevance_score=0.3)
     }
+)
+```
+
+**With long-term memory enabled** (see [Enabling Long-Term Memory](#enabling-long-term-memory) above):
+
+The `strands-single-agent` pattern conditionally enables LTM retrieval based on the `USE_LONG_TERM_MEMORY` environment variable. When enabled, the agent retrieves facts from the `/facts/{actorId}` namespace on each turn:
+
+```python
+use_ltm = os.environ.get("USE_LONG_TERM_MEMORY", "false").lower() == "true"
+
+retrieval_config = (
+    {
+        "/facts/{actorId}": RetrievalConfig(
+            top_k=10,
+            relevance_score=0.3,
+        )
+    }
+    if use_ltm
+    else None
+)
+
+config = AgentCoreMemoryConfig(
+    memory_id=memory_id,
+    session_id=session_id,
+    actor_id=user_id,
+    retrieval_config=retrieval_config,
 )
 ```
 
