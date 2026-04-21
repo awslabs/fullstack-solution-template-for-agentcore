@@ -18,8 +18,8 @@ import sys
 from pathlib import Path
 from typing import Dict
 
-if sys.version_info < (3, 8):
-    print("Error: Python 3.8 or higher is required")
+if sys.version_info < (3, 11):
+    print("Error: Python 3.11 or higher is required")
     sys.exit(1)
 
 RESOURCE_PREFIX: str = "fast-deploy"

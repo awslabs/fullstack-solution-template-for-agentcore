@@ -6,7 +6,7 @@
 Ephemeral CodeBuild deployment script for FAST.
 
 Deploys the full FAST stack using a CodeBuild project with persistent helper resources.
-Requires Python 3.8+ and AWS CLI. Git is optional but recommended for accurate file tracking.
+Requires Python 3.11+ and AWS CLI. Git is optional but recommended for accurate file tracking.
 
 Flow: zip source → temp S3 bucket → reuse or create IAM role/project →
       stream logs → cleanup temp S3 bucket only.
@@ -34,8 +34,8 @@ import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-if sys.version_info < (3, 8):
-    print("Error: Python 3.8 or higher is required")
+if sys.version_info < (3, 11):
+    print("Error: Python 3.11 or higher is required")
     sys.exit(1)
 
 RESOURCE_PREFIX: str = "fast-deploy"

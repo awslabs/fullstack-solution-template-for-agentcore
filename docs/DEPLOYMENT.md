@@ -6,7 +6,7 @@ This guide walks you through deploying the Fullstack AgentCore Solution Template
 
 ## Prerequisites
 
-> **Note:** If you prefer not to install local tooling, see [Option B: Deploy via CodeBuild](#option-b-deploy-via-codebuild) — requires only Python 3.8+ and AWS CLI.
+> **Note:** If you prefer not to install local tooling, see [Option B: Deploy via CodeBuild](#option-b-deploy-via-codebuild) — requires only Python 3.11+ and AWS CLI.
 
 For local deployment (Option A), ensure you have:
 
@@ -252,7 +252,7 @@ You will see the URL for application in the script's output, which will look sim
 
 ### Option B: Deploy via CodeBuild
 
-Requires only Python 3.8+ and AWS CLI — no Node.js, Docker, or CDK needed.
+Requires only Python 3.11+ and AWS CLI — no Node.js, Docker, or CDK needed.
 
 1. Edit `infra-cdk/config.yaml` (see [Configuration](#configuration) above)
 2. Run:
