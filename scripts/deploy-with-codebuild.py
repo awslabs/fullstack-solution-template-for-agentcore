@@ -152,7 +152,10 @@ def get_stack_outputs(stack_name: str) -> Dict[str, str]:
 
 def _collect_files_git(repo_root: Path) -> Optional[List[str]]:
     """
-    Collect tracked files using git ls-files.
+    Collect project files using git ls-files.
+
+    Includes tracked files and untracked files that aren't gitignored,
+    so new files are picked up before commit/stage.
 
     Args:
         repo_root: Path to the repository root
@@ -162,7 +165,14 @@ def _collect_files_git(repo_root: Path) -> Optional[List[str]]:
     """
     try:
         result = run_command(
-            command=["git", "ls-files", "-z"],
+            command=[
+                "git",
+                "ls-files",
+                "--cached",
+                "--others",
+                "--exclude-standard",
+                "-z",
+            ],
             cwd=str(repo_root),
         )
         return [f for f in result.stdout.split("\0") if f]
