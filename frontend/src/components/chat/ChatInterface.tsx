@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { flushSync } from "react-dom"
 import { ChatHeader } from "./ChatHeader"
 import { ChatInput } from "./ChatInput"
 import { ChatMessages } from "./ChatMessages"
@@ -116,7 +117,21 @@ export default function ChatInterface() {
           updated[updated.length - 1] = {
             ...updated[updated.length - 1],
             content,
-            segments: [...segments],
+            // Deep-copy tool segments including streamEvents array
+            // so React detects changes at every level
+            segments: segments.map(s =>
+              s.type === "tool"
+                ? {
+                    type: "tool" as const,
+                    toolCall: {
+                      ...s.toolCall,
+                      streamEvents: s.toolCall.streamEvents
+                        ? [...s.toolCall.streamEvents]
+                        : undefined,
+                    },
+                  }
+                : { ...s }
+            ),
           }
           return updated
         })
@@ -173,6 +188,24 @@ export default function ChatInterface() {
               tc.status = "complete"
             }
             updateMessage()
+            break
+          }
+          case "tool_stream": {
+            const tc = toolCallMap.get(event.toolUseId)
+            if (tc) {
+              tc.streamEvents = [...(tc.streamEvents ?? []), event.data]
+              if (event.data && typeof event.data === "object") {
+                const data = event.data as Record<string, unknown>
+                if (typeof data.live_view_url === "string") {
+                  tc.liveViewUrl = data.live_view_url
+                }
+              }
+            }
+            // flushSync forces React to render immediately instead of
+            // batching with other state updates — critical for streaming
+            flushSync(() => {
+              updateMessage()
+            })
             break
           }
           case "message": {

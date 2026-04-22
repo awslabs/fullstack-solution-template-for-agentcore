@@ -4,15 +4,44 @@
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 import path from "path"
+import { viteStaticCopy } from "vite-plugin-static-copy"
+
+// Path to the vendored DCV SDK inside bedrock-agentcore
+const dcvSdkDir = path.resolve(
+  __dirname,
+  "node_modules/bedrock-agentcore/dist/src/tools/browser/live-view/nice-dcv-web-client-sdk"
+)
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    viteStaticCopy({
+      targets: [
+        { src: path.resolve(dcvSdkDir, "dcvjs-esm"), dest: "nice-dcv-web-client-sdk" },
+        { src: path.resolve(dcvSdkDir, "dcv-ui"), dest: "nice-dcv-web-client-sdk" },
+      ],
+    }),
+  ],
 
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // DCV SDK bare specifier aliases — required for BrowserLiveView
+      dcv: path.resolve(dcvSdkDir, "dcvjs-esm/dcv.js"),
+      "dcv-ui": path.resolve(dcvSdkDir, "dcv-ui/dcv-ui.js"),
     },
+    // Force shared deps to resolve from this project's node_modules,
+    // not from the vendored SDK path
+    dedupe: [
+      "react",
+      "react-dom",
+      "prop-types",
+      "@cloudscape-design/components",
+      "@cloudscape-design/global-styles",
+      "@cloudscape-design/design-tokens",
+      "@babel/runtime",
+    ],
   },
 
   build: {

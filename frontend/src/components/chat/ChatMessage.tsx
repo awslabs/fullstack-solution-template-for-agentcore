@@ -57,6 +57,8 @@ export function ChatMessage({
               args: seg.toolCall.input,
               status: seg.toolCall.status,
               result: seg.toolCall.result,
+              liveViewUrl: seg.toolCall.liveViewUrl,
+              streamEvents: seg.toolCall.streamEvents,
             })}
           </div>
         )

@@ -16,6 +16,20 @@ export const parseStrandsChunk: ChunkParser = (line, callback) => {
   try {
     const json = JSON.parse(data)
 
+    // Tool stream events MUST be checked before text streaming,
+    // because strands wraps tool_stream_event with a top-level
+    // "data" string field that would otherwise match as text.
+    if (json.tool_stream_event) {
+      const ts = json.tool_stream_event
+      const toolUseId = ts.tool_use_id ?? ts.toolUseId ?? ts.tool_use?.toolUseId ?? ""
+      callback({
+        type: "tool_stream",
+        toolUseId,
+        data: ts.data,
+      })
+      return
+    }
+
     // Text streaming
     if (typeof json.data === "string") {
       callback({ type: "text", content: json.data })

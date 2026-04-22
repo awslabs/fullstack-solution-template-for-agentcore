@@ -6,6 +6,8 @@ export interface ToolRenderProps {
   args: string
   status: ToolCallStatus
   result?: string
+  liveViewUrl?: string
+  streamEvents?: unknown[]
 }
 
 export type ToolRenderFn = (props: ToolRenderProps) => ReactNode
