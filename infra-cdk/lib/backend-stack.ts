@@ -150,21 +150,38 @@ export class BackendStack extends cdk.NestedStack {
 
       // Read agent code files and encode as base64
       const agentCode: Record<string, string> = {}
-
-      // Read pattern .py files
-      for (const file of fs.readdirSync(patternDir)) {
-        if (file.endsWith(".py")) {
-          const content = fs.readFileSync(path.join(patternDir, file)) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-          agentCode[file] = content.toString("base64")
+      
+      // Read pattern .py files recursively (includes tools/ subdirectory)
+      const readPythonFiles = (dir: string, prefix: string) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const fullPath = path.join(dir, entry.name) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+          const relativePath = prefix ? path.join(prefix, entry.name) : entry.name // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+          if (entry.isDirectory() && entry.name !== "__pycache__") {
+            readPythonFiles(fullPath, relativePath)
+          } else if (entry.isFile() && entry.name.endsWith(".py")) {
+            agentCode[relativePath] = fs.readFileSync(fullPath).toString("base64")
+          }
         }
       }
+      readPythonFiles(patternDir, "")
 
-      // Read shared modules (gateway/, tools/)
-      for (const module of ["gateway", "tools"]) {
-        const moduleDir = path.join(repoRoot, module) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-        if (fs.existsSync(moduleDir)) {
-          this.readDirRecursive(moduleDir, module, agentCode)
-        }
+      // Read shared modules — gateway/ keeps its name, repo-root tools/ is
+      // packaged as agentcore_tools/ to match the Dockerfile convention and
+      // avoid conflicts with the pattern's own tools/ directory
+      const gatewayDir = path.join(repoRoot, "gateway") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      if (fs.existsSync(gatewayDir)) {
+        this.readDirRecursive(gatewayDir, "gateway", agentCode)
+      }
+      const repoToolsDir = path.join(repoRoot, "tools") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      if (fs.existsSync(repoToolsDir)) {
+        this.readDirRecursive(repoToolsDir, "agentcore_tools", agentCode)
+      }
+
+      // Read shared utilities (patterns/utils/) — contains auth.py and ssm.py
+      // used by all agent patterns for JWT extraction and SSM parameter access
+      const utilsDir = path.join(repoRoot, "patterns", "utils") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      if (fs.existsSync(utilsDir)) {
+        this.readDirRecursive(utilsDir, "utils", agentCode)
       }
 
       // Read requirements
@@ -202,13 +219,25 @@ export class BackendStack extends cdk.NestedStack {
         description: "S3 bucket for agent code deployment packages",
       })
 
+      // Determine the main agent file for the pattern.
+      // Each pattern has a different entry point:
+      //   strands-single-agent → basic_agent.py
+      //   langgraph-single-agent → langgraph_agent.py
+      //   agui-*, claude-* → agent.py
+      const mainFiles = fs.readdirSync(patternDir).filter(
+        (f: string) => f.endsWith(".py") && f !== "__init__.py"
+      )
+      const agentEntryPoint = mainFiles.length === 1
+        ? mainFiles[0]
+        : mainFiles.find((f: string) => f.includes("agent") && f !== "__init__.py") || mainFiles[0]
+
       agentRuntimeArtifact = agentcore.AgentRuntimeArtifact.fromS3(
         {
           bucketName: agentCodeBucket.bucketName,
           objectKey: "deployment_package.zip",
         },
         agentcore.AgentCoreRuntime.PYTHON_3_12,
-        ["opentelemetry-instrument", "basic_agent.py"]
+        ["opentelemetry-instrument", agentEntryPoint]
       )
     } else {
       // DOCKER DEPLOYMENT: Use container-based deployment
@@ -691,6 +720,20 @@ export class BackendStack extends cdk.NestedStack {
       })
     )
 
+    // Policy Engine access — required for the Gateway to verify and evaluate Cedar policies.
+    // AuthorizeAction is needed on both the policy engine (to query policy decisions)
+    // and the gateway itself (to apply those decisions to incoming requests).
+    gatewayRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["bedrock-agentcore:GetPolicyEngine", "bedrock-agentcore:AuthorizeAction", "bedrock-agentcore:PartiallyAuthorizeActions"],
+        resources: [
+          `arn:aws:bedrock-agentcore:${this.region}:${this.account}:policy-engine/*`,
+          `arn:aws:bedrock-agentcore:${this.region}:${this.account}:gateway/*`,
+        ],
+      })
+    )
+
     // Load tool specification from JSON file
     const toolSpecPath = path.join(__dirname, "../../gateway/tools/sample_tool/tool_spec.json") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const apiSpec = JSON.parse(require("fs").readFileSync(toolSpecPath, "utf8"))
@@ -842,6 +885,128 @@ export class BackendStack extends cdk.NestedStack {
     gateway.node.addDependency(this.machineClient)
     gateway.node.addDependency(gatewayRole)
 
+    // ========================================
+    // Cedar Policy Engine + Policy via Custom Resource
+    // ========================================
+    // AgentCore Policy uses a three-step process:
+    //   1. Create a Policy Engine → wait for ACTIVE
+    //   2. Create a Cedar Policy inside the engine → wait for ACTIVE
+    //   3. Attach the Policy Engine to the Gateway → wait for READY
+    //
+    // CfnGatewayPolicy is not available as an L1 construct in aws-cdk-lib, so a Custom
+    // Resource Lambda is used (same pattern as the OAuth2 Credential Provider).
+    //
+    // The Gateway's JWT Authorizer maps M2M JWT claims to Cedar principal tags:
+    //   JWT claim "department" → principal.getTag("department")
+    //   JWT claim "role"       → principal.getTag("role")
+    //   JWT claim "user_id"    → principal.getTag("user_id")
+    //
+    // The Cedar action name format is: "<TargetName>___<tool_name>" (triple underscore).
+    // Tool name comes from tool_spec.json: "text_analysis_tool"
+    // Target name is "sample-tool-target"
+    //
+    // THREE POLICY VERSIONS FOR DEMO TESTING:
+    // - Version 1: Guest has full access — all departments can use tools
+    // - Version 2: Guest denied — only finance/engineering can use tools
+    //
+    // To switch versions: edit gateway/policies/policy.cedar, then run `cdk deploy`
+    //
+    // CEDAR POLICY SYNTAX NOTES:
+    // - Each create_policy call creates one policy containing one Cedar statement.
+    //   You can call create_policy multiple times to add multiple policies to the
+    //   same engine. Alternatively, use || or action in [...] to combine rules
+    //   within a single statement.
+    // - Cedar is deny-by-default: if no permit statement matches a request, it is
+    //   automatically denied. An explicit forbid statement is not needed to block
+    //   access — simply omit the department from the permit's OR conditions.
+    // - This template creates a single policy per deploy. To add multiple policies,
+    //   update the Custom Resource Lambda to call create_policy() once per statement.
+
+    const cedarPolicyLambda = new PythonFunction(this, "CedarPolicyLambda", {
+      runtime: lambda.Runtime.PYTHON_3_13,
+      entry: path.join(__dirname, "..", "lambdas", "cedar-policy"),
+      handler: "handler",
+      timeout: cdk.Duration.minutes(14),
+      logGroup: new logs.LogGroup(this, "CedarPolicyLambdaLogGroup", {
+        logGroupName: `/aws/lambda/${config.stack_name_base}-cedar-policy`,
+        retention: logs.RetentionDays.ONE_WEEK,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
+    })
+
+    // Grant Lambda permissions for Policy Engine and Policy operations.
+    // The IAM actions use the "bedrock-agentcore:" prefix for policy engine
+    // and gateway operations.
+    cedarPolicyLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "bedrock-agentcore:CreatePolicyEngine",
+          "bedrock-agentcore:GetPolicyEngine",
+          "bedrock-agentcore:DeletePolicyEngine",
+          "bedrock-agentcore:ListPolicyEngines",
+          "bedrock-agentcore:CreatePolicy",
+          "bedrock-agentcore:GetPolicy",
+          "bedrock-agentcore:DeletePolicy",
+          "bedrock-agentcore:ListPolicies",
+        ],
+        resources: [
+          `arn:aws:bedrock-agentcore:${this.region}:${this.account}:policy-engine/*`,
+        ],
+      })
+    )
+
+    // Grant Lambda permissions to update the Gateway (attach/detach policy engine)
+    // and read Gateway configuration for the update_gateway call.
+    // iam:PassRole is required because update_gateway re-associates the Gateway's IAM role.
+    cedarPolicyLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "bedrock-agentcore:UpdateGateway",
+          "bedrock-agentcore:GetGateway",
+          "bedrock-agentcore:ManageResourceScopedPolicy",
+        ],
+        resources: [gateway.attrGatewayArn],
+      })
+    )
+
+    cedarPolicyLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["iam:PassRole"],
+        resources: [gatewayRole.roleArn],
+      })
+    )
+
+    const cedarPolicyProvider = new cr.Provider(this, "CedarPolicyProvider", {
+      onEventHandler: cedarPolicyLambda,
+    })
+
+    // Load Cedar policy from file and replace the gateway ARN placeholder.
+    // Edit gateway/policies/policy.cedar to change access control rules,
+    // then run `cdk deploy` to apply.
+    // Comment lines (starting with //) are stripped because the AgentCore
+    // create_policy API only accepts raw Cedar statements.
+    const policyDocument = fs.readFileSync(
+      path.join(__dirname, "../../gateway/policies/policy.cedar"), "utf-8"
+    )
+      .split("\n")
+      .filter((line: string) => !line.trimStart().startsWith("//"))
+      .join("\n")
+      .trim()
+      .replaceAll("{{GATEWAY_ARN}}", gateway.attrGatewayArn)
+
+    const cedarPolicy = new cdk.CustomResource(this, "GatewayPolicy", {
+      serviceToken: cedarPolicyProvider.serviceToken,
+      properties: {
+        GatewayIdentifier: gateway.attrGatewayIdentifier,
+        PolicyDocument: policyDocument,
+        PolicyEngineName: `${config.stack_name_base.replace(/-/g, "_")}_policy_engine`,
+        Description: "Department-based tool access control for AgentCore Policy demo",
+      },
+    })
+
+    // Policy must be created after the Gateway and its target are ready
+    cedarPolicy.node.addDependency(gatewayTarget)
+
     // Store AgentCore Gateway URL in SSM for AgentCore Runtime access
     new ssm.StringParameter(this, "GatewayUrlParam", {
       parameterName: `/${config.stack_name_base}/gateway_url`,
@@ -873,6 +1038,16 @@ export class BackendStack extends cdk.NestedStack {
     new cdk.CfnOutput(this, "ToolLambdaArn", {
       description: "ARN of the sample tool Lambda",
       value: toolLambda.functionArn,
+    })
+
+    new cdk.CfnOutput(this, "PolicyEngineId", {
+      description: "ID of the Policy Engine for Cedar policies",
+      value: cedarPolicy.getAttString("PolicyEngineId"),
+    })
+
+    new cdk.CfnOutput(this, "CedarPolicyId", {
+      description: "ID of the Cedar policy for department-based access control",
+      value: cedarPolicy.getAttString("PolicyId"),
     })
   }
 

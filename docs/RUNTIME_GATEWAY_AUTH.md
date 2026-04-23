@@ -48,6 +48,7 @@ The stack contains two distinct authentication flows that are independent of eac
 - Uses the Client Credentials grant (no human user involved)
 - The M2M token is obtained by the Runtime via AgentCore Identity's Token Vault and used to authenticate calls to the Gateway
 - No user identity is involved in this flow at any point
+- To propagate user identity into M2M tokens for Cedar policy evaluation, see [Identity Propagation & Cedar Policy Guide](IDENTITY_POLICY.md)
 
 The two flows are parallel, not nested:
 

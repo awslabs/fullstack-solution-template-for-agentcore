@@ -444,6 +444,8 @@ const gateway = new bedrockagentcore.CfnGateway(this, "AgentCoreGateway", {
 
 ## Related Documentation
 
+- [Identity Propagation & Cedar Policy Guide](IDENTITY_POLICY.md) - User-level access control for Gateway tools
+- [Runtime-Gateway Authentication](RUNTIME_GATEWAY_AUTH.md) - M2M token flow between Runtime and Gateway
 - [Deployment Guide](DEPLOYMENT.md) - How to deploy FAST infrastructure
 - [AWS AgentCore Gateway Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/agentcore-gateway.html) - Official AWS documentation
 - [AWS Gateway Lambda Target Documentation](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-add-target-lambda.html) - Lambda target implementation details

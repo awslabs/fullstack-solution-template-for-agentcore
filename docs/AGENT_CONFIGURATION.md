@@ -76,8 +76,8 @@ bedrock_model = ChatBedrock(
 **Gateway Integration** (`patterns/langgraph-single-agent/langgraph_agent.py`):
 
 ```python
-# Create MCP client for Gateway
-mcp_client = await create_gateway_mcp_client(access_token)
+# Create MCP client for Gateway with user identity propagation
+mcp_client = await create_gateway_mcp_client(user_id)
 
 # Load tools from Gateway
 tools = await mcp_client.get_tools()

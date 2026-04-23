@@ -93,7 +93,7 @@ def create_strands_agent(user_id: str, session_id: str) -> Agent:
     region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
     code_tools = StrandsCodeInterpreterTools(region)
 
-    gateway_client = create_gateway_mcp_client()
+    gateway_client = create_gateway_mcp_client(user_id)
 
     return Agent(
         name="strands_agent",

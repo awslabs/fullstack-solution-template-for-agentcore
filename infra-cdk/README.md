@@ -106,9 +106,10 @@ The CDK deployment creates multiple stacks with a specific deployment order:
 ### Stack Architecture & Deployment Order
 
 1. **Cognito Stack** (CognitoStack):
-   - Cognito User Pool for user authentication
+   - Cognito User Pool for user authentication (ESSENTIALS tier for V3 Pre-Token Lambda)
    - User Pool Client for frontend OAuth flows
    - User Pool Domain for hosted UI
+   - V3 Pre-Token Lambda for injecting user identity claims into M2M tokens
 
 2. **Backend Stack** (BackendStack):
    - **Machine Client & Resource Server**: OAuth2 client credentials for service-to-service auth
@@ -126,7 +127,7 @@ The CDK deployment creates multiple stacks with a specific deployment order:
 Within the Backend Stack, components are created in this order:
 1. **Cognito Integration**: Import user pool from Cognito stack
 2. **Machine Client**: Create OAuth2 client for M2M authentication
-3. **Gateway**: Create AgentCore Gateway (depends on machine client)
+3. **Gateway**: Create AgentCore Gateway, Cedar Policy Engine, and Cedar Policy (depends on machine client)
 4. **Runtime**: Create AgentCore Runtime (independent of gateway)
 
 This order ensures authentication components are available before services that depend on them, while keeping the runtime deployment separate since it doesn't directly depend on the gateway.

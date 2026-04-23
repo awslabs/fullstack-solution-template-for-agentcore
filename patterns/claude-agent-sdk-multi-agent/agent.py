@@ -67,7 +67,7 @@ async def main(payload, context: RequestContext):
             raise ValueError("Invalid STACK_NAME format")
         try:
             gateway_url = get_ssm_parameter(f"/{stack_name}/gateway_url")
-            access_token = get_gateway_access_token()
+            access_token = get_gateway_access_token(user_id)
         except Exception as e:
             logger.warning(
                 "[AGENT] Gateway not available, continuing without tools: %s", e

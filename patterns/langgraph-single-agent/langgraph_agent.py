@@ -41,9 +41,9 @@ def _create_checkpointer() -> AgentCoreMemorySaver:
     )
 
 
-async def create_langgraph_agent():
+async def create_langgraph_agent(user_id: str):
     """Create a LangGraph agent with Gateway tools, Memory, and Code Interpreter."""
-    mcp_client = await create_gateway_mcp_client()
+    mcp_client = await create_gateway_mcp_client(user_id)
     tools = await mcp_client.get_tools()
 
     region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
@@ -74,7 +74,7 @@ async def invocations(payload, context: RequestContext):
     try:
         user_id = extract_user_id_from_context(context)
 
-        graph = await create_langgraph_agent()
+        graph = await create_langgraph_agent(user_id)
 
         config = {"configurable": {"thread_id": session_id, "actor_id": user_id}}
 

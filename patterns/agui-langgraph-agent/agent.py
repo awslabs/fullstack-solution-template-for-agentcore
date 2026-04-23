@@ -12,6 +12,7 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp, RequestContext
 from copilotkit import CopilotKitMiddleware, LangGraphAGUIAgent
 from langchain.agents import create_agent
 from langchain_aws import ChatBedrock
+from langgraph.graph import END, START, StateGraph
 from langgraph_checkpoint_aws import AgentCoreMemorySaver
 from tools.gateway import create_gateway_mcp_client
 from utils.auth import extract_user_id_from_context
@@ -47,9 +48,9 @@ def _create_checkpointer() -> AgentCoreMemorySaver:
     )
 
 
-async def create_langgraph_agent():
+async def create_langgraph_agent(user_id: str):
     """Create a LangGraph agent with Gateway tools, Memory, and Code Interpreter."""
-    mcp_client = await create_gateway_mcp_client()
+    mcp_client = await create_gateway_mcp_client(user_id)
     tools = await mcp_client.get_tools()
 
     region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
@@ -68,8 +69,21 @@ async def create_langgraph_agent():
 class ActorAwareLangGraphAgent(LangGraphAGUIAgent):
     """LangGraphAGUIAgent that creates the graph per-request with fresh tokens."""
 
+    def __init__(self, *, user_id: str, **kwargs):
+        self._user_id = user_id
+        # Create a minimal placeholder graph to satisfy validation in newer
+        # copilotkit/ag_ui_langgraph versions that inspect self.graph.nodes
+        # during __init__. The placeholder is overwritten in run().
+        if kwargs.get("graph") is None:
+            builder = StateGraph(dict)
+            builder.add_node("placeholder", lambda x: x)
+            builder.add_edge(START, "placeholder")
+            builder.add_edge("placeholder", END)
+            kwargs["graph"] = builder.compile()
+        super().__init__(**kwargs)
+
     async def run(self, input: RunAgentInput):
-        self.graph = await create_langgraph_agent()
+        self.graph = await create_langgraph_agent(self._user_id)
         async for event in super().run(input):
             yield event
 
@@ -85,6 +99,7 @@ async def invocations(payload: dict, context: RequestContext):
         description="AG-UI LangGraph agent with Gateway MCP tools and Memory",
         graph=None,
         config={"configurable": {"actor_id": user_id}},
+        user_id=user_id,
     )
 
     try:

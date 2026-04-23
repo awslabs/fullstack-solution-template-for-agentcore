@@ -131,9 +131,11 @@ All interface endpoints must have private DNS enabled and must be associated wit
 
 #### NAT Gateway
 
-A NAT Gateway is **not required** for VPC mode. The agent authenticates with the AgentCore Gateway using the Token Vault OAuth2 Credential Provider, which retrieves tokens via the AgentCore Identity API. This API is reachable through the `bedrock-agent-runtime` VPC endpoint, so no outbound internet access is needed. All AWS service traffic (Bedrock, SSM, Secrets Manager, etc.) stays internal via VPC endpoints.
+A NAT Gateway is **required** if you use identity-aware Gateway authentication (Approach 1 in `patterns/*/tools/gateway.py`). This approach calls the Cognito `/oauth2/token` hosted domain endpoint directly to propagate user identity into M2M tokens. The Cognito hosted domain is a public HTTPS endpoint with no VPC endpoint available, so outbound internet access via NAT Gateway is needed.
 
-> **Note:** If you add custom tools or integrations that make outbound internet calls, you will need a NAT Gateway in a public subnet with a `0.0.0.0/0` route from your private subnets.
+If you use the standard `@requires_access_token` decorator (Approach 2), a NAT Gateway is **not required** — the AgentCore Identity service handles the Cognito token exchange server-side within AWS, reachable through the `bedrock-agentcore` VPC endpoint.
+
+> **Note:** If you add custom tools or integrations that make outbound internet calls, you will also need a NAT Gateway in a public subnet with a `0.0.0.0/0` route from your private subnets.
 
 #### Security Group Configuration
 

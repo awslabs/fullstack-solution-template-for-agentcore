@@ -89,7 +89,7 @@ See [Memory Integration Guide](../../docs/MEMORY_INTEGRATION.md) for full detail
 - **User identity**: Extracted from the validated JWT token via `RequestContext`, not from the payload body
 - **STACK_NAME validation**: Validated for alphanumeric format before use in SSM parameter paths
 - **Payload validation**: Required fields (`prompt`, `runtimeSessionId`) validated before processing
-- **Gateway auth**: OAuth2 client credentials flow via Cognito for machine-to-machine authentication
+- **Gateway auth**: OAuth2 client credentials flow via Cognito for machine-to-machine authentication with user identity propagation for Cedar policy evaluation
 
 ## Deployment
 

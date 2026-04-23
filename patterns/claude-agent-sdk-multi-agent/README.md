@@ -168,7 +168,7 @@ cdk deploy
 - **User identity**: Extracted from the validated JWT token via `RequestContext`, not from the payload body
 - **STACK_NAME validation**: Validated for alphanumeric characters (plus `-` and `_`) before use in SSM parameter paths
 - **Payload validation**: Required fields (`prompt`, `runtimeSessionId`) are validated before processing
-- **Gateway auth**: OAuth2 client credentials flow via Cognito for machine-to-machine authentication
+- **Gateway auth**: OAuth2 client credentials flow via Cognito for machine-to-machine authentication with user identity propagation for Cedar policy evaluation
 - **Gateway resilience**: If Gateway is unavailable, the agent continues without Gateway tools
 
 ## Differences from Strands / LangGraph Patterns
