@@ -206,3 +206,21 @@ When deploying in VPC mode, Approach 1 (direct Cognito call) requires a **NAT Ga
 Approach 2 (`@requires_access_token` decorator) does not require a NAT Gateway — the AgentCore Identity service handles the Cognito token exchange server-side within AWS, reachable through the `bedrock-agentcore` VPC endpoint.
 
 See `docs/DEPLOYMENT.md` for full VPC configuration details.
+
+## Verifying Policy Decisions via Tracing
+
+To verify Cedar policy allow/deny decisions in CloudWatch logs:
+
+1. Go to **AWS Console → Bedrock AgentCore → Runtimes**
+2. Click on your runtime (e.g., `FAST_stack_FASTAgent`) from the Runtime resources section
+3. Scroll down to **Tracing**, click **Edit**, and toggle **Enable tracing** to Enable
+4. Go to **Bedrock AgentCore → Gateways**
+5. Click on your gateway (e.g., `FAST-stack-gateway`), scroll down to **Tracing**, click **Edit**, and toggle **Enable tracing** to Enable
+6. Run a query from the frontend that triggers a tool call
+7. Go to **CloudWatch Console → Log Management → Log groups**
+8. Find and click on the `aws/spans` log group, then click on the default log stream
+9. In the **Filter events** search box, type `policy`
+10. Look for the `AgentCore.Policy.PartiallyAuthorizeActions` span — it contains:
+    - `aws.agentcore.policy.allowed_tools`: tools the user is permitted to use
+    - `aws.agentcore.policy.denied_tools`: tools the user is denied access to
+    - `aws.agentcore.gateway.policy.mode`: should show `ENFORCE`
