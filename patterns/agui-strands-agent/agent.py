@@ -54,7 +54,7 @@ def _create_session_manager(
 
 def _create_agent(user_id: str, session_id: str) -> Agent:
     """Create a Strands Agent with Gateway MCP tools, Memory, and Code Interpreter."""
-    gateway_client = create_gateway_mcp_client()
+    gateway_client = create_gateway_mcp_client(user_id)
 
     region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
     code_tools = StrandsCodeInterpreterTools(region)

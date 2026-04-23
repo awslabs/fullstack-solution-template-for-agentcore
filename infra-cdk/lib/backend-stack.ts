@@ -148,20 +148,37 @@ export class BackendStack extends cdk.NestedStack {
       // Read agent code files and encode as base64
       const agentCode: Record<string, string> = {}
       
-      // Read pattern .py files
-      for (const file of fs.readdirSync(patternDir)) {
-        if (file.endsWith(".py")) {
-          const content = fs.readFileSync(path.join(patternDir, file)) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-          agentCode[file] = content.toString("base64")
+      // Read pattern .py files recursively (includes tools/ subdirectory)
+      const readPythonFiles = (dir: string, prefix: string) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const fullPath = path.join(dir, entry.name) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+          const relativePath = prefix ? path.join(prefix, entry.name) : entry.name // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+          if (entry.isDirectory() && entry.name !== "__pycache__") {
+            readPythonFiles(fullPath, relativePath)
+          } else if (entry.isFile() && entry.name.endsWith(".py")) {
+            agentCode[relativePath] = fs.readFileSync(fullPath).toString("base64")
+          }
         }
       }
+      readPythonFiles(patternDir, "")
 
-      // Read shared modules (gateway/, tools/)
-      for (const module of ["gateway", "tools"]) {
-        const moduleDir = path.join(repoRoot, module) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-        if (fs.existsSync(moduleDir)) {
-          this.readDirRecursive(moduleDir, module, agentCode)
-        }
+      // Read shared modules — gateway/ keeps its name, repo-root tools/ is
+      // packaged as agentcore_tools/ to match the Dockerfile convention and
+      // avoid conflicts with the pattern's own tools/ directory
+      const gatewayDir = path.join(repoRoot, "gateway") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      if (fs.existsSync(gatewayDir)) {
+        this.readDirRecursive(gatewayDir, "gateway", agentCode)
+      }
+      const repoToolsDir = path.join(repoRoot, "tools") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      if (fs.existsSync(repoToolsDir)) {
+        this.readDirRecursive(repoToolsDir, "agentcore_tools", agentCode)
+      }
+
+      // Read shared utilities (patterns/utils/) — contains auth.py and ssm.py
+      // used by all agent patterns for JWT extraction and SSM parameter access
+      const utilsDir = path.join(repoRoot, "patterns", "utils") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      if (fs.existsSync(utilsDir)) {
+        this.readDirRecursive(utilsDir, "utils", agentCode)
       }
 
       // Read requirements
@@ -198,13 +215,25 @@ export class BackendStack extends cdk.NestedStack {
         description: "S3 bucket for agent code deployment packages",
       })
 
+      // Determine the main agent file for the pattern.
+      // Each pattern has a different entry point:
+      //   strands-single-agent → basic_agent.py
+      //   langgraph-single-agent → langgraph_agent.py
+      //   agui-*, claude-* → agent.py
+      const mainFiles = fs.readdirSync(patternDir).filter(
+        (f: string) => f.endsWith(".py") && f !== "__init__.py"
+      )
+      const agentEntryPoint = mainFiles.length === 1
+        ? mainFiles[0]
+        : mainFiles.find((f: string) => f.includes("agent") && f !== "__init__.py") || mainFiles[0]
+
       agentRuntimeArtifact = agentcore.AgentRuntimeArtifact.fromS3(
         {
           bucketName: agentCodeBucket.bucketName,
           objectKey: "deployment_package.zip",
         },
         agentcore.AgentCoreRuntime.PYTHON_3_12,
-        ["opentelemetry-instrument", "basic_agent.py"]
+        ["opentelemetry-instrument", agentEntryPoint]
       )
     } else {
       // DOCKER DEPLOYMENT: Use container-based deployment
@@ -845,8 +874,8 @@ export class BackendStack extends cdk.NestedStack {
     //   2. Create a Cedar Policy inside the engine → wait for ACTIVE
     //   3. Attach the Policy Engine to the Gateway → wait for READY
     //
-    // CfnGatewayPolicy is not available as an L1 construct in aws-cdk-lib, so we use a Custom
-    // Resource Lambda (same pattern as the OAuth2 Credential Provider).
+    // CfnGatewayPolicy is not available as an L1 construct in aws-cdk-lib, so a Custom
+    // Resource Lambda is used (same pattern as the OAuth2 Credential Provider).
     //
     // The Gateway's JWT Authorizer maps M2M JWT claims to Cedar principal tags:
     //   JWT claim "department" → principal.getTag("department")
@@ -858,23 +887,21 @@ export class BackendStack extends cdk.NestedStack {
     // Target name is "sample-tool-target"
     //
     // THREE POLICY VERSIONS FOR DEMO TESTING:
-    // - Version 0: Permissive wildcard — deploy first to discover the exact
-    //   action name from CloudWatch logs, then switch to Version 1 or 2
     // - Version 1: Guest has full access — all departments can use tools
     // - Version 2: Guest denied — only finance/engineering can use tools
     //
-    // To switch versions: change the policyDocument variable below, then run `cdk deploy`
+    // To switch versions: edit gateway/policies/policy.cedar, then run `cdk deploy`
     //
     // CEDAR POLICY SYNTAX NOTES:
-    // - The AgentCore create_policy API accepts ONE Cedar statement per policy.
-    //   To define multiple access rules, use the || (OR) operator within a single
-    //   permit statement rather than writing multiple permit statements.
+    // - Each create_policy call creates one policy containing one Cedar statement.
+    //   You can call create_policy multiple times to add multiple policies to the
+    //   same engine. Alternatively, use || or action in [...] to combine rules
+    //   within a single statement.
     // - Cedar is deny-by-default: if no permit statement matches a request, it is
     //   automatically denied. An explicit forbid statement is not needed to block
     //   access — simply omit the department from the permit's OR conditions.
-    // - If you need separate permit and forbid statements (e.g., for audit logging),
-    //   create multiple policies by updating the Custom Resource Lambda to call
-    //   create_policy() once per statement.
+    // - This template creates a single policy per deploy. To add multiple policies,
+    //   update the Custom Resource Lambda to call create_policy() once per statement.
 
     const cedarPolicyLambda = new PythonFunction(this, "CedarPolicyLambda", {
       runtime: lambda.Runtime.PYTHON_3_13,

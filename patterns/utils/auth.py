@@ -136,11 +136,11 @@ def get_gateway_access_token(user_id: str) -> str:
     @requires_access_token decorator) so that the verified user_id can be passed
     as aws_client_metadata. The Cognito V3 Pre-Token Lambda reads this metadata
     to inject user-specific claims (department, role) into the M2M access token,
-    enabling Cedar policy evaluation at the Gateway.
+    enabling Cedar policy evaluation at the AgentCore Gateway.
 
     The user_id comes from the validated JWT in the Runtime's Session Context
-    (extracted by extract_user_id_from_context), not from the LLM or payload.
-    This ensures the identity chain is cryptographically secure end-to-end.
+    (extracted by extract_user_id_from_context). This ensures the identity chain
+    is cryptographically secure end-to-end.
 
     Args:
         user_id (str): The authenticated user's ID (sub claim from validated JWT).
@@ -183,7 +183,6 @@ def get_gateway_access_token(user_id: str) -> str:
     # Include aws_client_metadata with verified_user_id so the Cognito V3
     # Pre-Token Lambda can read it and inject user-specific claims into the
     # M2M access token. This is the bridge between user auth and M2M auth.
-    # The metadata must be passed as a JSON string, not bracket notation.
     client_metadata = json.dumps({"verified_user_id": user_id})
 
     data = {

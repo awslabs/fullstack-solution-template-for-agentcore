@@ -19,10 +19,9 @@ CloudFormation Events:
   and deletes the policy engine
 
 Waiter Strategy:
-- Policy Engine and Policy operations use official boto3 waiters provided by
-  the bedrock-agentcore-control service (policy_engine_active, policy_active,
-  policy_deleted). These handle polling intervals, timeouts, and error states
-  automatically.
+- Policy creation uses the policy_active waiter. Policy deletion uses the
+  policy_deleted waiter. Policy Engine creation uses the policy_engine_active
+  waiter. Policy Engine deletion uses the policy_engine_deleted waiter.
 - Gateway operations currently use a custom polling loop as the
   bedrock-agentcore-control service does not provide an official
   waiter for gateway status changes.
@@ -207,7 +206,7 @@ def handle_update(event: dict, props: dict) -> dict:
     logger.info(f"Cedar Policy {new_policy_id} is now ACTIVE")
 
     # Verify the Policy Engine is still attached to the Gateway.
-    # A previous failed deployment rollback may detach it.
+    # A previous failed deployment rollback or manual change may have detached it.
     logger.info("Verifying Policy Engine is attached to Gateway...")
     gateway = client.get_gateway(gatewayIdentifier=gateway_id)
     pe_config = gateway.get("policyEngineConfiguration") or {}
@@ -288,6 +287,8 @@ def handle_delete(event: dict, props: dict) -> dict:
     logger.info(f"Deleting Policy Engine: {policy_engine_id}")
     try:
         client.delete_policy_engine(policyEngineId=policy_engine_id)
+        waiter = client.get_waiter("policy_engine_deleted")
+        waiter.wait(policyEngineId=policy_engine_id)
         logger.info(f"Policy Engine deleted: {policy_engine_id}")
     except Exception as e:
         logger.warning(f"Could not delete Policy Engine {policy_engine_id}: {e}")
@@ -356,9 +357,6 @@ def _attach_policy_engine_to_gateway(gateway_id: str, policy_engine_arn: str) ->
     """
     Attach a Policy Engine to a Gateway and wait for the Gateway to become READY.
 
-    Uses custom polling for gateway status as the boto3 SDK provides official waiters
-    for Policy Engine and Policy operations but not for Gateway status changes.
-
     Args:
         gateway_id: The Gateway identifier.
         policy_engine_arn: The Policy Engine ARN to attach.
@@ -389,8 +387,9 @@ def _wait_for_gateway_ready(gateway_id: str) -> None:
     Poll until the Gateway reaches READY status.
 
     This uses a custom polling loop as the boto3 SDK provides official waiters
-    for Policy Engine and Policy operations (policy_engine_active, policy_active,
-    policy_deleted) but not for Gateway status changes.
+    for Policy Engine and Policy operations (policy_engine_active,
+    policy_engine_deleted, policy_active, policy_deleted) but not for Gateway
+    status changes.
 
     Args:
         gateway_id: The Gateway identifier to poll.

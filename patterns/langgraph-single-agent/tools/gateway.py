@@ -19,7 +19,8 @@ To switch to Approach 2:
   2. Comment out the Approach 1 create_gateway_mcp_client(user_id)
   3. Uncomment the Approach 2 create_gateway_mcp_client() (no user_id param)
   4. Update callers to not pass user_id
-  5. Ensure GATEWAY_CREDENTIAL_PROVIDER_NAME env var is set in the CDK Runtime config
+  5. Verify GATEWAY_CREDENTIAL_PROVIDER_NAME env var is set in the CDK Runtime config
+     (already configured in backend-stack.ts)
 """
 
 import logging

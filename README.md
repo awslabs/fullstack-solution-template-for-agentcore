@@ -55,7 +55,7 @@ What comes next? That's up to you, the developer. With your requirements in mind
 The out-of-the-box architecture is shown above. The diagram illustrates the authentication flows across the stack:
 1. User login to the frontend (Cognito User Pool — Authorization Code grant): The user authenticates with Cognito via the web application hosted on AWS Amplify. Cognito issues a JWT access token for the session.
 2. Frontend to AgentCore Runtime (Cognito User Pool JWT validation): The frontend passes the user's JWT in the Authorization header. The Runtime validates the token against the Cognito User Pool.
-3. AgentCore Runtime to AgentCore Gateway (OAuth2 Client Credentials / M2M): The Runtime authenticates as a service using the OAuth2 Client Credentials grant — independent of the user's identity. AgentCore Identity manages token retrieval via the Token Vault.
+3. AgentCore Runtime to AgentCore Gateway (OAuth2 Client Credentials / M2M): The Runtime authenticates using the OAuth2 Client Credentials grant with user identity propagated into the M2M token via the Cognito V3 Pre-Token Lambda. The Gateway evaluates Cedar policies against the user's claims to enforce fine-grained access control.
 4. Frontend to API Gateway (Cognito User Pool JWT validation): API requests are authenticated using a Cognito User Pools Authorizer with the same user JWT from Flow 1.
 
 ### Tech Stack
@@ -100,7 +100,9 @@ fullstack-agentcore-solution-template/
 │   │   └── fast-main-stack.ts
 │   ├── bin/                # CDK app entry point
 │   ├── lambdas/            # Lambda function code
+│   │   ├── cedar-policy/    # Cedar Policy Engine lifecycle
 │   │   ├── oauth2-provider/ # OAuth2 Credential Provider lifecycle
+│   │   ├── pretoken-v3/     # Cognito V3 Pre-Token Generation Lambda
 │   │   ├── feedback/       # Feedback API handler
 │   │   └── zip-packager/   # Runtime ZIP packager
 │   └── config.yaml         # Deployment configuration
@@ -130,6 +132,8 @@ fullstack-agentcore-solution-template/
 │   └── code_interpreter/   # AgentCore Code Interpreter integration
 │       └── code_interpreter_tools.py # Core implementation
 ├── gateway/                # Gateway utilities and tools
+│   ├── policies/           # Cedar policy definitions
+│   │   └── policy.cedar    # Department-based access control policy
 │   └── tools/              # Gateway tool implementations
 │       └── sample_tool/    # Example Gateway tool
 ├── scripts/                # Deployment and utility scripts
@@ -151,6 +155,7 @@ fullstack-agentcore-solution-template/
 │   ├── AGENT_CONFIGURATION.md # Agent setup guide
 │   ├── MEMORY_INTEGRATION.md # Memory integration guide
 │   ├── GATEWAY.md          # Gateway integration guide
+│   ├── IDENTITY_POLICY.md  # Identity propagation & Cedar policy guide
 │   ├── RUNTIME_GATEWAY_AUTH.md # M2M authentication workflow
 │   ├── STREAMING.md        # Streaming implementation guide
 │   ├── TOOL_AC_CODE_INTERPRETER.md # Code Interpreter guide

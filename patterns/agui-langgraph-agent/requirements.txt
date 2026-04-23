@@ -1,7 +1,7 @@
 # LangGraph AG-UI agent dependencies
-copilotkit==0.1.83
-langchain==1.2.10
-langgraph==1.0.10
+copilotkit>=0.1.84
+langchain>=1.2.10
+langgraph>=1.1.5
 langchain-aws==1.4.1
 langchain-mcp-adapters==0.2.2
 langgraph-checkpoint-aws==1.0.6
