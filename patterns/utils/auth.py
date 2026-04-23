@@ -158,7 +158,7 @@ def get_gateway_access_token(user_id: str) -> str:
         "AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
     )
 
-    logger.info("Getting access token for stack: %s, region: %s", stack_name, region)
+    logger.info("Getting access token for stack: %s, region: %s", stack_name, region)  # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure
 
     # Get Cognito configuration from SSM and Secrets Manager
     cognito_domain = get_ssm_parameter(f"/{stack_name}/cognito_provider")
@@ -191,14 +191,14 @@ def get_gateway_access_token(user_id: str) -> str:
         "aws_client_metadata": client_metadata,
     }
 
-    logger.info("Requesting token from: %s", token_url)
+    logger.info("Requesting token from: %s", token_url)  # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure
     logger.info("Scopes: %s", data["scope"])
 
     # Request access token from Cognito
     response = requests.post(url=token_url, headers=headers, data=data, timeout=30)
 
     if response.status_code != 200:
-        logger.error("Token request failed: %s", response.status_code)
+        logger.error("Token request failed: %s", response.status_code)  # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure
         logger.error("Response: %s", response.text)
         raise Exception(
             f"Failed to get access token: {response.status_code} - {response.text}"
@@ -208,8 +208,8 @@ def get_gateway_access_token(user_id: str) -> str:
     access_token = token_data.get("access_token")
 
     if not access_token:
-        logger.error("No access_token in response: %s", token_data)
+        logger.error("No access_token in response")
         raise Exception("No access_token in Cognito response")
 
-    logger.info("Successfully got access token: %s...", access_token[:20])
+    logger.info("Successfully got access token")
     return access_token

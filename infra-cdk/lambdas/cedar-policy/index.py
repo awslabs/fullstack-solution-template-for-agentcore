@@ -414,6 +414,5 @@ def _wait_for_gateway_ready(gateway_id: str) -> None:
         time.sleep(GATEWAY_POLL_INTERVAL_SECONDS)
 
     raise RuntimeError(
-        f"Gateway {gateway_id} did not become READY "
-        f"within {GATEWAY_TIMEOUT_SECONDS}s"
+        f"Gateway {gateway_id} did not become READY within {GATEWAY_TIMEOUT_SECONDS}s"
     )
