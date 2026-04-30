@@ -38,7 +38,8 @@ export class AgentCoreClient {
     query: string,
     sessionId: string,
     accessToken: string,
-    onEvent: StreamCallback
+    onEvent: StreamCallback,
+    timeoutMs = 300000, // 5 min default
   ): Promise<void> {
     if (!accessToken) throw new Error("No valid access token found.")
     if (!this.runtimeArn) throw new Error("Agent Runtime ARN not configured.")
@@ -69,7 +70,7 @@ export class AgentCoreClient {
     // (Authorization header), not sent in the payload body. This prevents
     // impersonation via prompt injection.
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 120000) // 2 min timeout
+    const timeout = setTimeout(() => controller.abort(), timeoutMs)
 
     const response = await fetch(url, {
       method: "POST",
