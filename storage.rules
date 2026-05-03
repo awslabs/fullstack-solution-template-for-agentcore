@@ -1,0 +1,83 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isValidSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    function isValidVideoSize() {
+      return request.resource.size < 50 * 1024 * 1024;
+    }
+    
+    // Profile photos
+    match /profilePhotos/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() && 
+                      fileName.matches('^' + request.auth.uid + '\\.jpg$') &&
+                      isImage() && isValidSize();
+    }
+    
+    // User uploads for tour stops
+    match /userUploads/{userId}/{tourId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && isImage() && isValidSize();
+    }
+    
+    // Review photos (iOS)
+    match /reviewPhotos/{userId}/{reviewId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && isImage() && isValidSize();
+    }
+    
+    // Review media (web — photos + videos)
+    match /reviewMedia/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && isValidSize();
+    }
+    
+    // Review draft media (cross-platform)
+    match /reviewDraftMedia/{userId}/{targetId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && (isValidSize() || isValidVideoSize());
+    }
+    
+    // Museum and gallery images (public read)
+    match /museums/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /galleries/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Cached images (written by Cloud Function)
+    match /cachedImages/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Group photos (banners + album)
+    match /groupPhotos/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && isImage() && isValidSize();
+    }
+    
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

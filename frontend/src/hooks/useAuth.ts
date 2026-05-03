@@ -42,6 +42,7 @@ export function useAuth() {
       isLoading: false,
       error: null,
       token: null,
+      accessToken: null,
     }
   }
 
@@ -66,5 +67,6 @@ export function useAuth() {
     isLoading: auth.isLoading,
     error: auth.error,
     token: auth.user?.id_token,
+    accessToken: auth.user?.access_token,
   }
 }

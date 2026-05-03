@@ -9,19 +9,12 @@ model.tar.gz
 .vscode/
 .DS_Store
 dist/
-.sav/
-.delete/
-.data/
 *.egg-info/
 build/
 __pycache__
 *.code-workspace
 .ruff_cache
-.kiro
-rvl_cdip_*
-notebooks/examples/data
-.idea/
-.dsr/
+__pycache__
 **/cdk.out
 **/.envrc
 **/node_modules
@@ -31,3 +24,9 @@ frontend/public/aws-exports.json
 scripts/zip-artifact/
 public/
 .mkdocs/public/
+
+# Sensitive
+**/serviceAccountKey.json
+**/service-key*.json
+**/.env
+**/package-lock.json

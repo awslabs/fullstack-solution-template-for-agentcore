@@ -1,0 +1,14 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": {
+    "source": "functions"
+  },
+  "extensions": {
+    "storage-resize-images": "firebase/storage-resize-images@0.3.2"
+  }
+}

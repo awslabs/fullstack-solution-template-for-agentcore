@@ -1,0 +1,687 @@
+Format: 
+Website 
+DATES
+Curator
+Artist
+Theme and about artwork
+
+TODO: Summarize Theme and about artwork to ~100-200 wc. Select and define keywors (places, people, landmarks, art movements, relevant topics) using Wikipedia definitions.
+
+Update existing exhibit information accordingly: Information provided in this txt file is more accurate than what is currently saved so use this as the source of truth (especiall website url and dates). 
+
+For web, add the curators at the very bottom of the detail. Use natural language and paragraph format for all the text, no colons, no bullet points or lists.
+
+[EXHIBIT_DATA_SET_01]
+The Artist’s World Through the Camera [Museo Nacional del Prado]
+https://www.museodelprado.es/en/whats-on/exhibition/the-artists-world-through-the-camera/b581a759-4ab0-b459-f3d4-8168c84923f2 
+DATES: APR 13 2026 - JUL 5 2026
+Theme:
+The advent of photography in the 19th century marked the birth of a new artistic discipline and paved the way for an unprecedented and remarkably effective method of representing reality. Artists rapidly grasped the scope of this transformation: they portrayed themselves (alone or with colleagues), documented their work spaces, and made the effort to graphically record both their creative processes and the final materialisation of their works. 
+Based on the holdings of the Museo del Prado, specifically the archives of Luis and Federico de Madrazo, Dióscoro Puebla, Rafael Rocafull, Cecilio Pla, Agustín Querol, Miguel Blay, Fernanda Francés and Manuel González Santos, the exhibition brings together photographs by renowned professionals alongside other anonymous and possibly amateur creations. Created using a range of techniques and formats, taken as a whole this group of images makes it possible to trace a visual map of the presence of artists in their domestic contexts, studios and various spaces of social interaction and learning, as well as in alternative creative settings, such as the evocative Patio de las Doncellas in the Real Alcázar in Seville.
+The exhibition is intended as a tribute to the male and female creators who were active in the 19th and early 20th centuries, with a particular acknowledgement of those who understood photography as a privileged medium for ensuring the preservation of their image and artistic practice over time.
+El universo del artista ante la cámara is running at The Museo Nacional del Prado in Madrid, and it leans on photography’s knack for being both truthful and performative. Painters and sculptors who usually live in art history as names and dates turn up with scuffed cuffs, serious expressions, and the tools of the trade close at hand. The highlight is the run of studio images that make work feel physical: easels, palettes, props, unfinished canvases, and clutter that reads like a biography written in objects.
+Two don’t-miss elements stand out. First, the portraits where artists present themselves for the public eye, often with the calm authority of someone building a career as carefully as a canvas. Those small-format social calling cards, like cartes de visite and cabinet cards, make the whole thing feel surprisingly modern, as if self-branding has always been part of the job. Second, the more relaxed photographs that drop the ceremony and let personality leak in, whether that’s a loosened posture, an amused glance, or a hand caught mid-gesture.
+Big names help anchor the story, with figures such as Joaquín Sorolla, Mariano Fortuny and Federico de Madrazo appearing as people rather than monuments. Early photographic processes matter too, and albumen prints bring their own texture and fragility to the mix. The hidden gem sits in the margins: dedications, studio stamps, handwritten notes, and the wear on mounts that proves these images were handled, shared, kept in drawers, and pulled out again when someone wanted to remember the maker behind the work.
+Michelangelo and Rodin: Living Bodies [Musée de Louvre]
+https://www.louvre.fr/en/exhibitions-and-events/exhibitions/michelangelo-and-rodin 
+DATES: APR 15 2026 - JUL 20 2026
+Curator: Chloé Ariot, Heritage Curator, Musée Rodin and Marc Bormand, Senior Heritage Curator, Department of Sculptures, Musée du Louvre
+Artist:
+Theme: Michelangelo and Rodin, in making the body the central subject of their artworks, showed that they both perceived it as animated by an intense inner life.
+The exhibition “Michelangelo / Rodin – Living Bodies” at the Louvre in 2026 brings together two giants of Western sculpture around a central theme: the body as a visible manifestation of the soul and its inner energy. It follows a path divided into five major thematic sections, articulating filiations, borrowings, diversions, and ruptures, combining marble, bronze, plaster, terracotta, casts, and drawings.​ Musée du Louvre brings together the works of two of the greatest sculptors in the history of art: Italian Michelangelo and French sculptor Auguste Rodin, both driven by the desire to reveal the vital energy of the body. The exhibition-event brings together marble and bronze sculptures, plasters, terracottas, casts and graphic works, exploring the universe of both artists through different themes: nature and antiquity, the Non finito, the relationship between body and soul, energy and life.
+Michelangelo and Rodin, two unrivalled masters of Western sculpture, engage in a dialogue across the centuries. Their works, emblematic of the strength of the body and the depth of the soul, are here brought together for the first time, revealing a continuum between the two artists, marked by clear divisions.
+Organised into five sections – Two Legendary Artists; Nature and Antiquity: Reinventing the Model; Non Finito; Bodies and Souls; and Energy and Life –, the exhibition associates marble, bronze, plaster, terracotta and cast works with a rich pictorial production. The exhibition route highlights the issues of form and concept that drove the same ambition in both artists: to make manifest the body’s inner energy.
+The body is thus revealed as the membrane that envelops the soul, a living thing weathering time and movement. We also explore the historic uses of motion in sculpture: how did the reinvention of antiquity and the ways bodies were used foreshadow the divisions of the 20th century? Calling attention to the connections, borrowings and reinterpretations to be found in the works of Michelangelo and Rodin, the exhibition gives a close reading of the myths surrounding these two masters and proposes a new perspective on sculpture not as the making of forms, but as a laboratory for breaking new artistic ground.
+
+Gothic by Design: The Dawn of Architectural Draftsmanship [The Metropolitan Museum of Art]
+https://www.metmuseum.org/exhibitions/gothic-by-design-the-dawn-of-architectural-draftsmanship 
+https://www.metmuseum.org/press-releases/gothic-by-design 
+DATES: APR 16 2026 - JUL 19 2026
+Curator: Femke Speelberg, Curator in the Department of Drawings and Prints.
+Theme: Gothic by Design will evoke questions relating to selection and exclusion in canonic history books and invite discussion about the place of art within the larger scope of the STEAM disciplines, as the architectural drawings on display embody the interplay of art and science, technology, engineering, and mathematics. To this point, a contemporary contribution to the exhibition from the Federal Institute of Technology (ETH) Zurich will address the potential of Gothic design principles for the future of sustainable construction.
+will feature over 90 works that highlight the history of Gothic design practice (the first-ever exhibition to examine Gothic architecture drawings in an art historical context.)
+Gothic by Design: The Dawn of Architectural Draftsmanship reveals how master masons and other artists began to visualize and communicate their complex ideas for cathedrals and other architecture-inspired structures in drawings and, later, prints. Between the 13th and 16th century, these little-known artworks on parchment and paper became a significant factor in the stylistic evolution of Gothic architecture and art at large.
+This rare presentation of more than 90 works of art—drawings and prints alongside goldsmith works, architectural elements, sculpture, and painting—sheds new light on the artistic choices and expansive knowledge that informed the Gothic building practice. Explore the vision, imagination, and skillful artistry embedded in the carefully drawn plans of medieval architects and other artists of the day.
+Juxtaposing drawings and prints from the 13th to 16th century with key objects from the period, the display will focus on strategies of design, including collaborative practices, modular design, and morphologies of form.
+Education & Empowerment: Scholarship Recipients at the Barnes Foundation, Vol. Two: 1927-1952 [The Barnes Foundation]
+https://www.barnesfoundation.org/whats-on/exhibitions/education-and-empowerment-1927-1952 
+https://barnesfoundation.netx.net/portals/archival-exhibitions/#page/ed-emp-v2-intro 
+DATES: APR 16 2026 - JAN 25 2027
+Curator: This exhibition is curated by Rob Jagiela, assistant archivist.
+Artist: 
+Kenneth Goodman (renowned organist)
+Lillian G. Hall (vocalist and music educator)
+Claude Clark (artist and educator)
+Gwendolyn Bennett (artist and poet active in the Harlem Renaissance)
+Theme: Learn about four artists whose education was supported by the Barnes
+In 1922, the Barnes Foundation was chartered with concepts of democracy, experimentation, and education at its core. One way Dr. Barnes pursued those ideals was through scholarships granted to a diverse group of students with interests spanning art, music, medicine, and more. This exhibition, a continuation of the 2023–24 edition, draws on archival materials to highlight the experiences of four more individuals whose education was supported by the Barnes in the first half of the 20th century: Kenneth Goodman, renowned organist; Lillian G. Hall, vocalist and music educator; Claude Clark, artist and educator; and Gwendolyn Bennett, an artist and poet active in the Harlem Renaissance.
+In 1925, the Barnes published the first issue of its journal. In the main article, “The Barnes Foundation: An Experiment in Education,” associate director of education Mary Mullen defined education as “the complete and harmonious development of all the capacities with which an individual is endowed at birth, a development which requires, not coercion or standardization, but guidance of the interests of every individual towards a form that shall be uniquely characteristic of him.”
+
+This concept of education, which remains core to the Barnes’s mission, originated in classes held for employees at the A. C. Barnes Company factory in West Philadelphia around 1908. In sessions led by Dr. Albert C. Barnes and Mullen, employees discussed their reactions to artwork hung in the factory and the writings of philosophers William James, George Santayana, and John Dewey. These classes led to the chartering of the Barnes Foundation in 1922.
+
+In the decades that followed, Dr. Barnes sought additional ways to make education at the Barnes more accessible. Although classes were tuition-free, he provided informal scholarships to cover housing, transportation, and other expenses. He supported projects beyond the gallery walls as well by awarding fellowships to individuals for travel or research in fields he considered valuable. Today, the Barnes has a formal scholarship program that helps hundreds of students attend adult education classes each year. The materials here offer a look into the lives of some of the artists and educators whose endeavors were supported by the foundation during Dr. Barnes’s lifetime.
+Calder, Kelly, LeWitt: Fundamentals of Form [SFMOMA]
+https://www.sfmoma.org/exhibition/calder-kelly-lewitt-fundamentals-of-form/ 
+(says on this site until DEC 31 but on the SFMOMA site doesn’t say until when it is)
+DATES: APR 18 2026 - Ongoing
+Artist:
+Alexander Calder
+Ellsworth Kelly
+Sol LeWitt
+Theme:
+Alexander Calder, Ellsworth Kelly, and Sol LeWitt are the three artists whose work Doris and Donald Fisher collected in the greatest depth, providing SFMOMA with a singular opportunity to present focused surveys of their work. Floor 5 is dedicated to the innovations of these three enduringly influential artists. Although their work emerged in distinct historical contexts, they are united by their engagement with architecture, their embrace of different strategies of seriality and their commitment to opening the autonomous art object to elements of chance or rule-based systems. The installation will feature approximately two dozen works by each artist, inviting visitors to dive deeply into their artistic breakthroughs across a spectrum of important works.
+Calder, Kelly, and LeWitt explored such underlying formal properties as line, color and shape. Leveraging the accessible appeal of those essential artistic building blocks, this floor will also feature Co-Lab, a newly created studio space programmed for hands-on activities that support learning and making for adults, families, and children. In keeping with the vision for this space, family-friendly labels will be available throughout the floor to encourage connection among visitors of all ages. Vibrant wall and floor treatments will invite gathering, relaxing, and exploring together in the studio space and throughout the galleries.
+Part of Reimagined: The Fisher Collection at 10 (Floor 5)
+
+Ways of Seeing: Fourteen Artists [SFMOMA]
+https://www.sfmoma.org/exhibition/ways-of-seeing-fourteen-artists/ 
+DATES: APR 18 2026 - Ongoing
+Curator: curated by Jennifer Dunlop Fletcher, Seph Rodney, and Katy Siegel.
+This presentation will feature a series of monographic galleries dedicated to 14 artists whose works reflect a variety of mediums, styles and approaches, from abstraction to figuration and from gesture to geometry. Among the featured artists are Dan Flavin, Philip Guston, Roy Lichtenstein, Agnes Martin, Joan Mitchell, Elizabeth Murray, Sigmar Polke, Gerhard Richter, Richard Serra and Cy Twombly. Through audio, video and written panels that incorporate the artists’ own words, visitors are invited to understand the artists as both innovative creators and as people, in their full complexity.
+This floor will also include a multimedia timeline of the creation of the Fisher Collection that explores the origins of the collection and its journey into the public view. Using archival images, video and texts, the installation will tell the story of Doris and Donald Fisher and their love for art and artists. The installation offers visitors an unprecedented view of the couple’s drive to share their passion for art through this collection.
+Part of Reimagined: The Fisher Collection at 10 (Floor 4) 
+Richard Prince [The Albertina]
+https://www.albertina.at/en/exhibitions/richard-prince/ 
+DATES: APR 17 2026 - AUG 16 2026
+Curator: Elsy Lahner
+Artist: Richard Prince
+It is with irony, humor, and an astute gaze that Richard Prince (b. 1949) exposes consumer society’s imagery. The New-York-based artist has dealt with the visual codes and fictions of US-American popular culture since the 1970s, looking into the mechanisms of authorship, originality, and media representation. He became famous for his legendary series Cowboys, in which re-photographed advertisements for Marlboro cigarettes featuring perspectives different from the original shot turn into critical reflections upon myths, masculinity, and media.
+Theme: Richard Prince is the subject of a major retrospective at Albertina, Vienna. With an emphasis on his photographic works, the exhibition extends from the 1970s to the present and highlights iconic series such as Fashion, Gangs, and Cowboys. Prince’s use of irony, humour, and his astute gaze provide a nuanced, provocative perspective of consumer society.
+With an emphasis on his photographic oeuvre, Prince’s key medium, the ALBERTINA Museum devotes a major exhibition to Richard Prince spanning the period from the 1970s to the present. It showcases iconic series like Fashion, Gangs, and Cowboys, as well as rarely shown and hitherto unseen works—from his groundbreaking rephotography of advertising motifs and autobiography-based images from rural upstate New York to complex collages of found material.
+Prince does not tire of approaching issues of appropriation from ever-new perspectives, the connections and interrelationships of which are in the focus of the presentation: at the interface of photography, painting, and sculpture, the show, comprising some 150 works, illustrates how consistently Prince’s work is steeped in photographic thought. Sometimes edited only to a minimal extent, his images unfold a dual effect: they are both analytical and seductive.
+
+SUEÑO PERRO: A Film Installation by Alejandro G. Iñárritu [Los Angeles County Museum of Art]
+https://www.lacma.org/art/exhibition/sueno-perro-film-installation-alejandro-g-inarritu 
+https://www.lacma.org/press/sueno-perro-film-installation-alejandro-g-inarritu 
+DATES: FEB 22 2026 - JUL 26 2026
+Curator: curated by Deliasofia Zacarias, chief of staff and curatorial assistant, Director’s Office.
+Artist: Alejandro G. Iñárritu
+This multisensory installation, rooted at the intersection of cinema and visual art, marks the 25th anniversary of Alejandro G. Iñárritu’s legendary debut feature Amores Perros (2000). Over a million feet of film were left behind on the cutting room during the film’s edit. A selection of these never-before-seen fragments has been excavated from the archives for the first time, and they are illuminated here by an assemblage of 35mm projectors, forming a mosaic of celluloid and sound bites of Mexico City collected over the last decades. Stripped of all narrative, the installation is not a tribute but a resurrection—an invitation to experience what never was. Drawing on the raw power and visual poetry of imagery left behind long ago, SUEÑO PERRO presents film as living material—one that is composed of time, light, and space—prompting us to ask: How many films exist within a film?
+The Los Angeles County Museum of Art (LACMA) presents a multisensory installation by Academy Award–winning Mexican filmmaker Alejandro G. Iñárritu. Rooted at the intersection of cinema and visual art, the exhibition, SUEÑO PERRO: A Film Installation by Alejandro G. Iñárritu, marks the 25th anniversary of the filmmaker’s legendary debut feature Amores perros (2000).
+SUEÑO PERRO resurrects never-before-seen footage, which speaks to the film’s enduring themes of love, betrayal, and violence. These gritty vignettes—once abandoned on the cutting room floor, and buried for a quarter of a century in the film archives at the National Autonomous University of Mexico—capture the charged and interconnected sociopolitical realities of Mexico City, still relevant decades later.
+
+
+
+
+Buntes Garten Ciao [Lenbachhaus]
+https://www.lenbachhaus.de/en/program/exhibitions/details/buntes-garten-ciao 
+https://www.lenbachhaus.de/en/visit/whats-on/date/let-the-buntes-garten-ciao-begin-18815 
+DATES: APR 23 2026 - AUG 30 2026
+Curator: Samira Yildirim (Discourse and Outreach).
+Theme: Museums can also take place outdoors. With "Buntes Garten Ciao", the Lenbachhaus moves into the garden, the forecourt and the surrounding area, creating encounters through art. 
+In the summer of 2026, various events will take place in and around the Lenbachhaus, including performances, workshops, walks, dance events, theatre, karaoke and coffee klatches. The programme stems from a desire for colourful, diverse, solidarity-based, accessible, climate-friendly, queer wild growth.
+With “Buntes Garten Ciao”, the Lenbachhaus takes the art into the garden, onto the forecourt, and into the surrounding area, creating encounters through art. The opening of this summer project takes place with a vision for the future: During a collective card-reading session using the Tarot Hexen 5.0 by Suzanne Treister, read by Sarah Martinus, we will discuss topics such as cyberfeminism, science fiction, ecosystems, the climate crisis, and terrestrial and interplanetary technologies. While the artistic tarot suggests various solutions, we’ll discuss how we’d like to live together in the future. 
+
+
+
+Aurèlia Muñoz: Beings [Museo Nacional Centro de Arte Reina Sofía]
+https://www.museoreinasofia.es/en/exhibition/aurelia-munoz 
+DATES: APR 29 2026 - SEP 7 2026
+BUT ALSO this exhibit in Museu d’Art Contemporani de Barcelona (MACBA) NOV 5 2026 - MAR 29 2027
+Curator: einaidea (Fundació Eina, Barcelona)
+Artist: Aurèlia Muñoz
+Theme: The exhibition Aurèlia Muñoz. Beings plots an all-encompassing route through the work of an artist who is pivotal to an understanding of contemporary textile art.
+Involved in movements such as Nouvelle Tapisserie and the Escuela Catalana del Tapiz (the Catalan Tapestry School), Aurèlia Muñoz (Barcelona, 1926–2011) transcended the spheres of fabric, fibre and craft, her work drawing on a combination of ancestral techniques and contemporary resources to focus on the impact of post-industrial crises in land, water and aerial ecosystems, which emerged as large motifs in her oeuvre. 
+In this instance, her early collages and assemblages, with Surrealist and gothic influences, and large-scale pictorial embroidery pieces lead into an unseen ensemble of macramé structures from the collections of institutions in Spain, Europe and the USA. Her emblematic kite-sculptures and her final installations, produced with handmade paper, are also central to the show, as is a vast selection of maquettes and drawings displayed for the first time.  
+The exhibition, with a title referring to one of Muñoz’s core concepts — entes (beings) — spans the fifty or more years of her multifaceted practice, crafting an unprecedented view that seeks to open fresh perspectives on her unique legacy.  
+Aurèlia Muñoz. Beings traces a comprehensive journey through the work of a figure absolutely critical to understanding contemporary textile art both inside and outside Catalonia.
+Muñoz’s early collages and assemblages, with surrealist and gothic influences, and her large-scale pictorial embroideries will give way to a previously unseen selection of large macramé structures from institutional collections in Spain, Europe and the United States. The iconic kite-sculptures and the latest installations made with handmade paper will also have a feature prominently in the exhibition, which also includes a vast selection of drawings and models that have never been shown before.
+Despite the artist’s initial links to movements such as the Nouvelle Tapisserie and the Catalan Tapestry School, Muñoz’s practice transcends the boundaries of weaving, fibre and craftsmanship. Combining ancestral techniques and contemporary resources, Muñoz responded to the incipient crises of the post-industrial world, paying attention to the impact on terrestrial, aquatic and aerial ecosystems, which emerge as major motifs in her output.
+The title of the exhibition, Aurèlia Muñoz. Beings refers to one of the fundamental concepts in the artist’s work. The proposal covers more than fifty years of her multifaceted practice, offering unprecedented insight and opening up new perspectives on her unique legacy. The retrospective is organised by MACBA with the Museo Nacional Centro de Arte Reina Sofía (MNCARS) in Madrid and has been conceived as a choral project by the research platform einaidea (Fundación Eina, Barcelona) in close dialogue with the Aurèlia Muñoz Archive. Under the scientific direction of Manuel Cirauqui, director of einaidea, the project is coordinated by Rosa Lleó, Curator and associate researcher at einaidea; Silvia Ventosa Muñoz, head of the Aurèlia Muñoz Archive and curator specialising in textiles; and Aída Roger, assistant curator at MACBA.
+An innovative catalogue will accompany the show, with contributions from guest authors including Melody Jue, theorist and Professor at the University of California; and Ana Ramo, Spanish-Brazilian anthropologist and academic, as well as an updated documentary apparatus that will serve as a definitive reference for the historiography of the artist.
+Helga Philipp: Spaces of Movement [The Albertina]
+https://www.albertina.at/en/exhibitions/helga-philipp/#:~:text=Spaces%20of%20Movement&text=This%20exhibition%20will%20present%20around,May%20bis%2020%20September%202026. 
+DATES: MAY 1 2026 - SEP 20 2026
+Artist: Helga Philipp
+The artist Helga Philipp (1939–2002) is regarded as a preeminent representative of Austrian concrete art and op-art. As early as the 1960s, she developed a precise, conceptually grounded visual language that placed perception and motion at the center of her artistic output. Her oeuvre, situated between the poles of visual experience, geometric abstraction, and a kinetic formal language, features experimentation with mathematical principles, serial structures, and interactivity.
+This exhibition will present around 50 of the artist’s most important works from several decades, showing the great variety of her output in various genres such as painting, drawing, printed graphics, and object art.
+
+
+
+Zurbarán [The National Gallery]
+https://www.nationalgallery.org.uk/exhibitions/zurbaran 
+https://www.nationalgallery.org.uk/about-us/press-and-media/press-releases/zurbaran 
+DATES: MAY 2 2026 - AUG 23 2026 
+Curator: curated by Dr Daniel Sobrino Ralston, Dr Francesca Whitlum-Cooper, and Imogen Tedbury.
+Artist: Francisco de Zurbarán
+A giant in the history of Spanish art, Francisco de Zurbarán was one of the great painters of 17th-century Seville, a centre of global trade. His vivid paintings, from small still lifes to soaring altarpieces, burst with naturalism and convey intense spiritual experiences.
+Renowned as a painter of fabrics, Zurbarán represented extravagant clothing as well as the austere robes of monks with unsurpassed skill. He was also a careful observer of lived reality. Ordinary items – a ceramic vessel, a wicker basket, a rose – bring his extraordinary subjects closer to everyday life, then and now.
+This exhibition, the first ever devoted to the artist in the UK, brings some of his greatest paintings to London from all over the world. It also includes beautiful and rare still lifes by his talented son, Juan de Zurbarán. 
+Presenting works from across Zurbarán’s entire career, we reunite pictures from several of his important religious commissions, staggering in scale, and also show his still lifes and smaller works, some of them intended for domestic settings.
+This exhibition of almost fifty paintings will span the chronological and iconographic breadth of the artist’s career. 
+The exhibition will be divided into seven different sections: the first room will introduce the artist and explore his unique ability to inspire awe as a painter, his visionary take on the subjects he represents and his artistic particularities ('The Apparition of Saint Peter to Saint Peter Nolasco' and 'The Crucified Christ with a Painter', both from Museo Nacional del Prado). 
+The second room will dive into the paintings which Zurbarán produced for the many religious orders of the city of Seville ('The Vision of Alonso Rodríguez', Museo de la Real Academia de Bellas Artes de San Fernando), demonstrating the wide range of his skills as a painter of scale and narrative, and also his incredible inventiveness in the way he structured his compositions and devised iconographic solutions.
+The third room, the Fabric of Saints, shows Zurbarán’s remarkable ability to represent saints as figures from our world, especially through his evocation of fabrics, drapery and textures such as wool, embroidery, leather or fine cord ('Saint Casilda', Museo Nacional Thyssen-Bornemisza; 'Saint Apollonia', Musée du Louvre). Zurbarán’s father was a haberdasher so the artist may have developed a keen interest in textiles from a young age. He was also undoubtedly inspired by the many religious processions, parades and theatrical performances that were part of the visual culture of Seville in the 17th century. 
+The fourth room focuses on iconography, particularly that of the Immaculate Conception, important to the religious life of Seville. Juxtaposing treatments of the same subject from different moments in his career, visitors will appreciate how Zurbarán continuously strove for new ways to evoke powerful feelings through paint. 
+The fifth room, Beyond Seville, looks at the paintings which Zurbarán made for patrons outside the city with which he is most closely associated. In 1634 he received the most prestigious commission of his career: an invitation to travel to Madrid and participate in the decoration of the newly built royal palace, the Buen Retiro. Zurbarán was nominated to contribute to the decoration of the Hall of Realms, an enormous room at the heart of the palace complex, some 35 metres long and 10 metres wide. To this room Zurbarán contributed 12 paintings, including a series focused on the labours of Hercules, two of which will be shown in the exhibition ('Hercules and Cerberus' and 'Hercules and the Cretan Bull', both Museo Nacional del Prado). 
+The sixth room displays still lifes, including four by Zurbarán’s son Juan. It is thought that Francisco de Zurbarán may not have produced more than 10 still lifes in his lifetime so this room offers visitors a rare occasion to discover some remarkable examples of this element of his art ('Still Life with Lemons, Oranges and a Rose,' The Norton Simon Foundation, shown for the first time alongside the National Gallery’s painting 'A Cup of Water and a Rose').
+The last sections of the exhibition will explore the paintings Zurbarán made for private devotion and contemplation ('The Family of the Virgin', Abelló Collection) which, though often smaller in size, nevertheless pack a powerful emotional punch ('Agnus Dei', Museo Nacional del Prado; 'The Veil of Veronica', Museo Nacional de Escultura).
+
+Anni Albers: Constructing Textiles [Belvedere Museum]
+https://www.belvedere.at/en/anni-albers
+DATES: APR 30 2026 - AUG 16 2026
+Curator: Curated by Fabienne Eggelhöfer (Zentrum Paul Klee, Bern) and Brenda Danilowitz (Josef and Anni Albers Foundation, Bethany, CT).
+Assistant Curators: Kai-Inga Dost (Zentrum Paul Klee, Bern), Amy Jean Porter and Karis Medina (Josef and Anni Albers Foundation, Bethany, CT), Kati Renner (Belvedere, Vienna)
+Artist: Anni Albers
+The exhibition Anni Albers: Constructing Textiles is the first major exhibition to showcase the work of the important German-American artist and designer in Austria. From her beginnings at the Bauhaus through to her influential work at Black Mountain College and her theoretical studies, the show will shed light on Albers’s multifaceted oeuvre straddling art and design, craft, teaching, and art theory.
+Anni Albers: Constructing Textiles is the first major exhibition to showcase the work of Anni Albers in Austria. From her beginnings at the Bauhaus through to her influential work at Black Mountain College and her theoretical studies, the show sheds light on Albers’s multifaceted oeuvre straddling art and design, craft, teaching, and art theory.
+For the first time in Austria, a major solo exhibition will pay tribute to the diverse work of artist and designer Anni Albers (1899–1994). Albers’s inventive and experimental creative output began at the Bauhaus in the 1920s. In 1933 she emigrated to the USA, where she soon became established as a versatile artist. She explored complex woven structures and introduced innovative materials as her threads. In addition to pictorial weavings—works of art in their own right—Albers produced new textiles for buildings and interiors that she termed “useful objects.” Albers viewed weaving as the most progressive form of modern architectonic thinking. Her deep understanding of her material and its applications makes Anni Albers’s work seem current and relevant to the challenges we now face concerning energy and material resources.
+Featuring many works from all creative periods—starting with her early days at the innovative Bauhaus in Weimar, Dessau, and Berlin, followed by her time at the legendary Black Mountain College, and through to the 1980s—the exhibition presents Albers’s multifaceted career that straddled textiles and architecture, weaving and construction, past and present. It includes material studies, textile patterns and designs, pictorial weavings, large-scale room dividers, rugs, curtain fabrics, and theoretical writings.
+
+The Etruscans: From the Heart of Ancient Italy [Legion of Honor]
+https://www.famsf.org/exhibitions/etruscans-heart-ancient-italy 
+https://www.famsf.org/press-room/the-etruscans 
+DATES: MAY 2 2026 - SEP 20 2026
+Curator: organized by Renée Dreyfus, the Fine Arts Museums’ George and Judy Marcus Distinguished Curator in Charge of Ancient Art.
+Exhibition offers a bold new understanding of life, beliefs, and culture in ancient Etruscan civilization through bronze and terracotta vessels and sculptures, opulent gold jewelry, and other treasures
+The exhibition, opening in May 2026 at the Legion of Honor museum, will present the latest advances in scholarship, translation of the Etruscan language, and archaeological discoveries, offering visitors modern insight into the ancient culture. Visitors will also take away an understanding of Etruscan contributions to Western architecture, art and engineering - contributions that have been historically overshadowed by those of the ancient Greeks and Romans. 
+Togas, temples, hydraulic engineering, winemaking, and even “Roman” numerals, all widely credited to the Romans, were actually Etruscan innovations. The Etruscans thrived in what is now Italy for almost a millennium, from around 900 to 100 BC, before the rise of the Roman Empire. They laid the foundation for present-day architecture, engineering, and artistic achievements. Yet their culture remains overshadowed by ancient Greece and Rome. Drawing on the latest archaeological discoveries and cutting-edge scholarship, this is the most comprehensive exhibition on Etruscan culture in the United States to date. Almost 200 exquisitely crafted and well-preserved examples of bronze and terracotta sculpture, gold jewelry, ceramics, and architectural features, as well as the longest-surviving piece of Etruscan writing, reveal a legacy that continues to captivate today.
+First major US exhibition on the Etruscans in two decades presents their legacy of art, architecture, and engineering 
+
+A Year with Children 2026 [Solomon R. Guggenheim Museum]
+https://www.guggenheim.org/exhibition/a-year-with-children-2026 
+DATES: MAY 8 2026 - June 7 2026 
+Curator: Chitra Ramalingam, Director, Academic Engagement, and Michelle Wohlgemuth Cooper, Senior Manager, School Programs.
+This exhibition features works created by students in grades two through six who participate in Learning Through Art (LTA), the Guggenheim New York’s artist-in-residence program in New York City public schools. LTA partners teaching artists with classroom educators in each of the city’s five boroughs to design projects that connect art and ideas to their classroom studies.
+
+Costume Art [The Metropolitan Museum of Art]
+https://www.metmuseum.org/exhibitions/costume-art
+DATES: MAY 10 2026 - JAN 10 2027
+Curator: Andrew Bolton
+The Costume Institute’s spring 2026 exhibition explores depictions of the dressed body across The Met’s vast collection, pairing garments with artworks to reveal the inherent relationship between clothing and the body.
+Focusing primarily on Western art from prehistory to the present, Costume Art presents connections between garments from The Costume Institute and objects from the Museum’s other collecting areas. Pairings between fashions and artworks will present a spectrum of connections and experiences: from the formal to the conceptual, the aesthetic to the political, the individual to the universal, the illustrative to the symbolic, and the playful to the profound. These pairings are organized into a series of thematic body types that reflect their pervasiveness and endurance through time and cultures.
+Featuring nearly 400 objects from The Met’s vast collection, Costume Art will juxtapose garments and works of art to illuminate new connections
+The show will examine the centrality of the dressed body, juxtaposing garments and works of art from across the Museum’s vast collection to create pairings that not only illuminate the indivisible connection between clothing and the body but also the complex interplay between artistic representations of the body and fashion as an embodied artform. 
+Costume Art will feature nearly 400 objects from The Met collection, spanning centuries of artistic expression. Fashions will be juxtaposed with works of art from across time to create connections that will range from the formal to the conceptual, the individual to the universal, and the playful to the profound. The exhibition will be organized into a series of thematic body types that reflect their ubiquity and endurance through time and space. The categories will present body types that are pervasive in works across the Museum, such as the “Naked Body” and the “Classical Body,” as well as those that have traditionally been overlooked, such as the “Pregnant Body” and the “Aging Body”. Other categories, such as the “Anatomical Body,” and the “Mortal Body,” will explore universal bodily experiences. Objects will be displayed on pedestals and platforms to represent equivalency between types of artworks and types of bodies. Underscoring the exhibition’s focus on the embodied experience of fashion, the mannequins will feature heads with polished steel surfaces, designed by artist Samar Hejazi, that invite visitors to see themselves reflected in the body types and garments.
+
+
+Fanmania [The Metropolitan Museum of Art]
+https://www.metmuseum.org/exhibitions/fanmania 
+https://www.metmuseum.org/press-releases/fanmania-2025 
+DATES: THROUGH MAY 12 2026
+Curator: curated by Ashley E. Dunn, Associate Curator in the Department of Drawings and Prints, and Jane R. Becker, Collections Specialist in the Department of European Paintings.
+This display explores the myriad reasons artists were attracted to the semicircular form, including its commercial potential, its fashionability, and the opportunities it offered for formal and technical innovation.
+The hand-held fan was an unexpected muse for some of the most innovative artists in 19th-century Europe. Fans became hugely popular across many levels of society during this period, serving as functional and fashionable objects of adornment and communication. Well-known French Impressionists such as Edgar Degas and Camille Pissarro not only featured this feminine accessory in their work but also adopted it as an experimental format for their art.
+Fanmania investigates why avant-garde artists incorporated fans into their work and sheds light on themes of gender, courtship, consumerism, and appropriation. Artists were attracted to the semicircular form for myriad reasons, including fascination with fans from Asia and Spain, commercial ambition, and their interest in formal and technical innovation. Displaying more than 75 artworks from across The Met collection, this multimedia exhibition features painted and printed fans from Europe and Asia as well as artworks that depict women wielding fans to explore the phenomenon of “fanmania.”
+Featuring over 75 objects from across The Met Collection, Fanmania examines fans and their widespread imagery among the avant-garde and beyond.
+Displaying more than 75 artworks including folding fans as well as paintings, prints, and photographs from eight departments across The Met collection, this exhibition showcases artworks from Europe and Asia to explore the 19th-century phenomenon of “fanmania.” The exhibition investigates why avant-garde artists such as Edgar Degas and Camille Pissarro not only featured this feminine accessory in their work but also adopted it as an experimental format for their art. Although avant-garde fans were primarily designed to be shown on the wall and rarely intended to be used, they retain many of the associations of functional fans. Themes of gender, courtship, commercialism, appropriation, and experimentation unfold in this examination of fans as objects of visual culture in the 19th century.
+
+
+Isabella Kirkland [Hosfelt Gallery] TITLE OF EXHIBIT: Pareidolia
+https://hosfeltgallery.com/exhibitions/356-isabella-kirkland-pareidolia/ 
+DATES: May 16 2026 - JUL 2 2026
+Curator:
+Artist: Isabella Kirkland
+THERE’S LIKE NO INFO ON THIS
+
+
+Patricia Piccinini [Hosfelt Gallery] TITLE OF EXHIBIT: The Struggle that Sustains Us
+https://hosfeltgallery.com/exhibitions/357-patricia-piccinini-the-struggle-that-sustains-us/ 
+DATES: MAY 16 2026 - JUL 2 2026
+Artist: Patricia Piccinini
+THERE’S LIKE NO INFO ON THIS
+
+
+Creatures of Myth and Imagination: Europe and the Americas [The Metropolitan Museum of Art]
+https://www.metmuseum.org/exhibitions/creatures-of-myth-and-imagination-europe-and-the-americas 
+https://www.metmuseum.org/de/press-releases/creatures-of-myth 
+DATES: MAY 18 2026 - OCT 18 2026
+Curator: Dr. Laura Filloy Nadal (Associate Curator, Arts of the Ancient Americas in The Michael C. Rockefeller Wing).
+Set in the evocative atmosphere of The Met Cloisters, Creatures of Myth and Imagination: Europe and the Americas sheds light on a selection of works created on either side of the Atlantic Ocean between 500 and 1500 CE. The exhibition’s exploration of hybrid creatures deepens our understanding of their apparent necessity among diverse peoples.
+With these and over 50 other objects, including sculpture, ceramics, ivories, textiles, paintings, and metalwork, Creatures of Myth and Imagination looks beyond a specific story, time, and place to explore larger questions about who we are and what connects us.
+
+Matisse’s Femme au chapeau: A Modern Scandal [SFMOMA]
+https://www.sfmoma.org/exhibition/matisse-femme-au-chapeau/?gad_source=1&gad_campaignid=9303736772&gbraid=0AAAAAD-Oy4CE2v0MOlCv4tjAySzkUfCta&gclid=Cj0KCQjw4a3OBhCHARIsAChaqJM2Xm_QYrXf1VxNVqwX8YuklTDwLvLiRX1O3KDKj0UWNdrIGIb2P3QaArVtEALw_wcB 
+https://www.sfmoma.org/read/matisses-femme-au-chapeau-from-scandal-to-icon/ 
+DATES: MAY 16 2026 - SEP 13 2026 
+Curator: organized by Janet Bishop (Thomas Weisel Family Chief Curator) and Maria Castro (former Andrew W. Mellon Foundation Associate Curator of Painting and Sculpture)
+Artist: Henri Matisse
+Experience the moment Matisse used color to break the rules of modern art. In 1905, Henri Matisse sent shockwaves through the art world with Femme au chapeau (Woman with a Hat), a portrait of his wife, Amélie, painted in bold color and loose brushstrokes that defied convention. This exhibition brings the original stakes into focus and explores the enduring impact of one of Matisse’s most iconic works.
+Explore a restaging of Femme au chapeau’s public debut in 1905, bringing together the greatest number of works from that historic display in over a century. See why paintings by Matisse, André Derain, Albert Marquet, Maurice de Vlaminck, and others sparked such heated debate and admiration during their time.
+Trace how artists have responded to Femme au chapeau across generations. From Matisse’s peers to artists working today, such as Hilary Harkness and Rachel Harrison, see how the painting has shaped perceptions about color, content, form, and expression. The exhibition also uncovers its impact closer to home, on Bay Area figurative artists like Joan Brown, Richard Diebenkorn, and David Park.
+
+
+Youssef Nabil: To Dream Again [Musée d’Orsay]
+https://www.musee-orsay.fr/en/program/whats-on/exhibitions/youssef-nabil-de-rever-encore 
+DATES: MAY 19 2026 - SEP 13 2026 
+Curator: Sylvain Amic (President of the Public Establishment of the Musée d'Orsay and the Musée de l'Orangerie) and Nicolas Gausserand (Advisor to the President, head of international and contemporary matters).
+Artist: Youssef Nabil
+The exhibition ‘Youssef Nabil. To dream again’ at the Musée d'Orsay from 19 May 2026 reveals the close relationship between photographer and videographer Youssef Nabil and the museum. Inspired for over thirty years by the works housed there, the artist depicts his youth and his connection to his country of birth, Egypt, in his works. Using black-and-white silver prints, hand-coloured using an ancient technique, he immerses the audience in a dreamlike aesthetic imbued with sensuality, far from the shores of the Mediterranean.
+Drawing on cinematic and orientalist visual codes, Nabil constructs an idealized Mediterranean world without borders, where warm, luminous colors and tranquil scenes suggest a sensual, liberated Orient free from prohibition. His minimalist compositions—often dominated by blues and whites—also reveal symbolist influences, while recurring themes of exile, rebirth, and dream run throughout the work. The exhibition unfolds as a chronological journey through five key stages of the artist’s practice, framed by transhistorical resonances and opening with a group of nineteenth-century expedition photographs that establish a distinction between artistic engagement with the Orient and the historical discourse of orientalism.
+The black and white silver prints, enhanced by Youssef Nabil’s use of an old hand-coloring technique, evoke the glorious, fantasized Egypt of his childhood – the artist’s birth country – and conjure up velvety-toned visual ambiences. His body of work, which borrows from the registers of dream and nostalgia, seeks to escape from questions of identity alone in order to embody an idealized, fantasized Mediterranean world without borders. In the artist’s eyes, Egypt is the setting for an accepted, sensual orientalism, with images that make fresh use of its codes: warm, bright colors bathing in a tranquil atmosphere composed of desires and dreams, depicting a free Orient, without prohibition or censure.
+In addition to this orientalism, the aesthetics of his uncluttered settings, summoning up blues and whites and uniting them to produce effects of transparency, reflect the artist’s symbolist influences. The themes of exile, rebirth and dream are omnipresent in his work. The back postures in his faceless self-portraits are tinged with melancholy and have an air of mystery about them. The display follows the chronological route of a journey taken by an artist of our time, comprising five major stages interspersed with transhistorical echoes. A rich collection of 19th-century photographs of expeditions in Egypt opens the exhibition by making a distinction between artistic production in the Orient and orientalism.
+On this historical basis, the exhibition showcases works bearing on the artist’s youth, followed by his initial encounter with the Musée d’Orsay during his first visit to France in 1992, the third stage in the itinerary, involving a number of his tutelary figures, including Pierre Puvis de Chavanne and Odilon Redon. The penultimate room is devoted to the intersecting identities depicted by Nabil, on either side of the Mediterranean, borrowing symbols from East and West alike in syncretic creations. Two of the artist’s videos are screened in the last room, reflecting his passion for the cinematic medium.
+
+James McNeill Whistler [Tate Modern]
+https://www.tate.org.uk/whats-on/tate-britain/whistler 
+DATES: MAY 21 2026 - SEP 27 2026 
+Curator: Dr. Carol Jacobi, Curator of British Art 1850-1915
+Artist: James McNeill Whistler
+A truly global figure, Whistler re-wrote the rules of what it meant to be an artist. He pioneered new and innovative techniques, creating astonishingly beautiful, ethereal visions of modern life that would earn him a place as one of the most influential artists of the 19th and 20th centuries.
+This retrospective – the first major European exhibition of Whistler’s work in 30 years – brings together the artist’s world-famous paintings alongside rarely, or never seen, works. It includes exquisite portraits, drawings, prints, and designs, from as early as his teens in St. Petersburg to the enigmatic late self-portraits.
+The exhibition presents both a boldly experimental artist and cosmopolitan celebrity, disrupting the conventions of Victorian society in pursuit of truth, beauty, and progress.
+Bringing together 150 exquisite works of art, it will offer a once-in-a-generation opportunity to see the full breadth of his painting, drawing, printmaking and design, from the iconic Portrait of the Artist’s Mother to a remarkable collection of nocturnes and previously unseen sketchbooks. It will also reveal how Whistler created his ethereal visions of modern life and foretold the future of modern art. Visitors will discover a defiantly experimental artist and cosmopolitan celebrity who disrupted Victorian society in the pursuit of truth, beauty and artistic progress.
+
+
+Yoko Ono: Music of the Mind [The Broad]
+https://www.thebroad.org/art/special-exhibitions/yoko-ono-music-mind 
+DATES: MAY 23 2026 - OCT 11 2026 
+Curator: Curated by Juliet Bingham, Curator, International Art, Tate Modern. The Broad presentation is curated by Sarah Loyer, Curator and Exhibitions Manager.
+Artist: Yoko Ono
+The inimitable artist, musician and activist—and John Lennon’s other half—is the subject of the Broad’s highly anticipated upcoming show, Ono’s first-ever solo museum exhibition in Southern California. Organized in collaboration with the Tate Modern in London, “Music of the Mind” will allow visitors to directly interact with works from the artist’s seven-decade long career. In conjunction with the show, the museum will transform the olive trees on the outdoor East West Bank Plaza into Wish Trees for Los Angeles, where visitors can tie their own wishes on the branches. Many of the works invite audience engagement, in fact, all working toward a common goal of peace and connection. 
+Yoko Ono, the visionary artist, musician, and activist whose work has shaped contemporary culture for more than seven decades, will be celebrated at The Broad in Yoko Ono: Music of the Mind, the artist’s first solo museum exhibition in Southern California, organized in collaboration with Tate Modern, London. In spring 2026, visitors will be invited to directly participate in many of Ono’s works that transform simple acts into expressions of peace and connection. The Broad’s olive trees on East West Bank Plaza will become Wish Trees for Los Angeles, a key installation (first realized in 1996 at Shoshana Wayne Gallery, Santa Monica) inviting audiences to tie their own wishes to the tree branches in a living expression of hope in Los Angeles. The exhibition will be on view May 23 through October 11, 2026. 
+A belief that art could be made solely from the mind informed her early “instruction” works from the mid-1950s to today that will be on view in the exhibition. In these interactive pieces, short texts describe actions for viewers to complete or reflect upon. On view will be the typescript drafts for her famous 1964 book Grapefruit, which includes over 200 of these “instructions” arranged by types including music, painting, events, poetry, and objects: “Listen to the sound of the Earth turning,” “Fly,” “Put your shadows together until they become one,” and “Draw a map to get lost.” These works, which prompt audiences to think, imagine, and question, exist somewhere between score and poem. In addition to the text-based works, a selection of the instructions will be activated for audience participation, such as Painting to Hammer a Nail (1961/1966).
+Materials from the artist’s international campaigns for peace and displays of anti-war activism will also be on view, such as Acorn Event (1968) and Bed Peace (1969), projects done in collaboration with her late husband John Lennon. In 1968, Ono and Lennon planted two acorns as a living sculpture for the Exhibition of British Sculpture at Coventry Cathedral in England. Soon after, they sent acorns to world leaders to plant in their gardens as symbols of world peace. In 1969, the couple staged their famous “bed-in” events in Amsterdam and Montreal, leveraging media attention to speak out against the Vietnam War.
+
+Guggenheim Pop: 1960 to Now [Solomon R. Guggenheim Museum]
+https://www.guggenheim.org/exhibition/guggenheim-pop 
+DATES: JUN 5 2026 - JAN 10 2027
+Curator: Lauren Hinkson, Curator of Collections
+Guggenheim Pop: 1960 to Now will explore the Guggenheim New York’s history with Pop art and the movement’s enduring influence on artists today. The exhibition will foreground a lesser-known chapter in the museum’s past, the role of British curator and critic Lawrence Alloway, who introduced Pop art to American audiences through the 1963 Guggenheim exhibition Six Painters and the Object, the first museum presentation of Pop art in New York.
+The show will present iconic works from the museum’s collection by more than 20 artists, including John Chamberlain, Chryssa, Jim Dine, Roy Lichtenstein, Lucas Samaras, and Andy Warhol. Highlights will include Maurizio Cattelan’s Comedian (2019) and Claes Oldenburg and Coosje van Bruggen’s Soft Shuttlecock (1995), on view in New York for the first time in 25 years. These works will be shown alongside Yayoi Kusama’s INFINITY MIRRORED ROOM – DANCING LIGHTS THAT FLEW UP TO THE UNIVERSE (2019), a major loan to the exhibition, and recent acquisitions by contemporary artists such as Farah Al Qasimi, Alex Da Corte, Lucia Hierro, Martine Gutierrez, Lauren Halsey, Mohammed Ahmed Ibrahim, Yee I-Lann, Cara Romero, and Liu Shiyuan, whose practices expand the legacies of Pop.
+Bringing together both historical and contemporary perspectives, the exhibition will illustrate how Pop renders the familiar strange, elevates the commercial to the sacred, and transforms the banal into the spectacular, redefining what art could be from the 1960s to the present.
+
+Chinese Painting and Calligraphy: Selections from the Collection [The Metropolitan Museum of Art]
+https://www.metmuseum.org/de/exhibitions/chinese-painting-and-calligraphy-selections-from-the-collection 
+DATES: UNTIL MAY 10 2026 
+Curator: Joseph Scheier-Dolberg.
+The Met acquired its first Chinese painting in 1902. Since then, the Museum has added more than two thousand works of painting and calligraphy, building one of the most comprehensive collections in the world. Spanning fifteen hundred years of cultural production and featuring a variety of genres, techniques, and styles, The Met's collection has become a key resource for the study of Chinese painting and calligraphy. This exhibition presents a rich selection of works from the collection arranged in a largely chronological display.
+The final gallery tells the story of Wen C. Fong (1930–2018), chairman of the Museum’s Department of Asian Art from 1971 to 2000, and his teacher Li Jian (1881–1956). As a young calligraphy prodigy in Shanghai in the 1940s, Fong studied brush arts with Li. The display centers on a group of fans, painted and written by Li, that were intended to transmit the canonical models of the classical tradition from teacher to student. Brought to the United States in 1949 and treasured by the Fong family since then, these fans are presented publicly for the first time.
+
+
+Julio Le Parc [Tate Modern]
+https://www.tate.org.uk/whats-on/tate-modern/julio-le-parc 
+DATES: JUN 11 2026 - MAY 3 2027
+Curator:  Val Ravaglia (Curator, Displays & International Art) and Francis Hardy (Assistant Curator, International Art).
+Artist: Julio Le Parc 
+Colourful and seductive, this immersive exhibition celebrates the visionary work of Julio Le Parc. Featuring his iconic interactive installations, striking sculptures, and large-scale op art paintings, the show spans an extraordinary career from the 1950s to the 2010s.
+Best known for his pioneering kinetic sculptures, which use light, movement and mirrored surfaces to playfully draw in the viewer, the show also explores the depth and diversity of Le Parc’s talent, revealing him to be a politically engaged artist and highly skilled painter with a passion for colour.
+Organised in close collaboration with the artist and his Atelier, the exhibition will feature over 60 works spanning Le Parc’s extraordinary 70-year career, including interactive installations, striking light sculptures, and geometric abstract paintings. Arranged in a winding, maze-like manner, the exhibition will follow Le Parc’s career-long mission to activate the viewer, using optical effects, sensory experiences and physical interactions to make audiences aware of the role they can play in bringing art to life.
+
+
+Collection in Focus: Zidane, a 21st century portrait [Solomon R. Guggenheim Museum]
+https://www.guggenheim.org/exhibition/collection-in-focus-zidane-a-21st-century-portrait 
+DATES: JUN 11 2026 - JUL 19 2026 
+Curator: Nat Trotman, Curator, Performance and Media. 
+The two-channel video projection by Douglas Gordon (b. 1966, Glasgow, Scotland) and Philippe Parreno (b. 1964, Grenoble, France) follows the legendary French soccer star Zinédine Zidane in real time over the course of a single match played on April 23, 2005, at the Santiago Bernabéu Stadium in Madrid. Created by the artists and acquired by the Guggenheim in 2006, the ninety-minute piece will be screened on a continuous loop during museum hours in the Guggenheim’s Peter B. Lewis Theater.
+Assembled from footage shot by seventeen synchronized cameras placed around the stadium, the film captures Zidane from multiple angles and remains fixed on him even when the central action of the match shifts elsewhere. By splicing in footage from the live television broadcast, Gordon and Parreno challenge viewers’ perception of spectacle and modern celebrity.
+This video installation—one of seventeen unique versions of the work—introduces a further layer to the viewing experience. While one large projection displays the theatrical version of Gordon and Parreno’s film, raw footage from one of the seventeen cameras plays beside it on a second screen. At moments, the two streams synchronize and show the same image. This doubling, a recurrent feature in Gordon’s work, echoes the mass dissemination of the contemporary celebrity-hero and the role of collective memory in shaping iconic images from popular culture.
+Zidane, a 21st century portrait marks the sixth installment in the museum’s ongoing Collection in Focus series, which takes an in-depth look at an artist, movement, or artwork. The series aims to make the museum’s world-renowned holdings more accessible to the public while providing new insights into significant works, artists, and artistic movements.
+
+
+Prado: 21st Century [Museo Nacional del Prado]
+https://www.museodelprado.es/en/whats-on/new/the-museo-del-prado-is-presenting-its-2026/86430222-cc18-1025-1b64-cdaf29fd92d0 
+DATES: JUN 9 2026 - SEP 27 2026 
+Curator: Alfonso Palacio, Deputy director of Conservation and Research, and Elena Cenalmor, Curatorial assistant in the department of Conservation and Research
+This exhibition traces the transformation of the Museo del Prado over the last quarter of a century. Through works acquired during this period and a series of statistical, object-based, photographic and documentary comparisons, it presents the history of an active and evolving museum: a vibrant and open institution that has built on the work of previous generations to attain a leading place among the world's great museums over the course of the last twenty-five years, undoubtedly its period of maximum development. This is due not only to the excellence of the Museum’s collections but also to the strength of its scholarly mission, its international reach, its communicative strength, its reception by society as a whole, its unwavering and committed openness to the public, and its increasingly close relationship with its visitors. 
+The works in the exhibition offer a representative selection of acquisitions made over the last twenty-five years. Arranged chronologically and thematically, they focus attention on the essence of the Museo del Prado, which distinguishes it above all else: its remarkable collection, which has never ceased to expand and which continues to grow year on year. At the same time, these works also bear witness to the efforts of all those who have made this metamorphosis possible and the means by which they have achieved it. In order to visually express this evolution and bring it closer to the visitor, each area of the exhibition features various objects and other elements that reflect different facets of this transformation: museography, conservation, visitor services, accessibility, corporate image and the participation of society in the evolution of the Museum, among others. 
+The final section of the exhibition presents a survey of a number of the Museum’s departments and their activities, which exemplify this transformation: publishing activity, represented by a display of all the books published since 2000; training and research, through graphic material on the Study Centre; and the work of the departments of Restoration, National and International Promotion, Communication, and Education, presented in the form of four videos. 
+
+Fashioning Chinese Women: Empire to Modernity [Los Angeles County Museum of Art]
+https://www.lacma.org/art/exhibition/fashioning-chinese-women-empire-modernity 
+DATES: JUN 14 2026 - OCT 12 2026 
+Curator: Mei Mei Rado and Michaela Hansen.
+Fashioning Chinese Women: Empire to Modernity traces a century of transformation through more than 70 exquisite ensembles from Shanghai, Hong Kong, and America. It charts the evolution of Chinese women’s dress, from loose-fitting embroidered robes of the late Qing Dynasty to the sleek silhouettes of 1930s qipao and the globally iconic cheongsam of the 1960s. Vibrant colors, sumptuous silks, and intricate trims showcase the meticulous craftsmanship that is the hallmark of these garments. Displayed on mannequins customized by fashion designer Jason Wu, the works in the exhibition present a seldom-seen story of how Chinese and Chinese American women expressed identity, navigated change, and shaped their lives through dress.
+
+
+STOPPED 
+
+
+Collecting for the Future: 250 Years of the ALBERTINA Museum [The Albertina]
+https://www.albertina.at/en/exhibitions/collecting-for-the-future/ 
+https://www.albertina.at/en/exhibitions/250-years-albertina/ 
+DATES: JUN 19 2026 - OCT 11 2026
+It includes over one million objects, numbers among the world’s most important collections of graphic art, and was founded 250 years ago: the collection of the Albertina Museum. This once private collection has long since become a world-class museum.
+That it was Albert of Saxe-Teschen who laid its cornerstone in 1776 is well known. This exhibition, however, sheds light specifically on female contributions to this world-famous collection for the first time. The focus here is on Marie Christine, the favorite daughter of Empress Maria Theresia, and how she worked together with her husband Albert to build the collection in a systematic manner.
+It is therefore the collection’s beginnings and the collectors’ respective motives that are explored here.
+
+ Lost. Found. Returned [Getty Villa]
+https://www.getty.edu/exhibitions/lost-found-returned/ 
+DATES: JUN 23 2026 - OCT 18 2026 
+In 1894 the Kupferstich-Kabinett in Dresden acquired a drawing by Otto Greiner (1869–1916), a leading German artist associated with the Symbolist movement. How did that drawing, which the museum marked as “lost” after World War II, end up at the Getty Research Institute in Los Angeles? This exhibition narrates the drawing’s journey, focusing on its shifting wartime status, the tools that researchers use to track down missing artworks, and the impending return of Greiner’s drawing back to Dresden.
+examines the history of missing artworks and the return of a 19th-century German drawing to Dresden. It explores the story of a drawing deemed lost after World War II, focusing on its, and others', provenance and recovery.
+
+Stendahl’s World [Getty Villa]
+https://www.getty.edu/exhibitions/stendahls-world-marketing-ancient-mexico-and-modern-art-in-los-angeles/ 
+DATES: JUN 23 2026 - OCT 18 2026 
+Artist: Earl Stendahl
+explores how Earl Stendahl transformed the market for pre-Hispanic art
+Around 1940, after decades of selling landscapes and Modern paintings, Earl Stendahl turned to Mexican antiquities, transforming the market for pre-Hispanic art in Los Angeles and beyond. Stendahl Art Galleries promoted the ancient artifacts of Mexico as commodities for both museum and private collections, launching exhibitions across the United States and Europe and building on Hollywood connections for product placement in advertising campaigns. Meanwhile, archaeological sites in Mexico suffered irreparable depredations.
+
+
+Frida: The Making of an Icon [Tate Modern]
+https://www.tate.org.uk/whats-on/tate-modern/frida-kahlo-the-making-of-an-icon 
+DATES: JUN 25 2026 - JAN 3 2027
+Curator Tobias Ostrander (Estrellita B. Brodsky Curator at Large, Latin American Art) and Beatriz García-Velasco (Assistant Curator, International Art).
+Artist: Frida Kahlo 
+Discover the extraordinary story of how Frida Kahlo became one of the most influential artists of all time, a cultural phenomenon, and an internationally recognised commercial icon.
+Frida: The Making of an Icon will showcase over 30 of Kahlo’s most iconic works that introduce her ‘many selves’ – the dedicated wife, the intellectual, the modern artist, and the political activist. Alongside treasured garments, jewellery, photographs and memorabilia, there are over 200 works by her contemporaries and the artists she inspired from later generations, celebrating her lasting impact on those who continue to reimagine and reclaim her remarkable story.
+The show will culminate by exploring ‘Fridamania’. Kahlo’s transformation into a global brand will feature more than 200 commercial objects that encompass her art, image, style and persona.
+Encounter a journey entirely unique to this fearless, revolutionary artist, one that offers a fascinating insight into the transformative power of Frida’s life and work, the intriguing notion of fandom and the diversity of communities who claim her as their own.
+
+Vasarely - Adrian: Moving Images [Albertina Modern]
+https://www.albertina.at/en/albertina-modern/exhibitions/vasarely-adrian/ 
+DATES: JUNE 26 2026 - NOV 11 2026 
+Artist: Victor Vasarely (1906–1997) and Marc Adrian (1930–2008).
+Hypnotic motifs, pulsating shapes, and flickering patterns: in a great many of his works, this master of optical illusions puts our sense of sight to the test. Victor Vasarely’s multilayered oeuvre is now more contemporary than ever: he presaged the aesthetics of video games with the sorts of visual effects that are now generated by computers.
+Moreover, the powerful colors of his strict geometric patterns and the strong contrasts of his black-and-white painting have persisted as elements of aesthetic creativity. The portrayal of motion in art is also a central topic of investigation in the works of Marc Adrian, whom Peter Weibel was wont to call the »father of media art.« In this exhibition at the ALBERTINA MODERN, works by these two »grand masters« of optical illusion are presented together and enter into a multifaceted dialog.
+See the works of Victor Vasarely and Marc Adrian, masters of optical illusions, at the ALBERTINA MODERN. Their art features geometric patterns, vivid colors, and striking contrasts.
+
+
+
+Erna Rosenstein: On the Other SIde of Silence [Belvedere Museum]
+https://www.belvedere.at/en/press/erna-rosenstein 
+DATES: JUL 3 2026 - JAN 10 2027 
+Curator: Stephanie Auer
+Artist: Erna Rosenstein
+For the first time in Austria, a major retrospective will pay tribute to Erna Rosenstein (1913 –2004), a key figure of the postwar avant -garde in Poland. Against the backdrop of the Shoah and historic upheavals in Poland, her works bear witness to the resilience of an artist, who never wavered in her political convictions and artistic ideals. In a career spanning six decades, Rosenstein developed a multimedia visual cosmos that reveals how the present interweaves with memories of the past, and how collective and individual experiences are intertwined.
+Over more than six decades, Rosenstein created a multimedia pictorial cosmos as a powerful act of remembrance and resistance against forgetting. Based on her paintings, assemblages, and drawings, the latter shown for the first time outside of Poland, the e xhibition invites critical engagement with the processing and preservation of personal and collective histories.
+
+
+
+Waldmüller: Landscapes [The National Gallery] 
+https://www.nationalgallery.org.uk/about-us/press-and-media/press-releases/the-national-gallery-stages-first-uk-exhibition-of-austrian-painter-ferdinand-georg-waldm%C3%BCller 
+DATES: JUL 2 2026 - SEP 20 2026 
+Curator: Sarah Herring, Associate Curator of Post 1800 Paintings at the National Gallery, and Dr. Arnika Groenewald-Schmidt, Curator of the 19th-Century Collection at the Belvedere, Vienna.
+Artist: Ferdinand Georg Waldmüller
+Beginning with landscapes of the Prater, the exhibition will show the artist’s early development in this genre. Here, in Vienna’s famous park, he made a series of studies of trees in line with a move towards naturalism throughout Europe. 
+The exhibition will continue with his paintings of the Salzkammergut, an Alpine region near Salzburg, encompassing trees, views of the lakes and mountains, all rendered with a photographic clarity, limpid light, and almost-always bright blue skies and intense colour.  
+'Waldmüller: Landscapes' will also focus on the artist’s views of Sicily, painted during visits each autumn from 1844 to 1846. His landscapes demonstrate the profound impact of the island’s light, landscape and Classical ruins on his work. 
+And the final section of the exhibition will look at Waldmüller’s later works painted after his trips to Italy – where the effect that the extraordinary Italian light had on him continues to be felt. The exhibition will finish with 'Early Spring in the Vienna Woods' (1861, Belvedere, Vienna). Depicting a group of children gathering violets in the Vienna woods, it demonstrates his move away from pure landscape or scenes with small figures to one where he incorporated large-scale figures or groups. 
+The exhibition will comprise about 14 works, mostly from the collection of the Belvedere, with other loans from the Liechtenstein Collection and the Vienna Museum.
+
+
+Architects of Liberation: Modernism in Western Africa [Museum of Modern Art]
+https://press.moma.org/exhibition/architects-of-liberation-modernism-in-western-africa/ 
+DATES: JUL 5 2026 - JAN 2 2027
+Curator: Organized by Martino Stierli, MoMA’s Philip Johnson Chief Curator of Architecture and Design, and guest curator Ikem Stanley Okoye of the University of Delaware, with curatorial associate Mallory Cohen
+Architects of Liberation: Modernism in Western Africa, opening July 5, 2026, will be the first major museum exhibition to examine how architecture participated in the political and cultural transformation of the region during the decades surrounding independence. On view through January 2, 2027 in MoMA’s Robert B. Menschel Galleries, the exhibition brings together architecture from Benin, Cameroon, Côte d’Ivoire, Ghana, Nigeria, Senegal, and Togo, framing buildings not simply as aesthetic objects but as instruments of self-determination.
+The exhibition proposes a striking thesis: that modern architecture in West Africa was inseparable from the political ambitions of newly independent states.
+The exhibition is organized around several thematic entry points—cityscapes, education, and housing—each anchored by projects that reveal how architecture was used to express the aspirations of newly independent nations.
+The exhibition will highlight the independence period as a prolific time of architectural production, during which leaders of newly founded African nations sought to redefine themselves and their countries in contrast to colonial rule. This new architectural identity engaged deeply with broader political ideas of Pan-Africanism and Africanization, which were promoted by new leaders and governments. Spanning seven countries—Benin, Cameroon, Côte d’Ivoire, Ghana, Nigeria, Senegal, and Togo—the show will be organized around anchor projects that serve as entry points into categories such as cityscapes, education, and housing. The exhibition will pay particular attention to the critical contributions of the first generation of trained African architects.
+Architects of Liberation will feature approximately 450 objects, including architectural drawings, models, and archival photographs, from the collections of over 50 lenders from 17 countries. The exhibition is the result of four years of extensive research in the region. The vast majority of the objects that will be on display have never been presented publicly, and most of the architects included have never previously been featured in any exhibition or scholarly publication. The exhibition will also include original and commissioned architectural models, as well as a suite of new films and commissioned photographs.
+
+
+
+
+
+Ana Mendieta [Tate Modern]
+https://www.tate.org.uk/whats-on/tate-modern/ana-mendieta 
+DATES: JUL 15 2026 - JAN 17 2027 
+Curator: Michael Wellen (Senior Curator, International Art), Valentine Umansky (Curator, International Art), and Elsa Collinson (Assistant Curator, International Art). 
+Artist: Ana Mendieta
+This major exhibition dedicated to Ana Mendieta presents many of her iconic works alongside newly remastered films, early paintings, and late sculptural pieces, many of which have never been seen in the UK before. The show will continue outside the gallery walls, embracing Mendieta’s deep relationship with the natural world.
+Mendieta is best known for her Silueta Series, exploring the presence and absence of the human body, using a number of natural materials including fire, water and flowers. These ephemeral works were recorded as photographs and films.
+Active in the 1970s and early 80s, the Cuban-born American artist posed profound questions throughout her work around displacement and identity, which remain highly relevant today.
+This exhibition, which is the first in-depth UK show of her work in over ten years, shines a light on Mendieta’s trailblazing practice, reinforcing her standing as one of the most important artists of the 20th century.
+
+Miao Ying: Come, Sit, Stay [Belvedere Museum]
+https://www.belvedere.at/en/miao-ying 
+DATES: JUL 10 2026 - OCT 4 2026 
+Curator:  Sergey Harutoonian and assistant curated by Vasilena Stoyanova. 
+Artist: Miao Ying
+Digital surveillance, AI, and visual manipulation—Miao Ying reveals the darker sides of our connected world. Her solo exhibition at the Belvedere 21 offers a nuanced exploration of the aesthetics of digital control. Through installations, painting, and video, the artist examines global media cultures, mechanisms of censorship, and the power of generative technologies.
+
+
+The Making of a Medieval Book [Getty Villa] 
+https://www.getty.edu/exhibitions/medieval-book/ 
+DATES: AUG 4 2026 - MAY 2 2027
+Books were written, decorated, and bound entirely by hand during the pre-modern era in Europe. This exhibition explores the four stages of making medieval books, from preparing animal skin to make parchment, to the methods and materials used for the subsequent phases of writing, painting, and binding. A selection of manuscripts from the Museum’s collection elucidates these steps and the techniques used.
+The exhibition explores the four main stages of manuscript production: making parchment, writing with quill pens, illuminating with gold and pigments, and binding.
+
+
+“Every minute is history”: Five Views of Los Angeles [Getty Villa]
+https://www.getty.edu/exhibitions/five-views/ 
+DATES: SEP 1 2026 - JAN 3 2027 
+Discover the work of five photographers whose distinct approaches to the medium helped expand traditional representations of Chicano/a communities in Los Angeles during the second half of the 20th century. Drawing from a wide range of influences, including social documentary practices, staged scenes, fashion and the popular press, these artists—Laura Aguilar, Reynaldo Rivera, George Rodriguez, Patssi Valdez, and Ricardo Valverde—pushed the medium in new and often provocative directions.
+
+
+Instante/revelación: Moments in Mexican Photography [Getty Villa]
+https://www.getty.edu/exhibitions/mexican-photography/ 
+DATES: SEP 1 2026 - JAN 3 2027
+Exploring the rich tapestry of cultural and artistic dialogues that have shaped Mexico's photographic history, this exhibition features works by 13 prominent photographers, including Lola Álvarez Bravo, Manuel Álvarez Bravo, Héctor García, Graciela Iturbide, and Pablo Ortiz Monasterio, alongside key related publications. The photographs, donated by Daniel Greenberg and Susan Steinhauser to the Getty Museum over the past 25 years, record the instantes y revelaciones (instants and revelations) of a remarkable century of Mexican creativity.
+
+
+YOKO ONO EXHIBIT REPEAT AS SEP 3 
+
+STOPPED
+
+
+Roy Lichtenstein [Whitney Museum of of American Art]
+https://whitney.org/exhibitions/lichtenstein 
+DATES: FALL 2026 (no specific date announced yet0
+co-curated by Meg Onli (Nancy and Fred Poses Curator), artist Alex Da Corte, and Whitney Director Scott Rothkopf. 
+Artist: Roy Lichtenstein
+NOTHING MUCH ABOUT THIS EXHIBIT
+
+
+A King’s Carpet: Louis XIV and the Savonnerie [The Metropolitan Museum of Art]
+https://www.metmuseum.org/de/exhibitions/a-kings-carpet-louis-xiv-and-the-savonnerie 
+DATES: SEP 8 2026 - MAR 5 2028
+Curator: Wolf Burchard and Elizabeth Cleland of the Department of European Sculpture and Decorative Arts. 
+A King’s Carpet will be the first exhibition in the United States dedicated to the Savonnerie, top European manufacturer of royal carpets of the 17th and 18th centuries
+In 1668, King Louis XIV of France commissioned the Paris-based Savonnerie manufactory to create the largest carpet ever woven. Composed of 92 individual pieces, the carpet was intended to cover the full span of the Grande Galerie of the Louvre, measuring 440 meters, six times the length of the Hall of Mirrors at Versailles. Not only was it a bold and unprecedented undertaking, but a unique chapter in the history of art.
+The first ever exhibition about the Savonnerie in the United States, A King’s Carpet sheds new light on The Met’s three carpets made as part of this ambitious scheme. Held in the iconic Wrightsman Galleries, it will explore the tumultuous history of these Baroque masterpieces from their conception and the harsh realities of their production to their dispersal after the French Revolution.
+A project of unheard-of scale, the weaving of the 92 carpets necessitated the establishment of massive workshops and an expendable workforce of orphans and adolescents with sharp eyesight and nimble fingers. Woven over 20 years, the carpets were never rolled out in the space for which they were intended, Louis XIV having turned his attention away from the Louvre to Versailles. During the Revolution, many were stripped of their royal emblems or sold, some eventually finding new homes with prominent American collectors such as J. P. Morgan and Alva Vanderbilt.
+This exhibition will present four complete carpets along with a selection of fragments, attesting to the scheme’s segmentation and dispersal. In addition, visitors will be able to observe textile conservators at work in an in-gallery temporary conservation studio as they repair and strengthen one of these monumental textiles.
+
+
+
+Baseball Cards from the Collection of Jefferson R. Burdick [The Metropolitan Museum of Art]
+D
+
+Auguste Bartholdi: Liberty Enlightening the World [Musée d’Orsay]
+https://www.musee-orsay.fr/en/program/whats-on/exhibitions/auguste-bartholdi-liberty-enlightening-world 
+DATES: SEP 15 2026 - JAN 31 2027
+Curator: François Blanchetière, Chief Curator, Sculpture and Architecture, Musée d’Orsay and Juliette Chevée, Director and Curator, Musée Bartholdi, Colmar.
+Artist: Auguste Bartholdi
+On the occasion of the 250th anniversary of the United States’ Declaration of Independence, celebrated in 2026, the Musée d’Orsay is presenting an exhibition along with a virtual reality experience devoted to the work of Auguste Bartholdi, a major figure in 19th-century French sculpture and creator of a number of emblematic works, including the Statue of Liberty. Planned as a gift from France to the United States and initially intended to commemorate the centenary of American independence in 1876, the statue was finally inaugurated ten years later, in 1886. Between times, Bartholdi and his supporters had to show proof of imagination, audaciousness and tenacity in order to design, promote and create what was then the largest statue in the world (46 meters high, 93 meters with its pedestal).
+The exhibition looks back on Auguste Bartholdi’s career, an Alsatian sculptor with a visionary temperament whose monumental ambition asserted itself in his earliest projects and was further nurtured by the political upheavals of his day. It explores the birth of the Statue of Liberty, the result of a project originally conceived for the Suez Canal and then turned into an allegorical figure celebrating American independence.
+Emblematic of the ideas of its era, the Statue of Liberty testifies to an unwavering faith in progress, human and technical alike, and in the universal values that art can give intelligible form to. The exhibition aims to help visitors understand the artistic, ideological, economic and technological choices that enabled successful completion of this out-of-the-ordinary project.
+Making It Modern: European Ceramics from the Martin Eidelberg Collection [The Metropolitan Museum of Art]
+https://www.metmuseum.org/de/exhibitions/making-it-modern-european-ceramics-from-the-martin-eidelberg-collection 
+DATES: 
+
+
+
+
+Picasso -- Bacon: What It Means to be Human [The Albertina]
+https://www.albertina.at/en/exhibitions/picasso-bacon/ 
+DATES: SEP 18 2026 - JAN 31 2027 
+Artist: Pablo Picasso and Francis Bacon
+This major show undertakes an exciting juxtaposition of the 20th century’s two most important figurative painters: Pablo Picasso and Francis Bacon.
+Bacon was inspired to become a painter by Picasso’s works. Throughout his life, he would compete with him, eventually striving to surpass him. Bacon wanted to be the late 20th-century version of what Picasso was to its first half: a chronicler of being human in all of its tornness. Both of these seminal artists placed human existence at the core of their pictorial worlds. The subject they shared was the human figure – pulled apart, thrown back together, and reinvented with an unprecedented savagery. In their distorted portrayals, they elucidated pain, desire, and vulnerability, holding up a merciless mirror to the modern soul. To both, themes such as crucifixions, screams, bullfights, nudes, and the Tears of Eros revealed the drama of life itself. Although Picasso for his part was never influenced by Bacon, he followed his career very closely.
+Although Picasso himself was not influenced by Bacon, he closely followed his career. Over 100 works from international museums and private collections illustrate, in an impressive confrontation, the similarities in the oeuvre of the two masters and Picasso's significance for the following generation of artists.
+
+
+
+Erika Giovanna Klien: All is Movement [Belvedere Museum]
+https://www.belvedere.at/en/press/erika-giovanna-klien 
+DATES: SEP 18 2026 - JAN 31 2027
+Curator: Verena Gamper and co-curated by Veronica Liotti. Johanna Hofer serves as the assistant curator
+Artist: Erika Giovanna Klien. 
+The Belvedere is dedicating an extensive solo exhibition to the work of Austrian - American artist and educator Erika Giovanna Klien (1900 –1957). A leading exponent of Viennese Kineticism, Klien achieved international acclaim early on in her career. Her passion for theater and dance found expression in innovative set designs and complex depictions of bodies in motion. Klien moved to New York in 1929, and this new environment manifested itself in her increasing engagement with urban spaces and social issues.
+In autumn 2026 the Belvedere is paying tribute to the work of artist Erika Giovanna Klien (1900 –1957) in an extensive solo exhibition. The foremost exponent of Viennese Kineticism, she drew and painted fascinating depictions of quivering birds in flight, dancing bodies, and rotating machines. Her compositions were based on the observation, analysis, and arrangement of complex movements, whether these were natural or technical in origin. It was especially after moving to New York in 1929 that Klien emerged a s an astute observer of technical progress and modern city life with its ever -faster pace. 
+The exhibition at the Lower Belvedere sheds light on all aspects of the oeuvre of this painter, graphic artist, and art teacher, who had a passion for theater and dance, and presents the latest research on her life and work.
+
+
+Taryn Simon [Solomon R. Guggenheim Museum]
+https://www.guggenheim.org/exhibition/taryn-simon 
+DATES: SEP 18 2026 - MAR 14 2027
+Curator: Nat Trotman, Curator, Performance and Media.
+Artist: Taryn Simon 
+This major exhibition premieres a new body of work by Taryn Simon. The project will bring together never-before-seen photographs, text, videos, and sculptures in a singular, interactive installation filling the entire Rotunda.
+Simon is widely recognized for her storytelling, which directs our attention to the whispers and unseen forces shaping the worlds we inhabit. On view during the 250th anniversary of the United States, her new project will gather a massive constellation of images around a sweeping narrative that spirals through the space. Visitors will choose their own pathways through the whirlwind Simon has assembled.
+
+
+Textile Alchemy: The Art of Reiko Sudō and NUNO [Los Angeles County Museum of Art]
+https://www.lacma.org/art/exhibition/textile-alchemy-art-reiko-sudo-and-nuno 
+DATES: SEP 20 2026 - MAR 7 2027
+Artist: Reiko Sudō
+Reiko Sudō is a textile alchemist who, for more than 40 years, has pioneered innovative textiles that merge tradition with experimentation and handicraft with technology. Textile Alchemy: The Art of Reiko Sudō and NUNO provides an in-depth survey of the acclaimed Japanese designer’s work created with her textile collective NUNO, often in collaboration with independent artisans and workshops across Japan, and utilized by celebrated architects.  The largest retrospective of Sudō’s textiles to date, Textile Alchemy features over 100 limited-edition textiles together with numerous objects, including drawings, sketches, raw materials, tools, mock-ups, and prototypes. The exhibition traces her artistic journey and reveals NUNO’s inventive choices that transform materials into fascinating textiles, while helping to preserve regional crafts and historic production centers, and highlighting sustainability issues. 
+
+
+
+The Holy Family at Home / Getty Exhibitions [Getty Villa]
+https://www.getty.edu/exhibitions/holy-family-at-home/ 
+DATES: SEP 22 2026 - JAN 10 2027 
+Northern European artists around 1500 adopted a fresh view of the Holy Family, portraying the Virgin Mary, Christ Child, and a devoted St. Joseph as a loving trio in a domestic interior. This exhibition celebrates the treatment of this theme in Getty’s recently acquired painting by Gerard David, while showcasing illuminated manuscripts and panel paintings of the period that shaped and reflected his approach. Together, these works highlight the late medieval view of the tender human relationships at the heart of the Christian story.
+
+
+RM x SFMOMA [SFMOMA]
+https://www.sfmoma.org/exhibition/rm-x-sfmoma/?gad_source=1&gad_campaignid=9303736772&gbraid=0AAAAAD-Oy4BUiF-YKMxnJv9WrELjR0d0-&gclid=Cj0KCQjwp7jOBhDGARIsABe7C4fKRCuI8gio3FPvkhHOqOum9p7dVfltUEDK93iiYpAPH1h99SMwPZ8aAmxsEALw_wcB 
+DATES: OCT 3 2026 - FEB 7 2027 
+Curator: RM
+Artist: RM 
+RM x SFMOMA will be the first-ever museum exhibition featuring artworks from the personal collection of RM of BTS, a defining force in global pop. The exhibition brings together 200 works from the collections of RM and SFMOMA, offering a rare chance to see modern and contemporary Korean artworks in conversation with artworks from around the world. Many of the artworks have never before been exhibited to the public in the US.
+Among the key Korean artists represented in the collection of RM are Yun Hyong-keun, Park Rehyun, Kwon Okyon, Kim Yun Shin, To Sangbong, and Chang Ucchin, in addition to works by numerous notable contemporary artists based around the world. RM x SFMOMA will highlight resonances and themes shared among these works and complementary SFMOMA collection artworks by Korean artist Kim Whanki as well as American and European artists such as Mark Rothko, Agnes Martin, Henri Matisse, Georgia O’Keeffe, and Paul Klee.
+
+Krasner and Pollock: Past Continuous [The Metropolitan Museum of Art]
+https://www.metmuseum.org/de/exhibitions/krasner-and-pollock-past-continuous 
+DATES: OCT 4 2026 - JAN 31 2027 
+Curator: David Breslin (Leonard A. Lauder Curator in Charge) and Brinda Kumar (Associate Curator) of the Department of Modern and Contemporary Art at The Metropolitan Museum of Art.
+Artist: Lee Krasner and Jackson Pollock
+Lee Krasner (1908–1984) and Jackson Pollock (1912–1956) met as emerging artists in New York in the winter of 1941. They married in 1945 and moved to Springs, Long Island, where they remained entwined personally, artistically, and professionally until Pollock’s untimely death. While Pollock’s reputation historically eclipsed Krasner’s, today, both artists’ practices are rightly recognized as central to the innovations of art from the mid-20th century onwards. This exhibition continues and amplifies this reevaluation, on their own terms and in dynamic relation to each other.
+Drawing its subtitle, Past Continuous, from a 1976 painting by Krasner, the exhibition traces parallel lives and practices—forged first by lived experience, then shadowed by memory. Krasner, born in Brooklyn to Jewish immigrant parents from what is now Ukraine, and Pollock, raised in Los Angeles and the American West, brought specific geographies and inheritances into a shared artistic context. Their early paths traced distinct strands of American modernism that would ultimately converge in the rupture known as Abstract Expressionism, a movement that valued the translation of inner feelings into dramatic visual action. In the wake of World War II, artists asked why art mattered and what it could be. For Pollock, his breakthrough was the “drip” technique, a radical mode of painting that flourished in a condensed but prolific period. Krasner’s varied practice was typified by ceaseless explorations of abstraction, often cued by her abiding interest in the possibilities of nature and color.
+Krasner and Pollock: Past Continuous is the first major New York presentation devoted to either artist in more than 20 years. Featuring over 120 works, it is the first exhibition to look at the full arc of their careers together.
+Organized into 12 chapters that span each artist’s career and are punctuated by defining moments, Krasner and Pollock: Past Continuous unfolds from the 1930s through the postwar years to the end of their respective lives, moving between moments of convergence and difference. The exhibition’s design, informed in part by historic spaces and installations, enhances moments of exchange—across time and practices—while allowing for discrete encounters with works by each artist, from Krasner’s Little Images series and Pollock’s drip paintings of the late 1940s to his monumental canvases in the 1950s and Krasner’s Umber and Earth Green series. The exhibition charts ongoing dialogues—Pollock’s late return to earlier motifs in the mid-1950s and Krasner’s extended engagement through the 1960s and 1970s with artists such as Klee, Picasso, Mondrian, and Matisse. This presentation will reveal two artists in constant negotiation with each other, themselves, and the cultural, political, and aesthetic stakes of their time.
+The exhibition also reflects The Met’s commitment to showcasing artists whose work continues to shape how art is made and understood today. Krasner’s and Pollock’s contributions to modernism and their serious engagement with the possibilities of painting continues to be significant for the work of contemporary artists. In advance of the opening of the Tang Wing for Modern and Contemporary Art, opening in 2030, Krasner and Pollock: Past Continuous models a curatorial approach that reexamines canonical narratives and connects 20th-century innovations to the concerns of today’s artists and audiences.
+
+
+
+
+
+
+
+Renoir and Love [The National Gallery]
+https://www.nationalgallery.org.uk/exhibitions/renoir-and-love 
+https://www.nationalgallery.org.uk/about-us/press-and-media/press-releases/national-gallery-announces-major-renoir-exhibition-for-2026-renoir-and-love 
+DATES: OCT 3 2026 - JAN 31 2027
+Curator:
+Paris
+Paul Perrin, Chief Curator and Director of Conservation and Collections at the Musée d’Orsay, Paris; with the participation of Lucie Lachenal-Tabellet, Archival Research Assistant at the Musée d’Orsay
+London
+Christopher Riopelle, Neil Westreich Curator of Post-1800 Paintings, National Gallery, London, and Chiara Di Stefano, Associate Curator of Post-1800 Paintings at the National Gallery, London
+Boston
+Katie Hanson, William and Ann Elfers Curator of Paintings, Art of Europe, Museum of Fine Arts, Boston; with the participation of Julia Welch, Arthur K. Solomon Assistant Curator of Paintings, Art of Europe, Museum of Fine Arts, Boston 
+Artist: Pierre-Auguste Renoir (1841–1919), a French Impressionist known for his paintings of human connection. The show covers his work from 1865-1885. 
+Fall in love with Renoir and his Impressionist paintings at the National Gallery. 
+Discover Renoir’s gift for showing love, friendship, and everyday emotion in this Impressionist exhibition. See couples waltzing in the summer air and lovers stealing a glance, families sharing a quiet moment and friends raising a glass, all through the eyes of an artist unmatched in capturing the complexities of how people connect. 
+Experience Renoir at his peak in the 1860s to 1880s, experimenting with style and theme to become an innovator of Impressionism.  
+Walk with him through Montmartre in his iconic painting 'Bal au Moulin de la Galette' (1876) from the Musée d’Orsay, Paris, on display in the UK for the first time. Explore the sun-dappled gardens and swirling dance halls of Paris through 40 paintings, brought together from collections across the world. 
+Linked through friendship and love, enjoy the tenderness and joy of some of Renoir’s most modern, uplifting and admired paintings. 
+The exhibition traces the evolution of the imagery of affection, seduction, conversation, male camaraderie and the sociability of the café and theatre, as well as merry-making, flirtation, courtship and child-rearing in Renoir’s art. 
+
+
+Mary Cassatt: The Choice of Independence [Musée d’Orsay]
+https://www.musee-orsay.fr/en/program/whats-on/exhibitions/mary-cassatt-choice-independence 
+DATES: OCT 6 2026 - JAN 31 2027 
+Curator: 
+Paris
+Caroline Corbeau-Parsons, Graphic Arts and Paintings Curator, Musée d’Orsay;
+Anne Robbins, Curator of Paintings, Musée d’Orsay;
+London
+Sarah Moulden, Senior Curator of 19th Century Collections, National Portrait Gallery;
+Boston
+Erica Hirshler, Croll Senior Curator of American Paintings, Boston Museum of Fine Arts.
+Artist: Mary Cassatt
+In 2026, in order to mark the hundredth anniversary of the artist’s death, the Musée d’Orsay is organizing a major exhibition devoted to Mary Cassatt (1844-1926), in collaboration with the National Portrait Gallery in London and the Museum of Fine Arts in Boston. In France, this will be a long-awaited event: its national museums have never devoted a major exhibition to Mary Cassatt, an active member and pillar of the impressionist group. Her centenary provides an opportunity to examine the central place occupied by this prominent artist who, through talent and determination, succeeded in forging a unique identity in late 19th- and early 20th-century art history, on both sides of the Atlantic. 
+Comprising almost 80 paintings, pastels and prints, and covering the whole of the artist’s career, “Mary Cassatt: Le choix de l’indépendance / Mary Cassatt: The Choice of Independence” opens up new perspectives on her work, drawing on unpublished letters and never before exploited sources. Rarely shown works from public and private European collections will be presented, along with paintings and pastels from American collections seldom exhibited outside the United States.
+A selection of Cassatt’s early works and portraits of her loved ones shows how the artist’s social milieu, travels and knowledge of the art of the past shaped her approach and practice. Making it a point of honor to be independent (originally at her wealthy family’s request), she soon set herself up in her own studio and started employing paid sitters. In a largely male environment, and against a background of latent nationalism, she rapidly succeeded in establishing herself as a professional painter.
+
+Shara Hughes [The Albertina]
+https://www.albertina.at/en/exhibitions/shara-hughes/ 
+DATES: OCT 9 2026 - FEB 28 2027 
+Artist: Shara Hughes
+Fields of flowers, enchanted forests, and mysterious waterfalls seem as if born of a wild fever dream: gigantic flowers weave their way toward the sky like trees, plants mutate into things familiar seeming yet unknown, blazing sunsets reflect upon the water, stars glow on the horizon and bathe the landscape in their supernatural light.
+The paintings of Shara Hughes (*1981 in Atlanta, Georgia) embody a journey through the trials, tribulations, the jungle-like terrain of an overwhelmingly rich inner world, and their motifs are charged with symbolism. While some works pay homage to Georgia O’Keeffe, the artist’s expressive use of color is owed above all to fauvist approaches to landscape depiction as well as the expressionism of the modern era.
+
+
+
+Willem de Kooning at Work [Rijksmuseum]
+https://www.rijksmuseum.nl/en/whats-on/exhibitions/willem-de-kooning-at-work 
+DATES: OCT 9 2026 - JAN 17 2027
+Artist: Willem de Kooning 
+The Rijksmuseum presents 'Willem de Kooning at work', a landmark exhibition that places the artist’s creative process at its core. Featuring around 120 works, it offers a comprehensive overview of his drawings, alongside selected paintings and sculptures.
+Tracing de Kooning’s artistic evolution, the exhibition follows his journey from the Netherlands to New York where his work showed a startling lack of adherence to stylistic norms as he shifted between figuration and abstraction while creating bold works that defined Abstract Expressionism. It continued with decades of vital energy in his Long Island studio that led this colorist through to the perfect integration of drawing and painting. Through his drawings, audiences gain unprecedented insight into an artist constantly searching for renewal - a modern master whose restless line forever reshaped the language of art.
+
+
+Whistler: Dandy and Disruptor [Van Gogh Museum]
+https://www.vangoghmuseum.nl/en/visit/whats-on/exhibitions/whistler 
+DATES: OCT 16 2026 - JAN 10 2027 
+Curator: Carol Jacobi (Tate Britain) alongside Isobel Muir, James Finch, Edwin Becker (Van Gogh Museum), and Renske Suijver.
+Artist: James McNeill Whistler
+Meet James McNeill Whistler (1834–1903): painter and printmaker, influencer avant la lettre, aesthete and enfant terrible. Whistler. Dandy and Disruptor is the first retrospective in the Netherlands devoted to this remarkable artist.
+The exhibition Whistler. Loving the Netherlands runs concurrently at The Mesdag Collection in The Hague, focusing on Whistler’s time in the Netherlands and work he produced during his visits.
+Explores Whistler as an "elegant rebel" who challenged 19th-century artistic conventions through paintings, etchings, and drawings.
+
+
+Jenny Holzer: I Saw [Musée d’Orsay]
+https://www.musee-orsay.fr/en/program/whats-on/exhibitions/jenny-holzer-jai-vu-ive-seen 
+DATES: OCT 20 2026 - FEB 21 2027
+Curator: Sylvain Amic, President of the Public Establishment of the Musée d’Orsay and the Musée de l’Orangerie, Valéry Giscard d’Estaing (April 24, 2024 – August 31, 2025) and Nicolas Gausserand, Advisor to the President, head of international and contemporary matters.
+Artist: Jenny Holzer
+Recognized as one of the major artists of our time, the American artist Jenny Holzer puts words and ideas at the heart of her deeply committed practice. For the exhibition J’ai vu / I Have Seen, designed with and for the Musée d’Orsay for fall 2026, the artist makes use of fragments of texts she found in the Musée d’Orsay’s collections, along with important texts of the time, which she deploys on her favorite mediums: monumental installations, projections on the train station’s historic façade, exotic engravings on stone and luminous electronic displays.
+The exhibition will take a variety of forms, starting with radiant projections on the Seine side of the Museum’s façade during its inauguration week in October. The extracts Holzer has chosen – going from artists’ letters conserved in the Museum’s archives to contemporary literary and political writings of their day – will transform the building’s exterior and provide passers-by with an immersive, almost timeless experience.
+Inside, an LED installation specially designed for the venue and brought to life by colorful streams of text, will immerse visitors in the contents of the history represented in the Museum’s collections and in dialogue with it. This luminous work echoes the building’s transformation from 19th-century train station to modern museum: a tailored program, traversing the exhibition space, reflects visitors’ bustling movement, recalling the Gare d’Orsay’s function.
+Passing through a selection of works from the collections, presented in domed rooms devoted to history paintings, naturalism and symbolism, the LED installation will dialogue with paintings by Holzer created from gold, platinum and palladium leaf. These works, in which erasure and dissimulation are made visible, change their appearance from day to day in response to variations in the Seine’s light. Much of their content remains hidden, but traces of difficult yet essential decisions survive, echoing the history paintings exhibited in the neighboring galleries.
+The exhibition will also be presenting stone benches designed in dialogue with the Museum’s architecture and its permanent collections. Created especially for the occasion, these new sculptures, many of which are engraved with texts from the 1848–1914 period represented at the Musée d’Orsay, will be positioned in various areas on the ground floor and in the galleries. The benches’ unusual colors respond to the remarkable diversity of stones used in the Museum’s sculptures and their bases, in line with Gae Aulenti’s initial project.
+Together, the works presented inside and outside the Museum bear witness to the indissociable interweaving of past and present and the lasting attachment that unites France and the United States.
+
+Vishnu’s Cosmic Ocean [Asian Art Museum]
+https://asia.si.edu/whats-on/exhibitions/vishnus-cosmic-ocean/ 
+DATES: OCT 23 2026 - JAN 25 2027
+A thousand years ago, a colossal statue of the Hindu god Vishnu reclined on a serpent-shaped pedestal in a temple in the Cambodian kingdom of Angkor. Newly conserved, this national treasure has toured four major institutions worldwide in the past year. The Asian Art Museum of San Francisco is the only West Coast venue where the monumental statue can be seen before it returns to Cambodia.
+For the first time in centuries, audiences can experience the full, nearly twenty-foot-long scale of “the most important bronze artwork of Cambodia,” says Chhay Visoth, director of the National Museum of Cambodia. “This is the last chance that this great masterpiece will be out of the country,” notes Visoth.
+The awe-inspiring West Mebon Reclining Vishnu offers a window onto the grandeur and sophistication of the Khmer civilization. “Cambodia takes immense pride in the creations of our ancestors,” says Minister of Culture and Fine Arts Phoeurng Sackona, “whose works, despite being thousands of years old, continue to serve as the nation’s greatest cultural ambassadors on the world stage.”
+The statue’s original location — a temple surrounded by the expansive waters of a reservoir — echoes the Hindu creation story in which a sleeping Vishnu, drifting in the primordial “cosmic ocean” atop a coiled serpent, dreams the universe into existence, explains exhibition curator Natasha Reichle, associate curator of Southeast Asian Art at the Asian Art Museum.
+An accompanying film by Cambodian American director praCh Ly documents the community around the present-day reservoir through a day in the life of a local fisherman and a young Buddhist monk, filling the gallery with the subtle, serene sounds of a vast body of water.
+“The exhibition highlights the importance of water, both in the mythology around Vishnu and as a crucial resource in ancient Angkor,” says Reichle, “exploring connections between art, water, and power that continue to resonate globally in the present day.”
+
+
+Women Artists of the Albertina [The Albertina]
+https://www.albertina.at/en/exhibitions/women-artists-of-the-albertina/ 
+DATES: OCT 30 2026 - FEB 14 2027
+In connection with its 250 th anniversary, the ALBERTINA Museum is presenting the first-ever exhibition devoted specifically to the women artists represented in its collection—thereby telling art history anew. Extending from the 15th century and the 1970s, this presentation shows that women have indeed decisively impacted art’s development despite how their contributions long remained invisible or were even forgotten.
+Numerous works by draughtswomen and female printmakers were already acquired by Duke Albert and Archduchess Marie Christine. These will feature as part of a range of works from multiple eras, from medieval woodcuts produced at women’s convents to early feminist output—making clear how art history has always also been made by women.
+In expansions to the collection in recent years, particularly additions to the holdings of contemporary art have seen additions that reflect female artistic stances and artists. However, this begs the question as to the museum’s historical holdings, which were collected against the backdrop of entirely different social circumstances, political situations, and power relations. This exhibition draws upon an ongoing research project concerning women artists in all areas of the collection initiated by the ALBERTINA Museum’s new Director General Ralph Gleis. The findings so far: astounding diversity and a considerable number of outstanding works that have so far been shown but rarely or not at all.
+
+
+Feminist Futures Forever [Belvedere Museum]
+https://www.belvedere.at/en/feminist-futures-forever 
+DATES: NOV 5 2026 - MAR 7 2027 
+Curator: Curated by Christiane Erharter and Stefanie Reisinger. Assistant Curators: Anna Ewa Dyrko and Andrea Kopranovic
+group exhibition bringing together international and intergenerational feminist perspectives
+Feminist Futures Forever focuses on the polyphony of artistic practices. It ties together feminist demands, sociopolitical impacts, and different temporalities: each desire for change critically engages with its own past and present while looking towards the conditions of an imagined future. Feminist Futures Forever adheres to this principle and, by looking back at the 1985 exhibition Kunst mit Eigen-Sinn (Art with a Mind of Its Own), brings international, intersectional, and intergenerational positions into dialogue with one another. The individual works of art are key: their narratives interact in spaces inspired by everyday life, enabling visitors to intuitively experience possible models for the future. 
+
+
+
+Franz West [Albertina Modern]
+https://www.albertina.at/en/albertina-modern/exhibitions/franz-west/ 
+DATES: NOV 6 2026 - MAR 29 2027 
+Artist: Franz West
+The ALBERTINA Museum is devoting a retrospective to Franz West (1947–2012) in honor of what would have been his 80th birthday. This nonconformist artist, known for an unruly personality characterized by willfulness and humor, participated in multiple editions of documents and the Venice Biennale, whose Golden Lion he received in 2011.
+It was under the influence of Viennese Actionism that West originated his legendary Adaptives in the 1970s: by being worn, held, and applied, these prothesis-like objects adapt to the human body’s shapes and give the audience the opportunity to interact. Objects thus become opportunities, with art becoming a situation. West’s oeuvre breaks boundaries, connects art with life, and has inspired multiple generations of artists. This presentation pays homage to one who removed art from its pedestal to place it in the thick of life.
+
+
+Van Eyck: The Portraits
+https://www.nationalgallery.org.uk/exhibitions/van-eyck-the-portraits 
+DATES: NOV 21 2026 - APR 11 2027 
+Curator: Dr. Emma Capron, the Curator of Early Netherlandish and German Paintings.
+Artist: Van Eyck
+Portraiture as we know it begins with van Eyck. His vision and skill launched painting into a new era of unrivalled realism.
+Watchful eyes, a hint of stubble, wrinkles, flushed cheeks. Van Eyck captured his subjects in all their intimate details. Though these people sat for their portraits 600 years ago, they feel alive today. 
+‘Van Eyck: The Portraits’ brings together from across Europe all nine of the artist’s known painted portraits, making up half of his surviving works worldwide. 
+Breathing life into van Eyck’s world, the exhibition introduces the men and women he spent his life around. They are not kings, queens and aristocrats; they are successful craftsmen, merchants and the artist’s relatives. This is a story of people. This is the moment when access to art widened. 
+Precious and fragile, van Eyck’s paintings rarely travel, including 'The Arnolfini Portrait'. This is one of the most popular paintings in our collection and and has only ever left the Gallery once in over 100 years. The exhibition marks the first and only time these works can be brought together. And this incredible display can only happen here, at the Gallery. 
+
+
+Down Under: Art from Australia [Albertina Modern]
+https://www.albertina.at/en/albertina-modern/exhibitions/down-under/ 
+DATES: NOV 24 2026 - MAY 2 2027 
+Artist: Emily Kame Kngwarreye and Featured Artists: Destiny Deacon, Tracey Moffatt, and others.
+Paintings of monumental beauty and power convey history and knowledge passed down through many generations: the works of Emily Kame Kngwarreye (1910–1996) embody detailed knowledge of the land of her ancestors. As probably the best-known protagonist of Australian First Nations art, she began painting only in her late 70s and spent the following eight years until her death creating a wide-ranging body of works that stand at the center of this exhibition of artists from Australia.
+The selection draws upon the ALBERTINA Museum’s extensive holdings of this type, which encompass around 100 artistic approaches and were most recently augmented by a donation from the collecting couple Elisabeth Bähr and Lindsay Frost in honor of the museum’s 250th anniversary. Works by Australian women photographers such as Destiny Deacon and Tracey Moffatt round out this presentation of art from down under.
+
+
+

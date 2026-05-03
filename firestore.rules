@@ -1,0 +1,227 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+      
+      // Completed tours subcollection
+      match /completedTours/{tourId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Saved tours subcollection
+      match /savedTours/{tourId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Saved museums subcollection
+      match /savedMuseums/{museumId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Saved galleries subcollection
+      match /savedGalleries/{galleryId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Following subcollection
+      match /following/{targetId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Followers subcollection
+      match /followers/{followerId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null;
+      }
+      
+      // Stop uploads subcollection
+      match /stopUploads/{uploadId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Review drafts subcollection (1 per target)
+      match /reviewDrafts/{targetId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Tour progress subcollection
+      match /tourProgress/{tourId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Saved exhibits subcollection
+      match /savedExhibits/{exhibitId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Purchased tours subcollection (written by Cloud Function on payment)
+      match /purchasedTours/{tourId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+      
+      // Groups subcollection
+      match /groups/{groupId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null;
+      }
+      
+      // Group invites subcollection
+      match /groupInvites/{groupId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null;
+      }
+      
+      // Venue notifications subcollection
+      match /venueNotifications/{venueId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Follow activity subcollection
+      match /followActivity/{activityId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null;
+      }
+      
+      // Feed items subcollection (written by Cloud Function)
+      match /feedItems/{itemId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+    }
+    
+    // Usernames collection
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+    
+    // Group activity feed
+    match /groupActivity/{activityId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+    }
+    
+    // Groups collection
+    match /groups/{groupId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && resource.data.hostId == request.auth.uid;
+      
+      match /messages/{messageId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
+      
+      match /photos/{photoId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+      }
+    }
+    
+    // Tours collection - public read, curators can create/edit own tours
+    match /tours/{tourId} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && request.resource.data.createdBy == request.auth.uid;
+      allow update: if request.auth != null
+                    && resource.data.createdBy == request.auth.uid;
+      allow delete: if request.auth != null
+                    && resource.data.createdBy == request.auth.uid
+                    && resource.data.status == 'draft';
+      
+      match /stops/{stopId} {
+        allow read: if true;
+        allow write: if request.auth != null
+                     && get(/databases/$(database)/documents/tours/$(tourId)).data.createdBy == request.auth.uid;
+      }
+    }
+    
+    // Museums, galleries, exhibits — read-only; stats updated by Cloud Function
+    match /museums/{museumId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /galleries/{galleryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /exhibits/{exhibitId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Reviews — read-only; all writes go through submitReview Cloud Function
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow write: if false;
+      
+      match /replies/{replyId} {
+        allow read: if true;
+        allow create: if request.auth != null;
+        allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
+    }
+    
+    // Articles collection - public read
+    match /articles/{articleId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Newsletter signups - public write, no read
+    match /newsletter/{email} {
+      allow read: if false;
+      allow create, update: if request.resource.data.keys().hasOnly(['email', 'source', 'subscribedAt'])
+                            && request.resource.data.email is string;
+    }
+
+    // Ticket click tracking - public read/write for analytics
+    match /ticketClicks/{clickId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['venueId', 'venueName', 'url', 'source', 'ts', 'referrer', 'affiliate'])
+                    && request.resource.data.venueId is string;
+    }
+
+    // User reports (data-quality issues) — any signed-in user can submit,
+    // no client reads or updates. Cloud Function stamps triageStatus. Agent
+    // (with admin credentials) reads and processes them.
+    match /reports/{reportId} {
+      allow read: if false;
+      allow create: if request.auth != null
+                    && request.resource.data.reporterId == request.auth.uid
+                    && request.resource.data.keys().hasAll(['reporterId', 'targetType', 'targetId', 'category'])
+                    && request.resource.data.targetType in ['museum', 'gallery', 'exhibit']
+                    && request.resource.data.category is string;
+      allow update, delete: if false;
+    }
+
+    // Review queues — Cloud Functions and admins only. No client access.
+    match /scrapeDrafts/{draftId} {
+      allow read, write: if false;
+    }
+    match /venueAuditFlags/{flagId} {
+      allow read, write: if false;
+    }
+    match /reportTriage/{triageId} {
+      allow read, write: if false;
+    }
+
+    // Purchases — written by Cloud Function on Stripe webhook. Read own purchases only.
+    match /purchases/{purchaseId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+  }
+}
