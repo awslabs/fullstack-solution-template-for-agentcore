@@ -309,6 +309,29 @@ export class BackendStack extends cdk.NestedStack {
       })
     )
 
+    // Add Browser Tool permissions (for AgentCore Browser + OS-level actions)
+    agentRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "BrowserToolAccess",
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "bedrock-agentcore:StartBrowserSession",
+          "bedrock-agentcore:StopBrowserSession",
+          "bedrock-agentcore:GetBrowserSession",
+          "bedrock-agentcore:ListBrowserSessions",
+          "bedrock-agentcore:UpdateBrowserStream",
+          "bedrock-agentcore:ConnectBrowserAutomationStream",
+          "bedrock-agentcore:ConnectBrowserLiveViewStream",
+          "bedrock-agentcore:InvokeBrowser",
+        ],
+        resources: [
+          `arn:aws:bedrock-agentcore:${this.region}:aws:browser/*`,
+          `arn:aws:bedrock-agentcore:${this.region}:${this.account}:browser/*`,
+          `arn:aws:bedrock-agentcore:${this.region}:${this.account}:browser-custom/*`,
+        ],
+      })
+    )
+
     // Add OAuth2 Credential Provider access for AgentCore Runtime
     // The @requires_access_token decorator performs a two-stage process:
     // 1. GetOauth2CredentialProvider - Looks up provider metadata (ARN, vendor config, grant types)

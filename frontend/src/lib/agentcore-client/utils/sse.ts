@@ -33,6 +33,11 @@ export async function readSSEStream(
           parser(line, callback)
         }
       }
+
+      // Yield to the browser so React can flush state updates between chunks.
+      // Without this, multiple SSE events in one network chunk get batched
+      // into a single React render, making streaming appear instant.
+      await new Promise(resolve => setTimeout(resolve, 0))
     }
 
     // Process any remaining data in the buffer

@@ -19,3 +19,5 @@
 - Samaneh Aminikhanghahi
 - Abhilash Balachandran
 - Rajat Dogra
+- Hari Prasanna Das
+- Rahul Ghosh

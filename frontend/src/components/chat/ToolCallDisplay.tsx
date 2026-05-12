@@ -30,7 +30,7 @@ export function ToolCallDisplay({ name, args, status, result }: ToolRenderProps)
       </button>
 
       {expanded && (
-        <div className="ml-6 mt-1 border-l-2 border-gray-200 pl-3 space-y-2">
+        <div className="ml-6 mt-1 border-l-2 border-gray-200 pl-3 space-y-2 max-h-60 overflow-y-auto">
           {args && (
             <div>
               <div className="text-xs text-gray-400">Input</div>

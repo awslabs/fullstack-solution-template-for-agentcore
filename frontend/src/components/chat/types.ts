@@ -9,6 +9,8 @@ export interface ToolCall {
   input: string
   result?: string
   status: ToolCallStatus
+  liveViewUrl?: string
+  streamEvents?: unknown[]
 }
 
 export type MessageSegment =

@@ -21,6 +21,7 @@ export type StreamEvent =
   | { type: "tool_use_start"; toolUseId: string; name: string }
   | { type: "tool_use_delta"; toolUseId: string; input: string }
   | { type: "tool_result"; toolUseId: string; result: string }
+  | { type: "tool_stream"; toolUseId: string; data: unknown }
   | { type: "message"; role: string; content: unknown[] }
   | { type: "result"; stopReason: string }
   | { type: "lifecycle"; event: string }
