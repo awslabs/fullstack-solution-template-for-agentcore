@@ -159,6 +159,7 @@ fullstack-agentcore-solution-template/
 │   ├── CEDAR_POLICY_GUIDE.md # Cedar policy syntax, capabilities & reference
 │   ├── REPLACING_COGNITO.md # Identity provider swap & Gateway interceptors guide
 │   ├── RUNTIME_GATEWAY_AUTH.md # M2M authentication workflow
+│   ├── SESSION_MANAGEMENT.md # Session persistence & resumption guide
 │   ├── STREAMING.md        # Streaming implementation guide
 │   ├── TOOL_AC_CODE_INTERPRETER.md # Code Interpreter guide
 │   └── VERSION_BUMP_PLAYBOOK.md # Version management
