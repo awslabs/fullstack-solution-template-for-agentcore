@@ -87,6 +87,60 @@ def extract_user_id_from_context(context: RequestContext) -> str:
     return user_id
 
 
+def get_user_email(user_id: str) -> str:
+    """
+    Resolve a user's email address from their Cognito ``sub`` (user ID).
+
+    The JWT ``sub`` claim is an opaque UUID, not the email address. When group
+    assignment in the Pre-Token Lambda is driven by the email (e.g. the demo
+    mapping ``fastprojectadmin`` -> finance), the email must be looked up
+    separately. The access token sent to the Runtime does not carry an ``email``
+    claim, so this resolves it via the Cognito ``ListUsers`` API filtered by
+    ``sub``.
+
+    Args:
+        user_id (str): The authenticated user's ID (``sub`` claim from the
+            validated JWT).
+
+    Returns:
+        str: The user's email address, or an empty string if it cannot be
+            resolved (so callers can fall back to the ``sub`` without failing
+            the request).
+    """
+    stack_name = os.environ["STACK_NAME"]
+    region = os.environ.get(
+        "AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+    )
+
+    try:
+        user_pool_id = get_ssm_parameter(f"/{stack_name}/cognito-user-pool-id")
+        cognito = boto3.client("cognito-idp", region_name=region)
+        # ListUsers with a sub filter is the documented way to find a user by
+        # their immutable sub. AdminGetUser requires the username, which for a
+        # pool with email as the username attribute is itself the sub-derived
+        # UUID, so ListUsers keeps this robust across pool configurations.
+        response = cognito.list_users(
+            UserPoolId=user_pool_id,
+            Filter=f'sub = "{user_id}"',
+            Limit=1,
+        )
+        users = response.get("Users", [])
+        if not users:
+            logger.warning("No Cognito user found for sub: %s", user_id)
+            return ""
+        for attr in users[0].get("Attributes", []):
+            if attr["Name"] == "email":
+                return attr["Value"]
+        logger.warning("Cognito user %s has no email attribute", user_id)
+        return ""
+    except Exception as e:
+        # Email resolution is best-effort: never fail the request just because
+        # the lookup failed. Callers fall back to the sub (which yields the
+        # default group in the Pre-Token Lambda).
+        logger.warning("Failed to resolve email for sub %s: %s", user_id, e)
+        return ""
+
+
 def get_secret(secret_name: str) -> str:
     """
     Fetch a secret value from AWS Secrets Manager.
@@ -142,6 +196,12 @@ def get_gateway_access_token(user_id: str) -> str:
     (extracted by extract_user_id_from_context). This ensures the identity chain
     is cryptographically secure end-to-end.
 
+    The user_id is the opaque Cognito ``sub`` (a UUID), so it is unsuitable for
+    email-based group assignment on its own. The user's email is resolved from
+    the ``sub`` (see get_user_email) and propagated as ``verified_email`` so the
+    Pre-Token Lambda can assign department/role from the email. The ``sub`` is
+    still propagated as ``verified_user_id`` for use as a stable identifier.
+
     Args:
         user_id (str): The authenticated user's ID (sub claim from validated JWT).
 
@@ -182,10 +242,21 @@ def get_gateway_access_token(user_id: str) -> str:
         "Content-Type": "application/x-www-form-urlencoded",
     }
 
-    # Include aws_client_metadata with verified_user_id so the Cognito V3
-    # Pre-Token Lambda can read it and inject user-specific claims into the
-    # M2M access token. This is the bridge between user auth and M2M auth.
-    client_metadata = json.dumps({"verified_user_id": user_id})
+    # Resolve the user's email from the sub. The access token carries no email
+    # claim, and the sub is a UUID, so email-based group assignment in the
+    # Pre-Token Lambda needs this explicit lookup.
+    user_email = get_user_email(user_id)
+    # Avoid logging the email itself (PII); log only whether it was resolved.
+    logger.info("Email resolved for group assignment: %s", bool(user_email))
+
+    # Include aws_client_metadata so the Cognito V3 Pre-Token Lambda can read it
+    # and inject user-specific claims into the M2M access token. This is the
+    # bridge between user auth and M2M auth.
+    #   verified_user_id: the stable Cognito sub (UUID)
+    #   verified_email:   the email, used for the demo's email-based group mapping
+    client_metadata = json.dumps(
+        {"verified_user_id": user_id, "verified_email": user_email}
+    )
 
     data = {
         "grant_type": "client_credentials",

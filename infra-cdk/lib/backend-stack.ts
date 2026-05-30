@@ -324,6 +324,22 @@ export class BackendStack extends cdk.NestedStack {
       })
     )
 
+    // Add Cognito permission to resolve a user's email from their sub.
+    // The access token sent to the Runtime carries no email claim, so the
+    // agent resolves the email via ListUsers (filtered by sub) to drive
+    // email-based group assignment in the Pre-Token Lambda. See
+    // patterns/utils/auth.py — get_user_email.
+    agentRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "CognitoListUsersForEmailLookup",
+        effect: iam.Effect.ALLOW,
+        actions: ["cognito-idp:ListUsers"],
+        resources: [
+          `arn:aws:cognito-idp:${this.region}:${this.account}:userpool/${this.userPoolId}`,
+        ],
+      })
+    )
+
     // Add Code Interpreter permissions
     agentRole.addToPolicy(
       new iam.PolicyStatement({

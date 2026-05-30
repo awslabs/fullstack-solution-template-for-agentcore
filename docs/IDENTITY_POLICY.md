@@ -43,18 +43,21 @@ AgentCore Policy is a service that controls what your AI agents are allowed to d
 
 ## Architecture / Flow
 
-The identity propagation flow has six steps:
+The identity propagation flow has seven steps:
 
 ```
 1. User logs in → Frontend gets JWT from Cognito
 2. Frontend sends request → Runtime validates JWT, extracts user_id (sub claim)
-3. Runtime calls Cognito /oauth2/token with aws_client_metadata containing user_id
-4. Cognito V3 Pre-Token Lambda fires → reads user_id → injects department/role claims into M2M token
-5. Runtime calls Gateway tool with the enriched M2M token
-6. Gateway's CUSTOM_JWT Authorizer maps token claims to Cedar principal tags → Policy Engine evaluates Cedar policy → allow or deny
+3. Runtime resolves the user's email from the sub (Cognito ListUsers), since the access token carries no email claim
+4. Runtime calls Cognito /oauth2/token with aws_client_metadata containing user_id (sub) and email
+5. Cognito V3 Pre-Token Lambda fires → reads email → injects department/role claims into M2M token
+6. Runtime calls Gateway tool with the enriched M2M token
+7. Gateway's CUSTOM_JWT Authorizer maps token claims to Cedar principal tags → Policy Engine evaluates Cedar policy → allow or deny
 ```
 
-Key security property: the `user_id` comes from the validated JWT in the Runtime's Session Context (`sub` claim), not from the LLM or request payload. This ensures the identity chain is cryptographically secure end-to-end.
+Key security property: the `user_id` comes from the validated JWT in the Runtime's Session Context (`sub` claim), not from the LLM or request payload. This ensures the identity chain is cryptographically secure end-to-end. The email used for group assignment is resolved server-side from that same `sub` (never taken from the payload), so it inherits the same integrity guarantee.
+
+> **Why resolve the email separately?** The `sub` claim is an opaque UUID, so it can never contain a substring like `fastprojectadmin`. The Cognito **access token** sent to the Runtime does not include an `email` claim either. To drive email-based group assignment, the Runtime looks the email up from the `sub` via the Cognito `ListUsers` API (see `get_user_email` in `patterns/utils/auth.py`) and propagates it as `verified_email`.
 
 ## Components
 
@@ -70,7 +73,7 @@ The Cognito User Pool is configured with `featurePlan: ESSENTIALS`. This is requ
 
 This Lambda fires on every token generation event (both user login and M2M). It only processes M2M flows (`TokenGeneration_ClientCredentials`) and skips user login flows.
 
-For M2M flows, it reads `verified_user_id` from `clientMetadata` and assigns department/role claims based on the user's identity:
+For M2M flows, it reads `verified_email` from `clientMetadata` and assigns department/role claims based on the email (the `verified_user_id` sub is also available as a stable identifier):
 
 | User Email Contains | Department | Role |
 |---------------------|------------|------|
@@ -300,11 +303,12 @@ def lambda_handler(event, context):
 
     # Existing user identity logic (unchanged)
     meta = event["request"].get("clientMetadata", {})
-    user_id = meta.get("verified_user_id", "")
+    user_id = meta.get("verified_user_id", "")  # Cognito sub (UUID)
+    user_email = meta.get("verified_email", "")  # resolved from sub server-side
 
-    if "fastprojectadmin" in user_id.lower():
+    if "fastprojectadmin" in user_email.lower():
         department, role = "finance", "admin"
-    elif "fastuser" in user_id.lower():
+    elif "fastuser" in user_email.lower():
         department, role = "engineering", "developer"
     else:
         department, role = "guest", "viewer"
