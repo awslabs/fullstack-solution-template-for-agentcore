@@ -5,16 +5,21 @@
 """
 Ephemeral CodeBuild deployment script for FAST.
 
-Deploys the full FAST stack using a temporary CodeBuild project.
-Only requires Python 3.8+, AWS CLI, and git — no other dependencies.
+Deploys the full FAST stack using a CodeBuild project. Requires Python 3.11+,
+AWS CLI, and git. Only git-tracked or staged files are deployed; untracked
+files are skipped with a warning.
 
-Flow: zip source → temp S3 bucket → temp IAM role → temp CodeBuild project →
-      stream logs → cleanup all temp resources.
+Flow: zip source → create source bucket/IAM role/boundary/project →
+      upload source → stream logs → on success, tear down everything.
+
+On success, all created resources (source bucket, project, IAM role, boundary)
+are removed. On failure, they are retained for debugging and reused on the next
+run. The bucket has a 1-day object-expiry rule so a leftover archive can't
+linger. Does NOT remove the deployed FAST stack (use `cd infra-cdk && cdk destroy`).
 
 Usage: python scripts/deploy-with-codebuild.py
 """
 
-import atexit
 import io
 import json
 import os
@@ -27,11 +32,11 @@ import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-if sys.version_info < (3, 8):
-    print("Error: Python 3.8 or higher is required")
+if sys.version_info < (3, 11):
+    print("Error: Python 3.11 or higher is required")
     sys.exit(1)
 
-RESOURCE_PREFIX: str = "fast-deploy-tmp"
+RESOURCE_PREFIX: str = "fast-deploy"
 LOG_POLL_INTERVAL: int = 5
 
 
@@ -46,6 +51,11 @@ def log_info(message: str) -> None:
 def log_success(message: str) -> None:
     """Print a success message."""
     print(f"✓ {message}")
+
+
+def log_warn(message: str) -> None:
+    """Print a warning message."""
+    print(f"⚠ {message}")
 
 
 def log_error(message: str) -> None:
@@ -138,16 +148,89 @@ def get_stack_outputs(stack_name: str) -> Dict[str, str]:
 # --- Source packaging ---
 
 
+def _collect_tracked_files(repo_root: Path) -> List[str]:
+    """
+    Collect git-tracked and staged files via git ls-files.
+
+    Only files git knows about (committed or staged) are returned, so
+    untracked local files never get packaged. Requires git.
+
+    Args:
+        repo_root: Path to the repository root
+
+    Returns:
+        List of relative file paths
+
+    Raises:
+        SystemExit: If git is not available or the repo can't be read.
+    """
+    try:
+        result = run_command(
+            command=["git", "ls-files", "-z"],
+            cwd=str(repo_root),
+        )
+    except FileNotFoundError:
+        log_error(
+            "git is required to package the source but was not found on PATH. "
+            "Install git and run from inside the repository."
+        )
+        sys.exit(1)
+    except subprocess.CalledProcessError:
+        log_error(
+            "Failed to list files with git. Run this script from inside the "
+            "FAST git repository."
+        )
+        sys.exit(1)
+
+    return [f for f in result.stdout.split("\0") if f]
+
+
+def _warn_unstaged_files(repo_root: Path) -> None:
+    """
+    Warn about untracked, non-ignored files that will NOT be deployed.
+
+    These are files git is not tracking and that aren't gitignored — likely
+    new code the user forgot to stage. Best-effort; never raises.
+
+    Args:
+        repo_root: Path to the repository root
+    """
+    try:
+        result = run_command(
+            command=["git", "ls-files", "--others", "--exclude-standard", "-z"],
+            cwd=str(repo_root),
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return
+
+    untracked = [f for f in result.stdout.split("\0") if f]
+    if not untracked:
+        return
+
+    log_warn(
+        f"{len(untracked)} untracked file(s) will NOT be deployed. "
+        "Run 'git add' to include them:"
+    )
+    for path in untracked[:20]:
+        log_warn(f"  - {path}")
+    if len(untracked) > 20:
+        log_warn(f"  …and {len(untracked) - 20} more")
+
+
 def create_source_zip() -> bytes:
     """
-    Create an in-memory zip of the repo using git ls-files.
+    Create an in-memory zip of the git-tracked source.
+
+    Only tracked or staged files are packaged. Untracked files are skipped
+    and reported via a warning so local secrets never leave the machine.
 
     Returns:
         Raw bytes of the zip archive
     """
     repo_root: Path = Path(__file__).parent.parent
-    result = run_command(command=["git", "ls-files", "-z"], cwd=str(repo_root))
-    files: List[str] = [f for f in result.stdout.split("\0") if f]
+
+    _warn_unstaged_files(repo_root)
+    files = _collect_tracked_files(repo_root)
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -165,43 +248,99 @@ def create_source_zip() -> bytes:
 # --- AWS resource creation ---
 
 
-def create_s3_bucket(bucket_name: str, region: str) -> None:
+def get_or_create_source_bucket(bucket_name: str, region: str) -> None:
     """
-    Create a temporary S3 bucket.
+    Get or create the source bucket for this deployment run.
+
+    Removed after a successful run, retained on failure. A 1-day object-expiry
+    rule ensures a leftover archive can't linger.
 
     Args:
-        bucket_name: Name of the bucket to create
+        bucket_name: Name of the bucket
         region: AWS region for the bucket
     """
-    log_info(f"Creating temp S3 bucket: {bucket_name}")
+    # Adopt the bucket if a previous interrupted run already created it.
+    try:
+        run_command(
+            ["aws", "s3api", "head-bucket", "--bucket", bucket_name],
+        )
+        log_success(f"Using existing source bucket: {bucket_name}")
+        return
+    except subprocess.CalledProcessError:
+        pass  # Bucket doesn't exist (or isn't ours yet) — create it.
+
+    log_info(f"Creating source bucket: {bucket_name}")
     cmd = ["aws", "s3api", "create-bucket", "--bucket", bucket_name, "--output", "json"]
     # us-east-1 does not accept a LocationConstraint
     if region != "us-east-1":
         cmd += ["--create-bucket-configuration", f"LocationConstraint={region}"]
     run_command(cmd)
 
+    # Expire objects after a day so a leftover archive can't linger.
+    run_command(
+        [
+            "aws",
+            "s3api",
+            "put-bucket-lifecycle-configuration",
+            "--bucket",
+            bucket_name,
+            "--lifecycle-configuration",
+            json.dumps(
+                {
+                    "Rules": [
+                        {
+                            "ID": "expire-source-archives",
+                            "Status": "Enabled",
+                            "Filter": {},
+                            "Expiration": {"Days": 1},
+                            "AbortIncompleteMultipartUpload": {
+                                "DaysAfterInitiation": 1
+                            },
+                        }
+                    ]
+                }
+            ),
+            "--output",
+            "json",
+        ]
+    )
+    log_success(f"Source bucket created: {bucket_name}")
 
-def create_permission_boundary(policy_name: str) -> str:
+
+def get_or_create_permission_boundary(policy_name: str, account_id: str) -> str:
     """
-    Create an IAM permission boundary policy that denies dangerous actions.
-
-    Even though the CodeBuild role gets AdministratorAccess, this boundary
-    acts as a ceiling — the role cannot perform any action denied here.
-    Blocks privilege escalation paths like creating IAM users/access keys,
-    modifying KMS key policies, and organization-level operations.
+    Get existing permission boundary policy or create it if it doesn't exist.
 
     Args:
         policy_name: Name for the IAM boundary policy
+        account_id: AWS account ID
 
     Returns:
-        The ARN of the created permission boundary policy
+        The ARN of the permission boundary policy
     """
+    boundary_arn = f"arn:aws:iam::{account_id}:policy/{policy_name}"
+
+    # Check if policy already exists
+    try:
+        run_command(
+            [
+                "aws",
+                "iam",
+                "get-policy",
+                "--policy-arn",
+                boundary_arn,
+                "--output",
+                "json",
+            ]
+        )
+        log_success(f"Using existing permission boundary: {boundary_arn}")
+        return boundary_arn
+    except subprocess.CalledProcessError:
+        pass  # Policy doesn't exist, create it
+
     log_info(f"Creating permission boundary: {policy_name}")
 
     # Deny dangerous actions that a CDK deployment should never need.
-    # The Allow statement is required for a permission boundary to work —
-    # it defines the maximum permissions ceiling, while the Deny statements
-    # carve out explicit exceptions that cannot be overridden.
     boundary_policy: Dict[str, Any] = {
         "Version": "2012-10-17",
         "Statement": [
@@ -243,30 +382,49 @@ def create_permission_boundary(policy_name: str) -> str:
             "json",
         ]
     )
-    boundary_arn: str = json.loads(result.stdout)["Policy"]["Arn"]
+    boundary_arn = json.loads(result.stdout)["Policy"]["Arn"]
     log_success(f"Permission boundary created: {boundary_arn}")
     return boundary_arn
 
 
-def create_codebuild_iam_role(role_name: str, boundary_arn: str) -> str:
+def get_or_create_codebuild_iam_role(
+    role_name: str, boundary_arn: str, account_id: str
+) -> str:
     """
-    Create a temporary IAM role for CodeBuild with AdministratorAccess,
-    constrained by a permission boundary that blocks dangerous actions.
+    Get existing IAM role or create it if it doesn't exist.
 
-    CDK needs broad permissions to create all resource types, so we attach
-    AdministratorAccess but use a permission boundary as a safety ceiling
-    to prevent privilege escalation (e.g. creating IAM users, access keys).
-
-    The role is deleted after the build completes.
+    The role has AdministratorAccess constrained by a permission boundary
+    that blocks dangerous actions (creating IAM users, access keys, etc.).
 
     Args:
         role_name: Name for the IAM role
         boundary_arn: ARN of the permission boundary policy to attach
+        account_id: AWS account ID
 
     Returns:
-        The ARN of the created role
+        The ARN of the role
     """
-    log_info(f"Creating temp IAM role: {role_name}")
+    role_arn = f"arn:aws:iam::{account_id}:role/{role_name}"
+
+    # Check if role already exists
+    try:
+        result = run_command(
+            [
+                "aws",
+                "iam",
+                "get-role",
+                "--role-name",
+                role_name,
+                "--output",
+                "json",
+            ]
+        )
+        log_success(f"Using existing IAM role: {role_arn}")
+        return role_arn
+    except subprocess.CalledProcessError:
+        pass  # Role doesn't exist, create it
+
+    log_info(f"Creating IAM role: {role_name}")
 
     trust_policy: Dict[str, Any] = {
         "Version": "2012-10-17",
@@ -294,7 +452,7 @@ def create_codebuild_iam_role(role_name: str, boundary_arn: str) -> str:
             "json",
         ]
     )
-    role_arn: str = json.loads(result.stdout)["Role"]["Arn"]
+    role_arn = json.loads(result.stdout)["Role"]["Arn"]
 
     run_command(
         [
@@ -314,10 +472,12 @@ def create_codebuild_iam_role(role_name: str, boundary_arn: str) -> str:
     # if we proceed too quickly after creation.
     log_info("Waiting 10s for IAM role propagation...")
     time.sleep(10)
+
+    log_success(f"IAM role created: {role_arn}")
     return role_arn
 
 
-def create_codebuild_project(
+def get_or_create_codebuild_project(
     project_name: str,
     role_arn: str,
     bucket_name: str,
@@ -326,7 +486,7 @@ def create_codebuild_project(
     region: str,
 ) -> None:
     """
-    Create a temporary ARM64 CodeBuild project for CDK deployment.
+    Get existing CodeBuild project or create it if it doesn't exist.
 
     Args:
         project_name: Name for the CodeBuild project
@@ -336,8 +496,7 @@ def create_codebuild_project(
         stack_name: CDK stack name base (passed as env var)
         region: AWS region
     """
-    log_info(f"Creating CodeBuild project: {project_name}")
-
+    # Define buildspec once for both create and update paths
     buildspec: str = (
         "version: 0.2\n"
         "phases:\n"
@@ -357,6 +516,49 @@ def create_codebuild_project(
         "    commands:\n"
         "      - cd $CODEBUILD_SRC_DIR && python scripts/deploy-frontend.py\n"
     )
+
+    # Check if project already exists
+    try:
+        result = run_command(
+            [
+                "aws",
+                "codebuild",
+                "batch-get-projects",
+                "--names",
+                project_name,
+                "--output",
+                "json",
+            ]
+        )
+        projects = json.loads(result.stdout).get("projects", [])
+        if projects:
+            # Update source location to point to new temp bucket
+            log_info(f"Updating existing CodeBuild project source: {project_name}")
+            run_command(
+                [
+                    "aws",
+                    "codebuild",
+                    "update-project",
+                    "--name",
+                    project_name,
+                    "--source",
+                    json.dumps(
+                        {
+                            "type": "S3",
+                            "location": f"{bucket_name}/{source_key}",
+                            "buildspec": buildspec,
+                        }
+                    ),
+                    "--output",
+                    "json",
+                ]
+            )
+            log_success(f"Using existing CodeBuild project: {project_name}")
+            return
+    except subprocess.CalledProcessError:
+        pass  # Project doesn't exist, create it
+
+    log_info(f"Creating CodeBuild project: {project_name}")
 
     project_input: Dict[str, Any] = {
         "name": project_name,
@@ -391,6 +593,7 @@ def create_codebuild_project(
             "json",
         ]
     )
+    log_success(f"CodeBuild project created: {project_name}")
 
 
 def start_codebuild(project_name: str) -> str:
@@ -527,96 +730,108 @@ def stream_build_logs(build_id: str) -> str:
 # --- Cleanup ---
 
 
-def cleanup_resources(
-    role_name: Optional[str],
-    boundary_arn: Optional[str],
-    bucket_name: Optional[str],
-) -> None:
-    """
-    Delete temporary AWS resources (S3 bucket, IAM role, and permission boundary).
-    Best-effort — errors are logged, not raised.
+def _delete_codebuild_project(project_name: Optional[str]) -> None:
+    """Best-effort delete of the CodeBuild project. Logged, never raised."""
+    if not project_name:
+        return
+    try:
+        run_command(
+            [
+                "aws",
+                "codebuild",
+                "delete-project",
+                "--name",
+                project_name,
+                "--output",
+                "json",
+            ]
+        )
+        log_success(f"Deleted CodeBuild project: {project_name}")
+    except subprocess.CalledProcessError as exc:
+        log_error(f"Failed to delete CodeBuild project: {exc}")
 
-    The CodeBuild project is intentionally retained for debugging via the AWS console.
+
+def _delete_iam_role(role_name: Optional[str]) -> None:
+    """Best-effort detach of AdministratorAccess and delete of the role."""
+    if not role_name:
+        return
+    # Detach the managed policy first (ignore if not attached / role absent).
+    try:
+        run_command(
+            [
+                "aws",
+                "iam",
+                "detach-role-policy",
+                "--role-name",
+                role_name,
+                "--policy-arn",
+                "arn:aws:iam::aws:policy/AdministratorAccess",
+                "--output",
+                "json",
+            ]
+        )
+    except subprocess.CalledProcessError:
+        pass
+    try:
+        run_command(
+            ["aws", "iam", "delete-role", "--role-name", role_name, "--output", "json"]
+        )
+        log_success(f"Deleted IAM role: {role_name}")
+    except subprocess.CalledProcessError as exc:
+        log_error(f"Failed to delete IAM role: {exc}")
+
+
+def _delete_permission_boundary(boundary_arn: Optional[str]) -> None:
+    """Best-effort delete of the permission boundary policy."""
+    if not boundary_arn:
+        return
+    try:
+        run_command(
+            [
+                "aws",
+                "iam",
+                "delete-policy",
+                "--policy-arn",
+                boundary_arn,
+                "--output",
+                "json",
+            ]
+        )
+        log_success(f"Deleted permission boundary: {boundary_arn}")
+    except subprocess.CalledProcessError as exc:
+        log_error(f"Failed to delete permission boundary: {exc}")
+
+
+def _delete_source_bucket(bucket_name: Optional[str]) -> None:
+    """Best-effort empty and delete of the source bucket."""
+    if not bucket_name:
+        return
+    try:
+        run_command(["aws", "s3", "rb", f"s3://{bucket_name}", "--force"])
+        log_success(f"Deleted source bucket: {bucket_name}")
+    except subprocess.CalledProcessError as exc:
+        log_error(f"Failed to delete source bucket: {exc}")
+
+
+def teardown(resources: Dict[str, Optional[str]]) -> None:
+    """
+    Remove every resource this run created. Best-effort and idempotent.
+
+    Order matters: the IAM role must be deleted before its permission
+    boundary, since IAM won't delete a policy still attached as a boundary.
+    Deleting a resource that doesn't exist is a no-op.
 
     Args:
-        role_name: IAM role name (or None to skip)
-        boundary_arn: ARN of the permission boundary policy (or None to skip)
-        bucket_name: S3 bucket name (or None to skip)
+        resources: Mapping with keys 'project', 'role', 'boundary_arn', 'bucket'
     """
-    if not any([role_name, boundary_arn, bucket_name]):
+    if not any(resources.values()):
         return
 
-    log_info(
-        "Cleaning up temporary resources (keeping CodeBuild project for debugging)..."
-    )
-
-    if bucket_name:
-        try:
-            run_command(["aws", "s3", "rm", f"s3://{bucket_name}", "--recursive"])
-            run_command(
-                [
-                    "aws",
-                    "s3api",
-                    "delete-bucket",
-                    "--bucket",
-                    bucket_name,
-                    "--output",
-                    "json",
-                ]
-            )
-            log_success(f"Deleted S3 bucket: {bucket_name}")
-        except subprocess.CalledProcessError as exc:
-            log_error(f"Failed to delete S3 bucket: {exc}")
-
-    if role_name:
-        try:
-            run_command(
-                [
-                    "aws",
-                    "iam",
-                    "detach-role-policy",
-                    "--role-name",
-                    role_name,
-                    "--policy-arn",
-                    "arn:aws:iam::aws:policy/AdministratorAccess",
-                    "--output",
-                    "json",
-                ]
-            )
-            run_command(
-                [
-                    "aws",
-                    "iam",
-                    "delete-role",
-                    "--role-name",
-                    role_name,
-                    "--output",
-                    "json",
-                ]
-            )
-            log_success(f"Deleted IAM role: {role_name}")
-        except subprocess.CalledProcessError as exc:
-            log_error(f"Failed to delete IAM role: {exc}")
-
-    # Delete the permission boundary policy after the role is gone.
-    # The role must be deleted first since IAM won't delete a policy
-    # that is still attached as a permissions boundary.
-    if boundary_arn:
-        try:
-            run_command(
-                [
-                    "aws",
-                    "iam",
-                    "delete-policy",
-                    "--policy-arn",
-                    boundary_arn,
-                    "--output",
-                    "json",
-                ]
-            )
-            log_success(f"Deleted permission boundary policy: {boundary_arn}")
-        except subprocess.CalledProcessError as exc:
-            log_error(f"Failed to delete permission boundary policy: {exc}")
+    log_info("Cleaning up deployment resources...")
+    _delete_codebuild_project(resources.get("project"))
+    _delete_iam_role(resources.get("role"))
+    _delete_permission_boundary(resources.get("boundary_arn"))
+    _delete_source_bucket(resources.get("bucket"))
 
 
 # --- Main ---
@@ -629,26 +844,19 @@ def main() -> int:
     Returns:
         Exit code (0 for success, 1 for failure)
     """
-    # Track resource names for atexit cleanup
+    # Track every resource this run creates so we can tear them all down on a
+    # successful build, or report them for debugging if the build fails.
     resources: Dict[str, Optional[str]] = {
         "project": None,
         "role": None,
         "boundary_arn": None,
         "bucket": None,
     }
-
-    def _cleanup() -> None:
-        cleanup_resources(
-            role_name=resources["role"],
-            boundary_arn=resources["boundary_arn"],
-            bucket_name=resources["bucket"],
-        )
-
-    atexit.register(_cleanup)
+    source_key: str = "source.zip"
 
     config_path = Path(__file__).parent.parent / "infra-cdk" / "config.yaml"
 
-    log_info("🚀 Starting ephemeral CodeBuild deployment...")
+    log_info("🚀 Starting CodeBuild deployment...")
     print()
 
     # Verify AWS credentials
@@ -661,9 +869,7 @@ def main() -> int:
         log_error("AWS credentials not configured or invalid")
         return 1
 
-    # Detect region — precedence: AWS_REGION > AWS_DEFAULT_REGION > aws configure.
-    # This matches the AWS SDK's own resolution order and allows callers to
-    # override the profile's default region via environment variables.
+    # Detect region
     region: str = (
         os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or ""
     )
@@ -684,31 +890,40 @@ def main() -> int:
         return 1
     log_success(f"Stack name: {stack_name}")
 
-    # Generate unique resource names
-    ts: str = str(int(time.time()))
-    resources["project"] = f"{RESOURCE_PREFIX}-{ts}"
-    resources["role"] = f"{RESOURCE_PREFIX}-role-{ts}"
-    resources["bucket"] = f"{RESOURCE_PREFIX}-{account_id}-{ts}"
-    boundary_name: str = f"{RESOURCE_PREFIX}-boundary-{ts}"
+    # Stable resource names. Normalize the stack name for S3 (lowercase, valid
+    # chars) and cap at the 63-char bucket limit.
+    project_name = f"{RESOURCE_PREFIX}-{stack_name}"
+    role_name = f"{RESOURCE_PREFIX}-role-{stack_name}"
+    boundary_name = f"{RESOURCE_PREFIX}-boundary-{stack_name}"
+    safe_stack = re.sub(r"[^a-z0-9-]", "-", stack_name.lower()).strip("-")
+    source_bucket = (f"{RESOURCE_PREFIX}-src-{account_id}-{safe_stack}")[:63].rstrip(
+        "-"
+    )
+
+    # Register names up front so teardown/debug-report works even on partial failure.
+    resources["project"] = project_name
+    resources["role"] = role_name
+    resources["boundary_arn"] = f"arn:aws:iam::{account_id}:policy/{boundary_name}"
+    resources["bucket"] = source_bucket
 
     # Package source
     log_info("Packaging source...")
     zip_bytes: bytes = create_source_zip()
 
-    # Create temp S3 bucket and upload
-    create_s3_bucket(bucket_name=resources["bucket"], region=region)
+    # Get or create the source bucket and upload
+    get_or_create_source_bucket(bucket_name=source_bucket, region=region)
     with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
         tmp.write(zip_bytes)
         tmp_path = tmp.name
     try:
-        log_info(f"Uploading source to s3://{resources['bucket']}/source.zip")
+        log_info(f"Uploading source to s3://{source_bucket}/{source_key}")
         run_command(
             [
                 "aws",
                 "s3",
                 "cp",
                 tmp_path,
-                f"s3://{resources['bucket']}/source.zip",
+                f"s3://{source_bucket}/{source_key}",
                 "--no-progress",
             ]
         )
@@ -716,29 +931,34 @@ def main() -> int:
     finally:
         os.unlink(tmp_path)
 
-    # Create permission boundary and temp IAM role
-    boundary_arn: str = create_permission_boundary(policy_name=boundary_name)
-    resources["boundary_arn"] = boundary_arn
-    role_arn: str = create_codebuild_iam_role(
-        role_name=resources["role"],
+    # Get or create the IAM role and its permission boundary
+    boundary_arn: str = get_or_create_permission_boundary(
+        policy_name=boundary_name,
+        account_id=account_id,
+    )
+    role_arn: str = get_or_create_codebuild_iam_role(
+        role_name=role_name,
         boundary_arn=boundary_arn,
+        account_id=account_id,
     )
 
-    # Create project and start build
-    create_codebuild_project(
-        project_name=resources["project"],
+    # Get or create CodeBuild project
+    get_or_create_codebuild_project(
+        project_name=project_name,
         role_arn=role_arn,
-        bucket_name=resources["bucket"],
-        source_key="source.zip",
+        bucket_name=source_bucket,
+        source_key=source_key,
         stack_name=stack_name,
         region=region,
     )
-    build_id: str = start_codebuild(project_name=resources["project"])
+
+    # Start build
+    build_id: str = start_codebuild(project_name=project_name)
 
     # Stream logs
     final_status: str = stream_build_logs(build_id=build_id)
 
-    # Report result
+    # Report result and clean up based on outcome.
     print()
     if final_status == "SUCCEEDED":
         log_success(f"Build finished with status: {final_status}")
@@ -749,18 +969,28 @@ def main() -> int:
                 log_success(f"App URL: {app_url}")
         except (subprocess.CalledProcessError, ValueError):
             log_info("Could not retrieve App URL - check the AWS console")
+
+        # Success: remove all build resources, leaving zero footprint.
+        print()
+        teardown(resources)
     else:
         log_error(f"Build finished with status: {final_status}")
         log_info("Check the build output above for details")
 
-    # CodeBuild project is retained for debugging — inform the user
-    log_info(
-        f"CodeBuild project '{resources['project']}' retained for debugging. "
-        f"View in console: https://{region}.console.aws.amazon.com/codesuite/codebuild/projects/{resources['project']}"
-    )
-    log_info(
-        f"To delete it manually: aws codebuild delete-project --name {resources['project']}"
-    )
+        # Failure: retain resources so the build can be inspected and retried.
+        console_url = (
+            f"https://{region}.console.aws.amazon.com/codesuite/"
+            f"codebuild/projects/{project_name}"
+        )
+        print()
+        log_warn("Build resources retained for debugging:")
+        log_warn(f"  - CodeBuild project: {project_name}")
+        log_warn(f"  - Console: {console_url}")
+        log_warn(f"  - CloudWatch logs: /aws/codebuild/{project_name}")
+        log_info(
+            "Re-run this script after fixing the issue — it reuses these "
+            "resources, and a successful run removes them all."
+        )
 
     return 0 if final_status == "SUCCEEDED" else 1
 

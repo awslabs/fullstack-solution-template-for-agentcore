@@ -929,6 +929,8 @@ export class BackendStack extends cdk.NestedStack {
 
     const cedarPolicyLambda = new PythonFunction(this, "CedarPolicyLambda", {
       runtime: lambda.Runtime.PYTHON_3_13,
+      // ARM_64 required — avoids cross-platform (amd64-on-arm) bundling failures.
+      architecture: lambda.Architecture.ARM_64,
       entry: path.join(__dirname, "..", "lambdas", "cedar-policy"),
       handler: "handler",
       timeout: cdk.Duration.minutes(14),

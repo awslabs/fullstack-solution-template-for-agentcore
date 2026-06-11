@@ -55,22 +55,24 @@ change anything:
 
 ### CodeBuild Deployment
 
-- `deploy-with-codebuild.py` - Deploys the entire FAST stack (backend + frontend) using an ephemeral CodeBuild project. No local Node.js, Docker, CDK, or npm required — only Python 3.8+ and AWS CLI.
+- `deploy-with-codebuild.py` - Deploys the entire FAST stack (backend + frontend) using a CodeBuild project. No local Node.js, Docker, CDK, or npm required — only Python 3.11+, AWS CLI, and git.
 
 ```bash
 python scripts/deploy-with-codebuild.py
 ```
 
-Creates temporary AWS resources (S3 bucket, IAM role with permission boundary, CodeBuild project), runs the full deployment in the cloud, streams logs to your terminal, and cleans up all temporary resources on exit.
+Packages your git-tracked source and runs the full deployment in the cloud via a CodeBuild project, streaming logs to your terminal. On a **successful** build, all created resources (S3 source bucket, CodeBuild project, IAM role, permission boundary) are removed. On a **failed** build, they are retained for debugging and reused on the next run.
 
-The temporary IAM role is created with `AdministratorAccess` but constrained by a permission boundary that explicitly denies dangerous actions such as `iam:CreateUser`, `iam:CreateAccessKey`, `organizations:*`, and others. This prevents privilege escalation even if the build is compromised.
+Only git-tracked or staged files are deployed — stage or commit first, as untracked files are skipped with a warning. This does not remove your deployed FAST stack; for that, run `cd infra-cdk && cdk destroy`.
+
+The IAM role has `AdministratorAccess` constrained by a permission boundary that denies dangerous actions (`iam:CreateUser`, `iam:CreateAccessKey`, `organizations:*`, etc.) to prevent privilege escalation.
 
 Your IAM user/role needs these permissions to run the script:
 
-- `s3:CreateBucket`, `s3:DeleteBucket`, `s3:PutObject`, `s3:DeleteObject`
+- `s3:CreateBucket`, `s3:DeleteBucket`, `s3:PutObject`, `s3:DeleteObject`, `s3:PutLifecycleConfiguration`
 - `iam:CreateRole`, `iam:DeleteRole`, `iam:AttachRolePolicy`, `iam:DetachRolePolicy`
 - `iam:CreatePolicy`, `iam:DeletePolicy`
-- `codebuild:CreateProject`, `codebuild:StartBuild`, `codebuild:BatchGetBuilds`
+- `codebuild:CreateProject`, `codebuild:DeleteProject`, `codebuild:StartBuild`, `codebuild:BatchGetBuilds`
 - `logs:GetLogEvents`
 - `sts:GetCallerIdentity`
 
@@ -79,7 +81,7 @@ Your IAM user/role needs these permissions to run the script:
 ## Requirements
 
 - AWS CLI configured with appropriate permissions
-- Python 3.8+ (standard library only, no pip install needed for deployment)
+- Python 3.11+ (standard library only, no pip install needed for deployment)
 - Node.js and npm (for frontend build)
 - CDK stack deployed with the required outputs:
   - `CognitoClientId`
