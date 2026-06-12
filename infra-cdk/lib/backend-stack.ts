@@ -971,6 +971,7 @@ export class BackendStack extends cdk.NestedStack {
           "bedrock-agentcore:UpdateGateway",
           "bedrock-agentcore:GetGateway",
           "bedrock-agentcore:ManageResourceScopedPolicy",
+          "bedrock-agentcore:ListGatewayTargets",
         ],
         resources: [gateway.attrGatewayArn],
       })

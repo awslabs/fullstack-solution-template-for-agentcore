@@ -14,7 +14,7 @@ Custom claims are injected by the V3 Pre-Token Lambda via `claimsToAddOrOverride
 
 | Claim | Purpose | Example Value |
 |-------|---------|---------------|
-| `user_id` | Authenticated user's identity | `"yourname@company.com"` |
+| `user_id` | Authenticated user's identity | `"<cognito-sub-uuid>"` |
 | `department` | User's organizational unit | `"finance"` |
 | `role` | User's permission level | `"admin"` |
 
@@ -287,7 +287,7 @@ when {
   principal.hasTag("department")
 };
 
-// But explicitly block a specific user
+// But explicitly block a specific user (by their Cognito sub UUID)
 forbid(
   principal is AgentCore::OAuthUser,
   action == AgentCore::Action::"sample-tool-target___text_analysis_tool",
@@ -295,13 +295,13 @@ forbid(
 )
 when {
   principal.hasTag("user_id") &&
-  principal.getTag("user_id") == "compromised-user@example.com"
+  principal.getTag("user_id") == "<compromised-user-sub-uuid>"
 };
 ```
 
 **Result:**
 - Any user with a department → permitted
-- `compromised-user@example.com` → denied (forbid wins over permit)
+- The user matching `<compromised-user-sub-uuid>` → denied (forbid wins over permit)
 
 > **Note:** Cedar's deny-by-default means simply omitting a user/department from the `permit`
 > is often sufficient to deny access. Use `forbid` when overriding a broad `permit`
@@ -312,7 +312,7 @@ when {
 
 ### Capability 4: Wildcard String Matching (`like`)
 
-**Scenario:** Only users with an `@example.com` email domain can access internal tools. External contractors with other email domains are denied.
+**Scenario:** Only users with an internal email domain can access internal tools. This requires injecting an `email` claim via the Pre-Token Lambda (not included in the default demo, but straightforward to add).
 
 **How it works:** Use `like` with `*` wildcard for pattern matching on string claim values.
 
@@ -323,19 +323,17 @@ permit(
   resource == AgentCore::Gateway::"{{GATEWAY_ARN}}"
 )
 when {
-  principal.hasTag("user_id") &&
-  principal.getTag("user_id") like "*@example.com"
+  principal.hasTag("email") &&
+  principal.getTag("email") like "*@example.com"
 };
 ```
 
 **Result:**
-- `alice@example.com` → permitted
-- `bob@example.com` → permitted
-- `contractor@external.com` → denied (doesn't match pattern)
+- User with `email` claim `alice@example.com` → permitted
+- User with `email` claim `bob@example.com` → permitted
+- User with `email` claim `contractor@external.com` → denied (doesn't match pattern)
 
-> **Note:** `like` only supports `*` as a wildcard, which matches zero or more characters
-> of any kind (letters, numbers, symbols, dots, etc.). It does not support regex,
-> single-character wildcards, character classes, or other pattern syntax.
+> **Note:** This example uses a custom `email` claim (injected by the Pre-Token Lambda via `claimsToAddOrOverride`). The default `user_id` claim is a UUID and would not match email patterns. The `like` operator only supports `*` as a wildcard, which matches zero or more characters of any kind (letters, numbers, symbols, dots, etc.). It does not support regex, single-character wildcards, character classes, or other pattern syntax.
 
 ---
 

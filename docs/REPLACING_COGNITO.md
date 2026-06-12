@@ -95,7 +95,7 @@ User JWT → Runtime (validates user JWT via any IdP's OIDC)
   → Runtime gets a plain M2M token from IdP (no user claims needed)
   → Runtime sends to Gateway:
     - Authorization: Bearer <M2M_token>        ← proves machine trust
-    - X-User-Id: alice@company.com             ← carries user identity (plain string)
+    - X-User-Id: <user-sub-uuid>               ← carries user identity (plain string)
   → Gateway authorizer validates M2M token only (machine trust)
   → Request Interceptor Lambda fires:
     - Reads X-User-Id from custom header
@@ -582,7 +582,7 @@ Since the Gateway receives M2M tokens in the current architecture, Cedar Policy 
 ```
 User Auth Token (has groups):     M2M Token (NO groups):
 {                                 {
-  "sub": "alice",                   "sub": "machine-client-id",
+  "sub": "<user-sub-uuid>",                   "sub": "machine-client-id",
   "cognito:groups": [               "scope": "gateway/read gateway/write",
     "finance",                      "token_use": "access"
     "admin"                         // No user context!
@@ -594,7 +594,7 @@ User Auth Token (has groups):     M2M Token (NO groups):
 
 The Pre-Token Lambda can call the Cognito `AdminListGroupsForUser` API to fetch the user's actual group memberships and inject them as custom claims in the M2M token.
 
-This replaces the hardcoded demo mapping (where `fastprojectadmin` → finance/admin) with real, dynamic group-based logic.
+This replaces the hardcoded demo mapping (UUID-to-group map) with real, dynamic group-based logic.
 
 ```python
 import boto3
@@ -622,8 +622,11 @@ def lambda_handler(event, context):
         logger.warning("No verified_user_id in clientMetadata")
         return event
     
-    # --- REPLACES HARDCODED MAPPING ---
-    # Fetch user's ACTUAL Cognito groups
+    # --- REPLACES UUID-BASED USER_ROLE_MAP ---
+    # Fetch user's ACTUAL Cognito groups.
+    # Note: verified_user_id is the Cognito sub (UUID). AdminListGroupsForUser
+    # requires the Cognito username (which is the email in FAST). Resolve the
+    # UUID to username via ListUsers first, then call AdminListGroupsForUser.
     user_groups = get_user_groups(verified_user_id)
     
     # Determine department and role from groups
@@ -645,16 +648,31 @@ def lambda_handler(event, context):
     return event
 
 
-def get_user_groups(username):
-    """Fetch user's Cognito groups via Admin API."""
+def get_user_groups(user_id):
+    """Fetch user's Cognito groups via Admin API.
+
+    Note: AdminListGroupsForUser requires the Cognito username, not the sub.
+    In FAST, the username is the user's email. The sub (UUID) must be resolved
+    to the username via ListUsers before calling AdminListGroupsForUser.
+    """
     try:
+        # Resolve UUID to username (AdminListGroupsForUser requires username)
+        users = cognito.list_users(
+            UserPoolId=USER_POOL_ID,
+            Filter=f'sub = "{user_id}"',
+            Limit=1,
+        )
+        if not users.get("Users"):
+            return []
+        username = users["Users"][0]["Username"]
+
         response = cognito.admin_list_groups_for_user(
             UserPoolId=USER_POOL_ID,
             Username=username,
         )
         return [group['GroupName'] for group in response.get('Groups', [])]
     except Exception as e:
-        logger.error("Failed to fetch groups for user %s: %s", username, str(e))
+        logger.error("Failed to fetch groups for user %s: %s", user_id, str(e))
         return []
 
 

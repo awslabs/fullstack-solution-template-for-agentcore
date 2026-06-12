@@ -49,7 +49,7 @@ The identity propagation flow has six steps:
 1. User logs in → Frontend gets JWT from Cognito
 2. Frontend sends request → Runtime validates JWT, extracts user_id (sub claim)
 3. Runtime calls Cognito /oauth2/token with aws_client_metadata containing user_id
-4. Cognito V3 Pre-Token Lambda fires → reads user_id → injects department/role claims into M2M token
+4. Cognito V3 Pre-Token Lambda fires → reads user_id (UUID) → looks up department/role from UUID mapping → injects claims into M2M token
 5. Runtime calls Gateway tool with the enriched M2M token
 6. Gateway's CUSTOM_JWT Authorizer maps token claims to Cedar principal tags → Policy Engine evaluates Cedar policy → allow or deny
 ```
@@ -70,22 +70,33 @@ The Cognito User Pool is configured with `featurePlan: ESSENTIALS`. This is requ
 
 This Lambda fires on every token generation event (both user login and M2M). It only processes M2M flows (`TokenGeneration_ClientCredentials`) and skips user login flows.
 
-For M2M flows, it reads `verified_user_id` from `clientMetadata` and assigns department/role claims based on the user's identity:
+For M2M flows, it reads `verified_user_id` (the Cognito `sub` — a UUID) from `clientMetadata` and assigns department/role claims based on a UUID-to-group mapping:
 
-| User Email Contains | Department | Role |
-|---------------------|------------|------|
-| `fastprojectadmin` | finance | admin |
-| `fastuser` | engineering | developer |
-| (anything else, including the email registered in config.yaml) | guest | viewer |
+| User Sub (UUID) | Department | Role |
+|-----------------|------------|------|
+| `<fastprojectadmin-user-sub-uuid>` | finance | admin |
+| `<fastuser-user-sub-uuid>` | engineering | developer |
+| (any UUID not in the map) | guest | viewer |
+
+> **Note:** The Cognito `sub` is an immutable, unique UUID assigned to each user at creation time — a recommended identifier for authorization decisions.
+
+**Setup (two-step deployment):**
+1. Deploy the stack once — all users are assigned `guest/viewer` by default
+2. Look up user UUIDs: `aws cognito-idp list-users --user-pool-id <pool-id>`
+3. Replace the placeholder UUIDs in `USER_ROLE_MAP` with actual user subs
+4. Redeploy (`cdk deploy`) to apply the updated mapping
+
+**Alternative (email-based matching without two-step deploy):**
+To avoid the UUID lookup step, the Lambda can resolve the user's email from the sub via the Cognito `ListUsers` API and match against email substrings (e.g., `"fastprojectadmin" in email`). This requires adding `cognito-idp:ListUsers` permission to the Pre-Token Lambda role. UUID-based mapping is recommended because UUIDs are immutable and not PII. See the [Changing Group Assignment](#changing-group-assignment) section for details.
+
+**Dynamic group assignment:** Replace the hardcoded `USER_ROLE_MAP` with a DynamoDB table keyed by the user's sub (UUID), a directory service query, or other identity provider.
 
 These claims are injected into the M2M access token via `claimsToAddOrOverride`:
-- `user_id` — the authenticated user's ID
+- `user_id` — the authenticated user's Cognito sub (UUID)
 - `department` — the user's department
 - `role` — the user's role
 
-> **Note:** These claim names (`user_id`, `department`, `role`) are custom, application-defined claims — not standard JWT/OIDC claims. You can define any claim names you need. See [Understanding Claims](CEDAR_POLICY_GUIDE.md#understanding-claims-custom-vs-standard) for details.
-
-To use dynamic group assignment, replace the hardcoded logic in the Pre-Token Lambda with a DynamoDB lookup, directory service query, or other identity provider.
+> **Note:** These claim names (`user_id`, `department`, `role`) are custom, application-defined claims — not standard JWT/OIDC claims. Custom claim names are defined based on the application's access control needs. See [Understanding Claims](CEDAR_POLICY_GUIDE.md#understanding-claims-custom-vs-standard) for details.
 
 ### Cedar Policy File
 
@@ -192,11 +203,11 @@ Each pattern's `tools/gateway.py` contains both approaches with switching instru
 
 ### Changing Group Assignment
 
-Edit `infra-cdk/lambdas/pretoken-v3/index.py` to replace the hardcoded email-based logic with your own identity resolution. For example:
+Edit `infra-cdk/lambdas/pretoken-v3/index.py` to replace the `USER_ROLE_MAP` with your own identity resolution. Options:
 
-- Query a DynamoDB table mapping user IDs to departments
-- Call an external directory service (LDAP, Active Directory)
-- Call the Cognito API (`AdminGetUser`) to read user attributes or group membership for the `user_id` received in `clientMetadata`
+- **DynamoDB table (dynamic mapping):** Create a table with the user's `sub` (UUID) as the partition key and `department`/`role` as attributes. The Lambda queries the table using the `verified_user_id` received in `clientMetadata`. This avoids redeployment when group assignments change.
+- **Cognito ListUsers (email-based):** Resolve the user's email from the sub via `cognito-idp:ListUsers`, and match against email substrings. Avoids two-step deployment but requires adding `cognito-idp:ListUsers` permission to the Pre-Token Lambda role.
+- **External directory service:** Call LDAP, Active Directory, or another identity provider using the UUID as the lookup key.
 
 ### Adding New Claims
 
@@ -300,14 +311,16 @@ def lambda_handler(event, context):
 
     # Existing user identity logic (unchanged)
     meta = event["request"].get("clientMetadata", {})
-    user_id = meta.get("verified_user_id", "")
+    user_id = meta.get("verified_user_id", "")  # Cognito sub (UUID)
 
-    if "fastprojectadmin" in user_id.lower():
-        department, role = "finance", "admin"
-    elif "fastuser" in user_id.lower():
-        department, role = "engineering", "developer"
-    else:
-        department, role = "guest", "viewer"
+    # UUID-based group mapping (see USER_ROLE_MAP in pretoken-v3/index.py)
+    user_role_map = {
+        "<fastprojectadmin-sub-uuid>": {"department": "finance", "role": "admin"},
+        "<fastuser-sub-uuid>": {"department": "engineering", "role": "developer"},
+    }
+    default_group = {"department": "guest", "role": "viewer"}
+    group = user_role_map.get(user_id, default_group)
+    department, role = group["department"], group["role"]
 
     event["response"]["claimsAndScopeOverrideDetails"] = {
         "accessTokenGeneration": {

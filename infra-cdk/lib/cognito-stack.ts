@@ -121,16 +121,15 @@ export class CognitoStack extends cdk.NestedStack {
     // This Lambda fires on M2M token generation (Client Credentials flow) and injects
     // custom claims (user_id, department, role) into the M2M access token.
     // These are application-defined claims, not standard JWT/OIDC claims.
-    // The claims are read from clientMetadata.verified_user_id, which is passed via
-    // the aws_client_metadata parameter in the direct Cognito /oauth2/token call
-    // (see patterns/utils/auth.py — get_gateway_access_token).
+    // The claims are read from clientMetadata.verified_user_id (the Cognito sub / UUID),
+    // which is passed via the aws_client_metadata parameter in the direct Cognito
+    // /oauth2/token call (see patterns/utils/auth.py — get_gateway_access_token).
     //
-    // For this demo, group assignment is hardcoded based on the user's email:
-    // - fastprojectadmin@* → department: "finance", role: "admin"
-    // - fastuser@*         → department: "engineering", role: "developer"
-    // - others (your own email) → department: "guest", role: "viewer"
+    // Group assignment uses a UUID-based mapping (USER_ROLE_MAP). On first deploy,
+    // all users are assigned "guest/viewer". After deploy, look up user subs and
+    // update the mapping, then redeploy. See docs/IDENTITY_POLICY.md for details.
     //
-    // To use dynamic group assignment, replace the hardcoded logic in the
+    // To use dynamic group assignment, replace the hardcoded mapping in the
     // Pre-Token Lambda (infra-cdk/lambdas/pretoken-v3/index.py) with a
     // DynamoDB lookup, directory service query, or other identity provider.
     const preTokenLambda = new lambda.Function(this, "PreTokenLambda", {

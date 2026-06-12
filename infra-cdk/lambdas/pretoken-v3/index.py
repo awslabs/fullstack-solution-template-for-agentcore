@@ -7,7 +7,7 @@ Only M2M flows (Client Credentials grant) are processed; user login flows
 are passed through unchanged.
 
 Custom claims injected (application-defined, not standard JWT/OIDC claims):
-  - user_id:    The authenticated user's ID (e.g., "yourname@company.com")
+  - user_id:    The authenticated user's Cognito sub (a UUID)
   - department: The user's department (e.g., "finance")
   - role:       The user's role (e.g., "admin")
 
@@ -15,23 +15,48 @@ These claim names are arbitrary — you can define any names you need.
 Just ensure the names match between this Lambda's output and the Cedar
 policy's principal.getTag() references.
 
-The verified_user_id is read from clientMetadata, which is passed via the
-aws_client_metadata parameter in the direct Cognito /oauth2/token call
-(see patterns/utils/auth.py — get_gateway_access_token).
+The verified_user_id (Cognito sub) is read from clientMetadata, which is
+passed via the aws_client_metadata parameter in the direct Cognito
+/oauth2/token call (see patterns/utils/auth.py — get_gateway_access_token).
+The Cognito sub is an opaque, immutable UUID assigned to each user at
+creation time (e.g., "a1b2c3d4-5678-90ab-cdef-1234567890ab").
+See docs/IDENTITY_POLICY.md for setup instructions.
 
-Group assignment is hardcoded for demo purposes:
-  - fastprojectadmin@* → department: "finance", role: "admin"
-  - fastuser@*         → department: "engineering", role: "developer"
-  - others (including the email registered in config.yaml) → department: "guest", role: "viewer"
+GROUP ASSIGNMENT SETUP (two-step deployment):
+  1. Deploy the stack once (all users will be assigned "guest/viewer")
+  2. Look up user UUIDs: aws cognito-idp list-users --user-pool-id <pool-id>
+  3. Replace the placeholder UUIDs below with actual user subs
+  4. Redeploy (cdk deploy) to apply the updated mapping
 
-The user registered via config.yaml will be assigned "guest/viewer"
-by default. To customize, replace the hardcoded logic with a DynamoDB
-lookup, directory service query, or other identity provider. Update the
-Cedar policy (gateway/policies/policy.cedar) to match the new claim values.
+ALTERNATIVE (email-based matching without two-step deploy):
+  If you prefer email-based matching that works on first deploy without
+  UUID lookup, see docs/IDENTITY_POLICY.md for instructions on adding
+  email resolution via Cognito ListUsers API in this Lambda.
 
-To use dynamic group assignment, replace the hardcoded logic with a
-DynamoDB lookup, directory service query, or other identity provider.
+To use dynamic group assignment, replace the hardcoded mapping below with a
+DynamoDB table keyed by the user's sub (UUID). See docs/IDENTITY_POLICY.md.
 """
+
+# ============================================================================
+# USER-TO-GROUP MAPPING
+# ============================================================================
+# Replace the placeholder UUIDs below with actual Cognito user subs after
+# first deploy. Run: aws cognito-idp list-users --user-pool-id <pool-id>
+# The sub is found in each user's Attributes list under Name="sub".
+#
+# Format: "<cognito-sub-uuid>": {"department": "...", "role": "..."}
+#
+# The UUID must be wrapped in quotes as a string key.
+# ============================================================================
+USER_ROLE_MAP = {
+    "<fastprojectadmin-user-sub-uuid>": {"department": "finance", "role": "admin"},
+    "<fastuser-user-sub-uuid>": {"department": "engineering", "role": "developer"},
+}
+
+# Default assignment when user is not in the map.
+# With Cedar policy V1: guest is permitted.
+# With Cedar policy V2: guest is denied (gateway target tool hidden from agent).
+DEFAULT_GROUP = {"department": "guest", "role": "viewer"}
 
 
 def lambda_handler(event: dict, context: dict) -> dict:
@@ -52,46 +77,27 @@ def lambda_handler(event: dict, context: dict) -> dict:
         print("[PRE-TOKEN] Not a Client Credentials flow - skipping")
         return event
 
-    # Get verified user_id from clientMetadata
-    # This is passed via aws_client_metadata in the direct Cognito /oauth2/token call
+    # Read the verified user_id (Cognito sub / UUID) from clientMetadata.
+    # This is passed via aws_client_metadata in the direct Cognito /oauth2/token call.
     meta = event["request"].get("clientMetadata", {})
     user_id = meta.get("verified_user_id", "")
 
-    if user_id:
-        print("[PRE-TOKEN] Processing M2M token - verified_user_id received")
-    else:
-        print("[PRE-TOKEN] Processing M2M token - no verified_user_id in metadata")
+    if not user_id:
+        print("[PRE-TOKEN] No verified_user_id in metadata")
+        return event
 
-    # Demo identity assignment for Cedar policy evaluation.
-    # Replace this logic with a DynamoDB lookup, directory service query,
-    # or other identity provider for real deployments.
-    #
-    # The Cedar policy (gateway/policies/policy.cedar) has two versions:
-    #   V1: permits all departments including "guest"
-    #   V2: permits only "finance" and "engineering" (guest is denied)
-    #
-    # To test different access levels, change the assignment logic below
-    # and update the Cedar policy to match.
-    if "fastprojectadmin" in user_id.lower():
-        department = "finance"
-        role = "admin"
-        print("[PRE-TOKEN] Assigned: department=finance, role=admin")
-    elif "fastuser" in user_id.lower():
-        department = "engineering"
-        role = "developer"
-        print("[PRE-TOKEN] Assigned: department=engineering, role=developer")
-    else:
-        # Default assignment for all other users.
-        # See gateway/policies/policy.cedar (V1 vs V2) to determine
-        # whether "guest" is permitted or denied.
-        department = "guest"
-        role = "viewer"
-        print("[PRE-TOKEN] Assigned: department=guest, role=viewer")
+    print("[PRE-TOKEN] Processing M2M token - verified_user_id received")
+
+    # Look up department/role from the UUID mapping.
+    # If the user's sub is not in the map, they get the default group (guest/viewer).
+    # To assign yourself to a non-default group, replace the placeholder UUIDs
+    # above with your actual Cognito sub. See docs/IDENTITY_POLICY.md.
+    group = USER_ROLE_MAP.get(user_id, DEFAULT_GROUP)
+    department = group["department"]
+    role = group["role"]
+    print(f"[PRE-TOKEN] Assigned: department={department}, role={role}")
 
     # Inject CUSTOM claims into the M2M Access Token.
-    # These are application-defined claims
-    # added via Cognito V3 Pre-Token Generation trigger (claimsToAddOrOverride).
-    #
     # At the AgentCore Gateway, the JWT Authorizer maps ALL token claims
     # (both standard and custom) to Cedar principal tags:
     #   Custom claim "user_id"    → principal.getTag("user_id")
