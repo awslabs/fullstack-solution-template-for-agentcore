@@ -24,6 +24,12 @@ backend:
   ltm_top_k: 10             # Number of facts to retrieve per turn (default: 10)
   ltm_relevance_score: 0.3  # Minimum similarity threshold for retrieval (default: 0.3)
 
+  # AgentCore Policy (Cedar) adds fine-grained, per-tool authorization on the gateway.
+  # The gateway always enforces authentication; this adds an authorization layer on top.
+  # Off by default to keep the default deploy minimal. When true, a Cedar policy engine
+  # and policy are deployed and attached to the gateway. See docs/CEDAR_POLICY_GUIDE.md.
+  use_policy_engine: false
+
   # VPC configuration - required when network_mode is VPC
   # Your VPC must have the necessary VPC endpoints for AWS services.
   # See docs/DEPLOYMENT.md for the full list of required VPC endpoints.

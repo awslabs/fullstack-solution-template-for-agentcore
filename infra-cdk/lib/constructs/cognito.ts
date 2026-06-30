@@ -3,9 +3,11 @@ import * as cognito from "aws-cdk-lib/aws-cognito"
 import * as lambda from "aws-cdk-lib/aws-lambda"
 import * as iam from "aws-cdk-lib/aws-iam"
 import * as logs from "aws-cdk-lib/aws-logs"
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager"
+import * as ssm from "aws-cdk-lib/aws-ssm"
 import * as path from "path"
 import { Construct } from "constructs"
-import { AppConfig } from "./utils/config-manager"
+import { AppConfig } from "../utils/config-manager"
 
 export interface CognitoConstructProps {
   config: AppConfig
@@ -16,11 +18,50 @@ export class CognitoConstruct extends Construct {
   public userPoolId: string
   public userPoolClientId: string
   public userPoolDomain: cognito.UserPoolDomain
+  /** The user pool, exposed for consumers that import it (e.g. API authorizers). */
+  public userPool: cognito.UserPool
+  /** Machine (M2M) client used by the gateway for client-credentials auth. */
+  public machineClient: cognito.UserPoolClient
+  /** Secret holding the machine client secret, consumed by the OAuth2 provider. */
+  public machineClientSecret: secretsmanager.Secret
 
   constructor(scope: Construct, id: string, props: CognitoConstructProps) {
     super(scope, id)
 
     this.createCognitoUserPool(props.config, props.callbackUrls)
+    this.createMachineAuthentication(props.config)
+    this.createSsmParameters(props.config)
+  }
+
+  /**
+   * Stores identity configuration in SSM for the frontend, tests, and the agent runtime.
+   * These four values form the identity contract other components depend on; a different
+   * IdP would publish the same parameters.
+   */
+  private createSsmParameters(config: AppConfig): void {
+    new ssm.StringParameter(this, "CognitoUserPoolIdParam", {
+      parameterName: `/${config.stack_name_base}/cognito-user-pool-id`,
+      stringValue: this.userPoolId,
+      description: "Cognito User Pool ID",
+    })
+
+    new ssm.StringParameter(this, "CognitoUserPoolClientIdParam", {
+      parameterName: `/${config.stack_name_base}/cognito-user-pool-client-id`,
+      stringValue: this.userPoolClientId,
+      description: "Cognito User Pool Client ID",
+    })
+
+    new ssm.StringParameter(this, "MachineClientIdParam", {
+      parameterName: `/${config.stack_name_base}/machine_client_id`,
+      stringValue: this.machineClient.userPoolClientId,
+      description: "Machine Client ID for M2M authentication",
+    })
+
+    new ssm.StringParameter(this, "CognitoDomainParam", {
+      parameterName: `/${config.stack_name_base}/cognito_provider`,
+      stringValue: `${this.userPoolDomain.domainName}.auth.${cdk.Aws.REGION}.amazoncognito.com`,
+      description: "Cognito domain URL for token endpoint",
+    })
   }
 
   private createCognitoUserPool(config: AppConfig, callbackUrls?: string[]): void {
@@ -136,7 +177,7 @@ export class CognitoConstruct extends Construct {
       functionName: `${config.stack_name_base}-pretoken-v3`,
       runtime: lambda.Runtime.PYTHON_3_13,
       handler: "index.lambda_handler",
-      code: lambda.Code.fromAsset(path.join(__dirname, "..", "lambdas", "pretoken-v3")), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+      code: lambda.Code.fromAsset(path.join(__dirname, "..", "..", "lambdas", "pretoken-v3")), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
       timeout: cdk.Duration.seconds(30),
       description: "V3 Pre-Token Lambda for M2M user identity propagation",
       logGroup: new logs.LogGroup(this, "PreTokenLambdaLogGroup", {
@@ -162,6 +203,7 @@ export class CognitoConstruct extends Construct {
     })
 
     // Store the IDs for export
+    this.userPool = userPool
     this.userPoolId = userPool.userPoolId
     this.userPoolClientId = userPoolClient.userPoolClientId
 
@@ -189,6 +231,70 @@ export class CognitoConstruct extends Construct {
     new cdk.CfnOutput(this, "PreTokenLambdaArn", {
       description: "ARN of the V3 Pre-Token Generation Lambda",
       value: preTokenLambda.functionArn,
+    })
+  }
+
+  /**
+   * Creates the Machine-to-Machine (M2M) authentication resources: a resource server
+   * defining gateway scopes, a confidential machine client using the client-credentials
+   * flow, and a Secrets Manager secret holding the client secret. These are Cognito
+   * resources consumed by the gateway (client id for the JWT authorizer) and the OAuth2
+   * credential provider (client secret).
+   */
+  private createMachineAuthentication(config: AppConfig): void {
+    const resourceServer = new cognito.UserPoolResourceServer(this, "ResourceServer", {
+      userPool: this.userPool,
+      identifier: `${config.stack_name_base}-gateway`,
+      userPoolResourceServerName: `${config.stack_name_base}-gateway-resource-server`,
+      scopes: [
+        new cognito.ResourceServerScope({
+          scopeName: "read",
+          scopeDescription: "Read access to gateway",
+        }),
+        new cognito.ResourceServerScope({
+          scopeName: "write",
+          scopeDescription: "Write access to gateway",
+        }),
+      ],
+    })
+
+    // Confidential client for the OAuth2 Client Credentials (service-to-service) flow.
+    this.machineClient = new cognito.UserPoolClient(this, "MachineClient", {
+      userPool: this.userPool,
+      userPoolClientName: `${config.stack_name_base}-machine-client`,
+      generateSecret: true,
+      oAuth: {
+        flows: {
+          clientCredentials: true,
+        },
+        scopes: [
+          cognito.OAuthScope.resourceServer(
+            resourceServer,
+            new cognito.ResourceServerScope({
+              scopeName: "read",
+              scopeDescription: "Read access to gateway",
+            })
+          ),
+          cognito.OAuthScope.resourceServer(
+            resourceServer,
+            new cognito.ResourceServerScope({
+              scopeName: "write",
+              scopeDescription: "Write access to gateway",
+            })
+          ),
+        ],
+      },
+    })
+
+    this.machineClient.node.addDependency(resourceServer)
+
+    // Store the machine client secret in Secrets Manager for the OAuth2 provider and tests.
+    this.machineClientSecret = new secretsmanager.Secret(this, "MachineClientSecret", {
+      secretName: `/${config.stack_name_base}/machine_client_secret`,
+      secretStringValue: cdk.SecretValue.unsafePlainText(
+        this.machineClient.userPoolClientSecret.unsafeUnwrap()
+      ),
+      description: "Machine Client Secret for M2M authentication",
     })
   }
 }

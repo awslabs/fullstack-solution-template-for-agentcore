@@ -3,7 +3,7 @@ import * as amplify from "@aws-cdk/aws-amplify-alpha"
 import * as s3 from "aws-cdk-lib/aws-s3"
 import * as iam from "aws-cdk-lib/aws-iam"
 import { Construct } from "constructs"
-import { AppConfig } from "./utils/config-manager"
+import { AppConfig } from "../utils/config-manager"
 
 export interface AmplifyConstructProps {
   config: AppConfig

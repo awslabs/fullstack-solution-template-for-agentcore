@@ -55,6 +55,13 @@ export interface AppConfig {
      * Maps to the relevance_score parameter of RetrievalConfig. Defaults to 0.3.
      */
     ltm_relevance_score: number
+    /**
+     * Enable AgentCore Policy (Cedar) for fine-grained, per-tool authorization on the
+     * gateway. The gateway always enforces authentication; this adds authorization.
+     * When true, a Cedar policy engine and policy are deployed and attached to the
+     * gateway. Defaults to false.
+     */
+    use_policy_engine: boolean
   }
 }
 
@@ -149,6 +156,7 @@ export class ConfigManager {
           use_long_term_memory: parsedConfig.backend?.use_long_term_memory === true,
           ltm_top_k: parsedConfig.backend?.ltm_top_k ?? 10,
           ltm_relevance_score: parsedConfig.backend?.ltm_relevance_score ?? 0.3,
+          use_policy_engine: parsedConfig.backend?.use_policy_engine === true,
         },
       }
     } catch (error) {
