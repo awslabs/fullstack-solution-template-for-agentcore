@@ -1,6 +1,6 @@
 # Strands AG-UI agent dependencies
 strands-agents==1.42.0
 ag-ui-strands==0.1.9
-bedrock-agentcore==1.14.0
+bedrock-agentcore==1.18.1
 mcp==1.27.2
 PyJWT[crypto]==2.13.0
