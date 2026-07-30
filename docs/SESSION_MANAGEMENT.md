@@ -272,7 +272,7 @@ new ssm.StringParameter(this, "SessionsApiUrlParam", {
 
 | Resource | Cost | Notes |
 |----------|------|-------|
-| DynamoDB (on-demand) | ~$1.25 per million writes, ~$0.25 per million reads | Negligible for most apps |
+| DynamoDB (on-demand) | ~$0.625 per million writes, ~$0.125 per million reads | Negligible for most apps |
 | API Gateway | $3.50 per million requests | Shared with other routes |
 | Lambda | Free tier covers 1M requests/month | Minimal compute |
 
