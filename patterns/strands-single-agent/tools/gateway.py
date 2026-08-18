@@ -31,6 +31,8 @@ from strands.tools.mcp import MCPClient
 from utils.auth import get_gateway_access_token
 from utils.ssm import get_ssm_parameter
 
+from tools.mcp_prefs import build_gateway_tool_filters
+
 logger = logging.getLogger(__name__)
 
 
@@ -66,6 +68,9 @@ def create_gateway_mcp_client(user_id: str) -> MCPClient:
             headers={"Authorization": f"Bearer {get_gateway_access_token(user_id)}"},
         ),
         prefix="gateway",
+        # Hide tools from MCP servers this user has disabled in settings
+        # (per-user preferences from DynamoDB; None when nothing to filter).
+        tool_filters=build_gateway_tool_filters(user_id),
     )
 
 

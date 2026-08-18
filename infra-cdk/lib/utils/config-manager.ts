@@ -26,6 +26,44 @@ export interface VpcConfig {
   security_group_ids?: string[]
 }
 
+/**
+ * Authentication for an MCP-server gateway target.
+ * - NONE: public, unauthenticated upstream MCP (credential config omitted on the target).
+ * - OAUTH: OAuth2 Client Credentials (M2M) via an AgentCore Token Vault provider.
+ * IAM_SIGV4 / API_KEY are rejected at validation time — AgentCore Gateway does not
+ * support them on MCP-server targets. stdio servers (command/args) are also rejected;
+ * Gateway speaks streamable-HTTP MCP only.
+ */
+export type McpServerAuth =
+  | { type: "NONE" }
+  | {
+      type: "OAUTH"
+      /** OAuth2 client ID (plaintext). Provide this or client_id_secret_arn. */
+      client_id?: string
+      /** Secrets Manager ARN holding the client ID. Resolved by CloudFormation at deploy. */
+      client_id_secret_arn?: string
+      /** Secrets Manager ARN holding the client secret (never embedded in the template). */
+      client_secret_secret_arn: string
+      /** OIDC discovery URL of the OAuth2 authorization server. */
+      discovery_url: string
+      scopes?: string[]
+    }
+
+export interface McpServerConfig {
+  /** Stable identifier. Alphanumeric + hyphens (used in resource names). */
+  id: string
+  name: string
+  description?: string
+  /** HTTPS endpoint of the streamable-HTTP MCP server. */
+  endpoint: string
+  /** Set false to keep the entry in config without deploying it. Defaults to true. */
+  enabled?: boolean
+  /** Whether the server starts enabled for users who haven't set preferences. Defaults to true. */
+  default_enabled?: boolean
+  /** Defaults to { type: "NONE" }. */
+  auth?: McpServerAuth
+}
+
 export interface AppConfig {
   stack_name_base: string
   admin_user_email?: string | null
@@ -55,7 +93,57 @@ export interface AppConfig {
      * Maps to the relevance_score parameter of RetrievalConfig. Defaults to 0.3.
      */
     ltm_relevance_score: number
+    /** Catalog of additional MCP servers exposed through the AgentCore Gateway. */
+    mcp_servers?: McpServerConfig[]
   }
+}
+
+const MCP_SERVER_ID_PATTERN = /^[0-9a-zA-Z][0-9a-zA-Z-]*$/
+
+function validateMcpServers(servers: unknown, configPath: string): McpServerConfig[] | undefined {
+  if (servers === undefined || servers === null) return undefined
+  if (!Array.isArray(servers)) {
+    throw new Error(`backend.mcp_servers must be a list in ${configPath}`)
+  }
+  const seenIds = new Set<string>()
+  for (const s of servers as (McpServerConfig & { command?: string; args?: string[] })[]) {
+    const where = `backend.mcp_servers entry '${s?.id ?? "?"}' in ${configPath}`
+    if (s.command || s.args) {
+      throw new Error(
+        `${where}: stdio MCP servers (command/args) are not supported — AgentCore Gateway only supports streamable-HTTP MCP endpoints.`
+      )
+    }
+    if (!s.id || !MCP_SERVER_ID_PATTERN.test(s.id)) {
+      throw new Error(`${where}: id is required and must match ${MCP_SERVER_ID_PATTERN} (alphanumeric and hyphens).`)
+    }
+    if (seenIds.has(s.id)) {
+      throw new Error(`${where}: duplicate id.`)
+    }
+    seenIds.add(s.id)
+    if (!s.name) {
+      throw new Error(`${where}: name is required.`)
+    }
+    if (!s.endpoint || !s.endpoint.startsWith("https://")) {
+      throw new Error(`${where}: endpoint is required and must be an https:// URL.`)
+    }
+    const auth = s.auth ?? { type: "NONE" }
+    if (auth.type === "OAUTH") {
+      if (!auth.discovery_url) {
+        throw new Error(`${where}: auth.discovery_url is required for OAUTH.`)
+      }
+      if (!auth.client_secret_secret_arn?.startsWith("arn:aws:secretsmanager:")) {
+        throw new Error(`${where}: auth.client_secret_secret_arn must be a Secrets Manager ARN.`)
+      }
+      if (!auth.client_id === !auth.client_id_secret_arn) {
+        throw new Error(`${where}: provide exactly one of auth.client_id or auth.client_id_secret_arn.`)
+      }
+    } else if (auth.type !== "NONE") {
+      throw new Error(
+        `${where}: auth.type '${(auth as { type: string }).type}' is not supported on MCP-server targets. Use NONE or OAUTH.`
+      )
+    }
+  }
+  return servers as McpServerConfig[]
 }
 
 export class ConfigManager {
@@ -149,6 +237,7 @@ export class ConfigManager {
           use_long_term_memory: parsedConfig.backend?.use_long_term_memory === true,
           ltm_top_k: parsedConfig.backend?.ltm_top_k ?? 10,
           ltm_relevance_score: parsedConfig.backend?.ltm_relevance_score ?? 0.3,
+          mcp_servers: validateMcpServers(parsedConfig.backend?.mcp_servers, configPath),
         },
       }
     } catch (error) {

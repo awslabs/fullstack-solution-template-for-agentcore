@@ -1,6 +1,8 @@
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, Settings } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
+import { McpServersDialog } from "./McpServersDialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +23,7 @@ type ChatHeaderProps = {
 
 export function ChatHeader({ title, onNewChat, canStartNewChat }: ChatHeaderProps) {
   const { isAuthenticated, signOut } = useAuth()
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   return (
     <header className="flex items-center justify-between p-4 border-b w-full">
@@ -32,6 +35,19 @@ export function ChatHeader({ title, onNewChat, canStartNewChat }: ChatHeaderProp
           <Plus className="h-4 w-4" />
           New Chat
         </Button>
+        {isAuthenticated && (
+          <>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="MCP server settings"
+              onClick={() => setIsSettingsOpen(true)}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+            <McpServersDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+          </>
+        )}
         {isAuthenticated && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
