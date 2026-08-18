@@ -28,9 +28,10 @@ import os
 
 from mcp.client.streamable_http import streamablehttp_client
 from strands.tools.mcp import MCPClient
-from tools.mcp_prefs import build_gateway_tool_filters
 from utils.auth import get_gateway_access_token
 from utils.ssm import get_ssm_parameter
+
+from tools.mcp_prefs import build_gateway_tool_filters
 
 logger = logging.getLogger(__name__)
 
