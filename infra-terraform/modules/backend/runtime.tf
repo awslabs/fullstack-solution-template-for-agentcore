@@ -384,6 +384,17 @@ data "aws_iam_policy_document" "runtime_policy" {
       ]
     }
   }
+
+  # Per-user MCP preferences lookup (only when MCP servers are configured)
+  dynamic "statement" {
+    for_each = local.mcp_feature_enabled ? [1] : []
+    content {
+      sid       = "McpPrefsTableRead"
+      effect    = "Allow"
+      actions   = ["dynamodb:GetItem"]
+      resources = [aws_dynamodb_table.mcp_prefs[0].arn]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "runtime" {
@@ -523,7 +534,13 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
       MCP_REGISTRY_ID                = var.mcp_registry.registry_id
     },
     # claude-agent-sdk patterns require CLAUDE_CODE_USE_BEDROCK=1
-    local.is_claude_agent_sdk ? { CLAUDE_CODE_USE_BEDROCK = "1" } : {}
+    local.is_claude_agent_sdk ? { CLAUDE_CODE_USE_BEDROCK = "1" } : {},
+    # Per-user MCP server preferences: the agent reads the caller's enabled list
+    # from DynamoDB and filters gateway tools (see patterns/*/tools/mcp_prefs.py)
+    local.mcp_feature_enabled ? {
+      MCP_PREFS_TABLE     = aws_dynamodb_table.mcp_prefs[0].name
+      MCP_SERVERS_CATALOG = local.mcp_servers_catalog
+    } : {}
   )
 
   # Force runtime replacement when agent code changes (zip or docker)

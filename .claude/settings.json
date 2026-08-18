@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m py_compile infra-cdk/lambdas/mcp-prefs/index.py)",
+      "Bash(python3 -m py_compile infra-cdk/lambdas/cedar-policy/index.py)",
+      "Bash(python3 -m py_compile patterns/strands-single-agent/tools/mcp_prefs.py)"
+    ]
+  }
+}

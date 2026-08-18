@@ -36,11 +36,17 @@
 // ========================================
 // VERSION 1: Guest Has Full Access (Testing "Allow" Case)
 // ========================================
-// All departments (finance, engineering, guest) can access the tool.
+// All departments (finance, engineering, guest) can access every gateway tool.
+// No action constraint: this covers the sample tool AND tools from any MCP
+// servers configured via backend.mcp_servers (their tool names are only known
+// at runtime, so they cannot be enumerated here). Per-user MCP server
+// enable/disable is enforced by the agent runtime (tools/mcp_prefs.py), not
+// by this policy. To restrict specific tools by department, add an action
+// constraint as shown in VERSION 2.
 
 permit(
   principal is AgentCore::OAuthUser,
-  action == AgentCore::Action::"sample-tool-target___text_analysis_tool",
+  action,
   resource == AgentCore::Gateway::"{{GATEWAY_ARN}}"
 )
 when {
