@@ -26,7 +26,10 @@ import time
 import boto3
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver, CORSConfig
-from aws_lambda_powertools.event_handler.exceptions import BadRequestError, UnauthorizedError
+from aws_lambda_powertools.event_handler.exceptions import (
+    BadRequestError,
+    UnauthorizedError,
+)
 from aws_lambda_powertools.logging import correlation_paths
 
 logger = Logger(service="mcp-prefs")
