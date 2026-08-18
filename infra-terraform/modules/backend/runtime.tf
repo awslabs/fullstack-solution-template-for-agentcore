@@ -376,9 +376,9 @@ data "aws_iam_policy_document" "runtime_policy" {
   dynamic "statement" {
     for_each = var.mcp_registry.enabled ? [1] : []
     content {
-      sid       = "AgentRegistryDiscoveryGetRecord"
-      effect    = "Allow"
-      actions   = ["agent-registry:GetDiscoverableRegistryRecord"]
+      sid     = "AgentRegistryDiscoveryGetRecord"
+      effect  = "Allow"
+      actions = ["agent-registry:GetDiscoverableRegistryRecord"]
       resources = [
         startswith(var.mcp_registry.registry_id, "arn:") ? "${var.mcp_registry.registry_id}/record/*" : "arn:aws:agent-registry:${local.region}:${local.account_id}:registry/*/record/*"
       ]

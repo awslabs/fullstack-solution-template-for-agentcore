@@ -39,7 +39,11 @@ TABLE_NAME = os.environ["TABLE_NAME"]
 CATALOG: list[dict] = json.loads(os.environ.get("MCP_SERVERS_CATALOG", "[]"))
 CATALOG_IDS = {s["id"] for s in CATALOG}
 
-_origins = [o.strip() for o in os.environ.get("CORS_ALLOWED_ORIGINS", "*").split(",") if o.strip()]
+_origins = [
+    o.strip()
+    for o in os.environ.get("CORS_ALLOWED_ORIGINS", "*").split(",")
+    if o.strip()
+]
 cors_config = CORSConfig(
     allow_origin=_origins[0],
     extra_origins=_origins[1:],
@@ -91,7 +95,9 @@ def put_servers() -> dict:
     user_id = _user_id()
     body = app.current_event.json_body or {}
     requested = body.get("enabled")
-    if not isinstance(requested, list) or not all(isinstance(i, str) for i in requested):
+    if not isinstance(requested, list) or not all(
+        isinstance(i, str) for i in requested
+    ):
         raise BadRequestError("body.enabled must be a list of server ids")
     enabled = sorted(set(requested) & CATALOG_IDS)
     table.put_item(
