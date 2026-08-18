@@ -16,6 +16,7 @@ import * as cr from "aws-cdk-lib/custom-resources"
 import { Construct } from "constructs"
 import { AppConfig } from "./utils/config-manager"
 import { AgentCoreRole } from "./utils/agentcore-role"
+import { attachMcpServerTargets } from "./utils/mcp-servers"
 import * as path from "path"
 import * as fs from "fs"
 
@@ -83,8 +84,12 @@ export class BackendConstruct extends Construct {
     // Create AgentCore Gateway (before Runtime)
     this.createAgentCoreGateway(props.config)
 
+    // Per-user MCP server preferences (only when backend.mcp_servers is configured).
+    // Created before the Runtime so the table name/grant can be wired into it.
+    const mcpPrefsTable = this.createMcpPrefsTable(props.config)
+
     // Create AgentCore Runtime resources
-    this.createAgentCoreRuntime(props.config)
+    this.createAgentCoreRuntime(props.config, mcpPrefsTable)
 
     // Store runtime ARN in SSM for frontend stack
     this.createRuntimeSSMParameters(props.config)
@@ -97,10 +102,40 @@ export class BackendConstruct extends Construct {
 
     // Create API Gateway Feedback API resources (example of best-practice API Gateway + Lambda
     // pattern)
-    this.createFeedbackApi(props.config, props.frontendUrl, feedbackTable)
+    this.createFeedbackApi(props.config, props.frontendUrl, feedbackTable, mcpPrefsTable)
   }
 
-  private createAgentCoreRuntime(config: AppConfig): void {
+  /**
+   * JSON catalog of configured MCP servers (id, name, description, default_enabled).
+   * Shared by the preferences API Lambda (to render the settings list) and the
+   * agent runtime (to compute per-user default enablement). Contains no secrets.
+   */
+  private mcpServersCatalogJson(config: AppConfig): string {
+    const entries = (config.backend.mcp_servers ?? []).filter(s => s.enabled !== false)
+    return JSON.stringify(
+      entries.map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description ?? "",
+        default_enabled: s.default_enabled !== false,
+      }))
+    )
+  }
+
+  /** DynamoDB table holding each user's enabled-MCP-servers list. */
+  private createMcpPrefsTable(config: AppConfig): dynamodb.Table | undefined {
+    const hasServers = (config.backend.mcp_servers ?? []).some(s => s.enabled !== false)
+    if (!hasServers) return undefined
+    return new dynamodb.Table(this, "McpPrefsTable", {
+      tableName: `${config.stack_name_base}-mcp-prefs`,
+      partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      encryption: dynamodb.TableEncryption.DEFAULT,
+    })
+  }
+
+  private createAgentCoreRuntime(config: AppConfig, mcpPrefsTable?: dynamodb.Table): void {
     const pattern = config.backend?.pattern || "strands-single-agent"
 
     const stack = cdk.Stack.of(this)
@@ -388,6 +423,15 @@ export class BackendConstruct extends Construct {
       envVars["CLAUDE_CODE_USE_BEDROCK"] = "1"
     }
 
+    // Per-user MCP server preferences: the agent reads the caller's enabled list
+    // from DynamoDB and filters gateway tools accordingly (see tools/mcp_prefs.py
+    // in the agent pattern). Absent when no MCP servers are configured.
+    if (mcpPrefsTable) {
+      envVars["MCP_PREFS_TABLE"] = mcpPrefsTable.tableName
+      envVars["MCP_SERVERS_CATALOG"] = this.mcpServersCatalogJson(config)
+      mcpPrefsTable.grantReadData(agentRole)
+    }
+
     // Create the runtime using L2 construct
     // requestHeaderConfiguration allows the agent to read the Authorization header
     // from RequestContext.request_headers, which is needed to securely extract the
@@ -540,7 +584,8 @@ export class BackendConstruct extends Construct {
   private createFeedbackApi(
     config: AppConfig,
     frontendUrl: string,
-    feedbackTable: dynamodb.Table
+    feedbackTable: dynamodb.Table,
+    mcpPrefsTable?: dynamodb.Table
   ): void {
     // Create Lambda function for feedback using Python
     // ARM_64 required — matches Powertools ARM64 layer and avoids cross-platform
@@ -585,7 +630,7 @@ export class BackendConstruct extends Construct {
       description: "API for user feedback and future endpoints",
       defaultCorsPreflightOptions: {
         allowOrigins: [frontendUrl, "http://localhost:3000"],
-        allowMethods: ["POST", "OPTIONS"],
+        allowMethods: ["GET", "POST", "PUT", "OPTIONS"],
         allowHeaders: ["Content-Type", "Authorization"],
       },
       deployOptions: {
@@ -597,6 +642,11 @@ export class BackendConstruct extends Construct {
         cacheClusterEnabled: true,
         cacheClusterSize: "0.5",
         cacheTtl: cdk.Duration.minutes(5),
+        // The API Gateway cache does not vary on the Authorization header, so the
+        // per-user GET /mcp-servers response must never be cached (cross-user leak).
+        methodOptions: {
+          "/mcp-servers/GET": { cachingEnabled: false },
+        },
         loggingLevel: apigateway.MethodLoggingLevel.INFO,
         dataTraceEnabled: true,
         metricsEnabled: true,
@@ -634,6 +684,48 @@ export class BackendConstruct extends Construct {
       authorizationType: apigateway.AuthorizationType.COGNITO,
       requestValidator: requestValidator,
     })
+
+    // Per-user MCP server preferences: GET /mcp-servers (catalog + caller's toggles)
+    // and PUT /mcp-servers (save caller's enabled list). Same Cognito authorizer.
+    if (mcpPrefsTable) {
+      const mcpPrefsLambda = new PythonFunction(this, "McpPrefsLambda", {
+        functionName: `${config.stack_name_base}-mcp-prefs`,
+        runtime: lambda.Runtime.PYTHON_3_13,
+        architecture: lambda.Architecture.ARM_64,
+        entry: path.join(__dirname, "..", "lambdas", "mcp-prefs"), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+        handler: "handler",
+        environment: {
+          TABLE_NAME: mcpPrefsTable.tableName,
+          MCP_SERVERS_CATALOG: this.mcpServersCatalogJson(config),
+          CORS_ALLOWED_ORIGINS: `${frontendUrl},http://localhost:3000`,
+        },
+        timeout: cdk.Duration.seconds(30),
+        layers: [
+          lambda.LayerVersion.fromLayerVersionArn(
+            this,
+            "McpPrefsPowertoolsLayer",
+            `arn:aws:lambda:${
+              cdk.Stack.of(this).region
+            }:017000801446:layer:AWSLambdaPowertoolsPythonV3-python313-arm64:18`
+          ),
+        ],
+        logGroup: new logs.LogGroup(this, "McpPrefsLambdaLogGroup", {
+          logGroupName: `/aws/lambda/${config.stack_name_base}-mcp-prefs`,
+          retention: logs.RetentionDays.ONE_WEEK,
+          removalPolicy: cdk.RemovalPolicy.DESTROY,
+        }),
+      })
+      mcpPrefsTable.grantReadWriteData(mcpPrefsLambda)
+
+      const mcpServersResource = api.root.addResource("mcp-servers")
+      const mcpPrefsIntegration = new apigateway.LambdaIntegration(mcpPrefsLambda)
+      for (const method of ["GET", "PUT"]) {
+        mcpServersResource.addMethod(method, mcpPrefsIntegration, {
+          authorizer,
+          authorizationType: apigateway.AuthorizationType.COGNITO,
+        })
+      }
+    }
 
     // Store the API URL for access from main stack
     this.feedbackApiUrl = api.url
@@ -856,6 +948,9 @@ export class BackendConstruct extends Construct {
     // Ensure proper creation order
     gateway.node.addDependency(this.machineClient)
     gateway.node.addDependency(gatewayRole)
+
+    // Attach additional MCP servers declared in config.yaml (backend.mcp_servers)
+    attachMcpServerTargets(this, config, gateway)
 
     // ========================================
     // Cedar Policy Engine + Policy via Custom Resource

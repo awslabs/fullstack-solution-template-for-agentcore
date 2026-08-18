@@ -34,3 +34,24 @@ backend:
   #     - subnet-cccc3333dddd4444e
   #   security_group_ids:  # Optional - a default SG is created if omitted
   #     - sg-0abc1234def56789a
+
+  # Additional MCP servers exposed to the agent through the AgentCore Gateway.
+  # Only streamable-HTTP MCP endpoints are supported (no stdio command/args).
+  # auth.type: NONE (default) or OAUTH (client-credentials via Secrets Manager).
+  # mcp_servers:
+  #   - id: my-public-mcp            # alphanumeric + hyphens; used in resource names
+  #     name: My Public MCP
+  #     description: Example unauthenticated MCP server
+  #     endpoint: https://mcp.example.com/mcp
+  #   - id: my-oauth-mcp
+  #     name: My OAuth MCP
+  #     endpoint: https://secure-mcp.example.com/mcp
+  #     enabled: true                # set false to keep the entry without deploying it
+  #     default_enabled: true        # initial on/off state for users who haven't set preferences
+  #     auth:
+  #       type: OAUTH
+  #       client_id: my-client-id    # or client_id_secret_arn: arn:aws:secretsmanager:...
+  #       client_secret_secret_arn: arn:aws:secretsmanager:us-east-1:123456789012:secret:my-mcp-secret-AbCdEf
+  #       discovery_url: https://auth.example.com/.well-known/openid-configuration
+  #       scopes:
+  #         - mcp/invoke

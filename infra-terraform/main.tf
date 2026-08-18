@@ -90,6 +90,9 @@ module "backend" {
   # Frontend URL for CORS
   frontend_url = module.amplify_hosting.app_url
 
+  # Additional MCP servers exposed through the AgentCore Gateway
+  mcp_servers = var.mcp_servers
+
   # Optional overrides
   log_retention_days     = local.log_retention_days
   throttling_rate_limit  = local.api_throttling_rate_limit

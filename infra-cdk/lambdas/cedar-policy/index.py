@@ -95,15 +95,30 @@ def handle_create(props: dict) -> dict:
     description = props.get("Description", "Cedar policy for AgentCore Gateway")
     engine_name = props["PolicyEngineName"]
 
-    # Step 1: Create Policy Engine
+    # Step 1: Create Policy Engine (idempotent).
+    # Engine creation can outlive one Lambda invocation; on the retry the
+    # create call raises ConflictException, so reuse the existing engine by
+    # name instead of failing the whole deployment.
     logger.info(f"Creating Policy Engine: {engine_name}")
-    engine_response = client.create_policy_engine(
-        name=engine_name,
-        description=f"Policy engine for gateway {gateway_id}",
-        clientToken=str(uuid.uuid4()),
-    )
-    policy_engine_id = engine_response["policyEngineId"]
-    logger.info(f"Policy Engine created: {policy_engine_id}")
+    try:
+        engine_response = client.create_policy_engine(
+            name=engine_name,
+            description=f"Policy engine for gateway {gateway_id}",
+            clientToken=str(uuid.uuid4()),
+        )
+        policy_engine_id = engine_response["policyEngineId"]
+        logger.info(f"Policy Engine created: {policy_engine_id}")
+    except client.exceptions.ConflictException:
+        policy_engine_id = _find_policy_engine_by_name(engine_name)
+        if not policy_engine_id:
+            raise
+        logger.warning(
+            f"Policy Engine {engine_name} already exists — reusing {policy_engine_id} "
+            "(idempotent retry)"
+        )
+        # A previous partial attempt may have created a policy already;
+        # remove managed policies so this attempt starts clean.
+        _delete_managed_policies(policy_engine_id, "unknown", props)
 
     # Wait for Policy Engine to become ACTIVE using official waiter
     logger.info(f"Waiting for Policy Engine {policy_engine_id} to become ACTIVE...")
@@ -298,6 +313,20 @@ def handle_delete(event: dict, props: dict) -> dict:
         logger.warning(f"Could not delete Policy Engine {policy_engine_id}: {e}")
 
     return {"PhysicalResourceId": physical_id}
+
+
+def _find_policy_engine_by_name(engine_name: str) -> str | None:
+    """Return the policyEngineId of the engine with the given name, if any."""
+    token = None
+    while True:
+        kwargs = {"nextToken": token} if token else {}
+        page = client.list_policy_engines(**kwargs)
+        for engine in page.get("items", []):
+            if engine.get("name") == engine_name:
+                return engine.get("policyEngineId")
+        token = page.get("nextToken")
+        if not token:
+            return None
 
 
 def _delete_managed_policies(

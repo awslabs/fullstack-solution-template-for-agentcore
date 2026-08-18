@@ -89,3 +89,33 @@ variable "backend_vpc_security_group_ids" {
   default     = []
 }
 
+
+# =============================================================================
+# MCP Servers (additional AgentCore Gateway targets)
+# =============================================================================
+# Validation lives on the backend module's variable of the same name.
+
+variable "mcp_servers" {
+  description = <<-EOT
+    Catalog of additional MCP servers exposed to the agent through the AgentCore
+    Gateway. Only streamable-HTTP endpoints are supported (no stdio command/args).
+    auth.type: NONE (default) or OAUTH (client-credentials via Secrets Manager).
+  EOT
+  type = list(object({
+    id              = string
+    name            = string
+    description     = optional(string)
+    endpoint        = string
+    enabled         = optional(bool, true)
+    default_enabled = optional(bool, true)
+    auth = optional(object({
+      type                     = string
+      client_id                = optional(string)
+      client_id_secret_arn     = optional(string)
+      client_secret_secret_arn = optional(string)
+      discovery_url            = optional(string)
+      scopes                   = optional(list(string), [])
+    }))
+  }))
+  default = []
+}
