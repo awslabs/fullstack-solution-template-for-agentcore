@@ -39,22 +39,23 @@ telemetry) and what the model *saw and returned* (Bedrock invocation logging).
 
 ```mermaid
 flowchart LR
-    subgraph FAST[FAST deployment]
+    subgraph FAST[FAST AgentCore resources]
         RT[AgentCore Runtime]
         GW[AgentCore Gateway]
         MEM[AgentCore Memory]
         CI[Code Interpreter]
     end
+
     RT -->|invokes| BR[Amazon Bedrock model]
 
-    RT -.logs & traces.-> CW[CloudWatch Logs / X-Ray]
-    GW -.logs & traces.-> CW
-    MEM -.logs & traces.-> CW
-    CI -.logs & traces.-> CW
-    BR -.invocation logs.-> S3CW[S3 + CloudWatch Logs]
+    RT -. "logs and traces" .-> CW[CloudWatch Logs and X-Ray]
+    GW -. "logs and traces" .-> CW
+    MEM -. "logs and traces" .-> CW
+    CI -. "logs and traces" .-> CW
+    BR -. "invocation logs" .-> S3CW[S3 and CloudWatch Logs]
 
-    T1[AgentCore telemetry\nenablement stack] === CW
-    T2[Bedrock model invocation\nlogging stack] === S3CW
+    T1["AgentCore telemetry<br/>enablement stack"] -. "creates telemetry rules for" .-> FAST
+    T2["Bedrock model invocation<br/>logging stack"] -. "enables logging for" .-> BR
 ```
 
 ## Prerequisites (account and region level)
