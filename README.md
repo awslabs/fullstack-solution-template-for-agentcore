@@ -163,6 +163,9 @@ fullstack-agentcore-solution-template/
 │   ├── CONTEXT_MANAGEMENT.md # Context window management guide
 │   ├── STREAMING.md        # Streaming implementation guide
 │   ├── TOOL_AC_CODE_INTERPRETER.md # Code Interpreter guide
+│   ├── OBSERVABILITY.md    # Observability overview (telemetry & logging)
+│   ├── AGENTCORE_TELEMETRY.md # AgentCore telemetry enablement guide
+│   ├── BEDROCK_MODEL_INVOCATION_LOGGING.md # Bedrock model invocation logging guide
 │   └── VERSION_BUMP_PLAYBOOK.md # Version management
 ├── .mkdocs/                # MkDocs build configuration
 │   ├── mkdocs.yml          # MkDocs configuration

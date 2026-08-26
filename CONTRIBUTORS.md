@@ -19,3 +19,4 @@
 - Samaneh Aminikhanghahi
 - Abhilash Balachandran
 - Rajat Dogra
+- Vikramaditya Bhatnagar
