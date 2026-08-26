@@ -44,8 +44,6 @@ python scripts/deploy-frontend.py
 
 See the [deployment guide](docs/DEPLOYMENT.md) for detailed instructions on how to deploy FAST into an AWS account.
 
-> **Observability:** To add logging and tracing, see the [observability guide](docs/OBSERVABILITY.md), which covers [AgentCore telemetry enablement](docs/AGENTCORE_TELEMETRY.md) and [Bedrock model invocation logging](docs/BEDROCK_MODEL_INVOCATION_LOGGING.md) via companion CloudFormation solutions.
-
 > **Terraform alternative:** FAST also supports Terraform for infrastructure deployment. See [`infra-terraform/README.md`](infra-terraform/README.md) for the Terraform deployment guide. We recommend choosing one infrastructure tool and deleting the other directory (`infra-cdk/` or `infra-terraform/`) from your fork to keep things clean.
 
 What comes next? That's up to you, the developer. With your requirements in mind, open up your coding assistant, describe what you'd like to do, and begin. The steering docs in this repository help guide coding assistants with best practices, and encourage them to always refer to the documentation built-in to the repository to make sure you end up building something great.
