@@ -95,5 +95,8 @@ module "backend" {
   throttling_rate_limit  = local.api_throttling_rate_limit
   throttling_burst_limit = local.api_throttling_burst_limit
 
+  # MCP server discovery + auto-connect from an AWS Agent Registry (opt-in)
+  mcp_registry = var.mcp_registry
+
   depends_on = [module.cognito, module.amplify_hosting]
 }

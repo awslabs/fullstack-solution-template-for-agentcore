@@ -89,3 +89,29 @@ variable "backend_vpc_security_group_ids" {
   default     = []
 }
 
+# =============================================================================
+# MCP Registry Discovery (lightweight: no DynamoDB, no UI, no per-user prefs)
+# =============================================================================
+
+variable "mcp_registry" {
+  description = <<-EOT
+    Discover and auto-connect MCP servers from an AWS Agent Registry at agent
+    runtime. When enabled, the agent lists the registry's Approved MCP records
+    and connects to each public streamable-HTTP server as a live MCP client.
+    registry_id (ARN or id) is required when enabled.
+  EOT
+  type = object({
+    enabled     = bool
+    registry_id = string
+  })
+  default = {
+    enabled     = false
+    registry_id = ""
+  }
+
+  validation {
+    condition     = !var.mcp_registry.enabled || trimspace(var.mcp_registry.registry_id) != ""
+    error_message = "mcp_registry.registry_id is required when mcp_registry.enabled is true."
+  }
+}
+
