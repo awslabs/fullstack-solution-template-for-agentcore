@@ -3,3 +3,9 @@ strands-agents==1.32.0
 bedrock-agentcore==1.4.7
 mcp==1.28.1
 PyJWT[crypto]==2.13.0
+# boto3/botocore >=1.43.66 ships the `agent-registry` data-plane client used by
+# tools/mcp_registry.py for MCP server discovery. Pinned so the runtime can call
+# it regardless of what the base image would otherwise resolve. (The discovery
+# module fails soft if the client is unavailable, but pinning makes it work.)
+boto3>=1.43.66
+botocore>=1.43.66

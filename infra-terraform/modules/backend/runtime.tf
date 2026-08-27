@@ -345,6 +345,45 @@ data "aws_iam_policy_document" "runtime_policy" {
       "arn:aws:bedrock-agentcore:${local.region}:${local.account_id}:workload-identity-directory/*"
     ]
   }
+
+  # AgentRegistryDiscovery: read-only discovery of an AWS Agent Registry's
+  # Approved MCP records so the agent can list them and fetch descriptors to
+  # auto-connect at runtime. Only emitted when the feature is enabled.
+  # Authorization model (per the AWS Agent Registry auth reference):
+  #   - List/Search authorize on the *registry* resource.
+  #   - BatchGetDiscoverableRegistryRecord (the API) is authorized by the
+  #     permission-only action agent-registry:GetDiscoverableRegistryRecord on
+  #     the *record* resource (registry/<id>/record/*). The IAM action name
+  #     differs from the API name — granting "BatchGet..." is a no-op and yields
+  #     AccessDenied on record reads.
+  # Namespace note: these APIs live under `agent-registry` (the older
+  # `bedrock-agentcore` namespace is deprecated after 2026-09-17).
+  dynamic "statement" {
+    for_each = var.mcp_registry.enabled ? [1] : []
+    content {
+      sid    = "AgentRegistryDiscoveryList"
+      effect = "Allow"
+      actions = [
+        "agent-registry:ListDiscoverableRegistryRecords",
+        "agent-registry:SearchDiscoverableRegistryRecords"
+      ]
+      resources = [
+        startswith(var.mcp_registry.registry_id, "arn:") ? var.mcp_registry.registry_id : "arn:aws:agent-registry:${local.region}:${local.account_id}:registry/*"
+      ]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.mcp_registry.enabled ? [1] : []
+    content {
+      sid       = "AgentRegistryDiscoveryGetRecord"
+      effect    = "Allow"
+      actions   = ["agent-registry:GetDiscoverableRegistryRecord"]
+      resources = [
+        startswith(var.mcp_registry.registry_id, "arn:") ? "${var.mcp_registry.registry_id}/record/*" : "arn:aws:agent-registry:${local.region}:${local.account_id}:registry/*/record/*"
+      ]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "runtime" {
@@ -478,6 +517,10 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
       MEMORY_ID                        = aws_bedrockagentcore_memory.main.id
       STACK_NAME                       = var.stack_name_base
       GATEWAY_CREDENTIAL_PROVIDER_NAME = "${var.stack_name_base}-runtime-gateway-auth"
+      # MCP server discovery + auto-connect from an AWS Agent Registry (opt-in).
+      # See modules/backend/variables.tf: mcp_registry and docs/MCP_REGISTRY_DISCOVERY.md.
+      MCP_REGISTRY_DISCOVERY_ENABLED = var.mcp_registry.enabled ? "true" : "false"
+      MCP_REGISTRY_ID                = var.mcp_registry.registry_id
     },
     # claude-agent-sdk patterns require CLAUDE_CODE_USE_BEDROCK=1
     local.is_claude_agent_sdk ? { CLAUDE_CODE_USE_BEDROCK = "1" } : {}
