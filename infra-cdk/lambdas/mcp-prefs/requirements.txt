@@ -1,0 +1,2 @@
+# Boto3 and aws-lambda-powertools come from the Lambda runtime / Powertools layer.
+# Nothing extra needed at runtime.

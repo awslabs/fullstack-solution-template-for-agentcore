@@ -62,3 +62,30 @@ backend_network_mode = "PUBLIC"
 # backend_vpc_id                 = "vpc-xxxxxxxxxxxxxxxxx"
 # backend_vpc_subnet_ids         = ["subnet-xxxxxxxxxxxxxxxxx", "subnet-yyyyyyyyyyyyyyyyy"]
 # backend_vpc_security_group_ids = ["sg-xxxxxxxxxxxxxxxxx"]  # Optional
+
+# -----------------------------------------------------------------------------
+# Additional MCP servers exposed to the agent through the AgentCore Gateway.
+# Only streamable-HTTP endpoints are supported (no stdio command/args).
+# auth.type: NONE (default) or OAUTH (client-credentials via Secrets Manager).
+# -----------------------------------------------------------------------------
+# mcp_servers = [
+#   {
+#     id          = "aws-knowledge"
+#     name        = "AWS Knowledge"
+#     description = "Up-to-date AWS docs, API references, and blog content."
+#     endpoint    = "https://knowledge-mcp.global.api.aws"
+#   },
+#   {
+#     id              = "my-oauth-mcp"
+#     name            = "My OAuth MCP"
+#     endpoint        = "https://secure-mcp.example.com/mcp"
+#     default_enabled = false # initial on/off state for users who haven't set preferences
+#     auth = {
+#       type                     = "OAUTH"
+#       client_id                = "my-client-id" # or client_id_secret_arn
+#       client_secret_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:my-mcp-secret-AbCdEf"
+#       discovery_url            = "https://auth.example.com/.well-known/openid-configuration"
+#       scopes                   = ["mcp/invoke"]
+#     }
+#   },
+# ]

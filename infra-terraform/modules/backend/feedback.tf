@@ -324,6 +324,12 @@ resource "aws_api_gateway_deployment" "feedback" {
       aws_api_gateway_method.options_feedback.id,
       aws_api_gateway_integration.post_feedback.id,
       aws_api_gateway_integration.options_feedback.id,
+      # /mcp-servers routes (empty when no MCP servers configured)
+      [for r in aws_api_gateway_resource.mcp_servers : r.id],
+      [for m in values(aws_api_gateway_method.mcp_servers) : m.id],
+      [for i in values(aws_api_gateway_integration.mcp_servers) : i.id],
+      [for m in aws_api_gateway_method.options_mcp_servers : m.id],
+      [for i in aws_api_gateway_integration.options_mcp_servers : i.id],
     ]))
   }
 
@@ -333,7 +339,9 @@ resource "aws_api_gateway_deployment" "feedback" {
 
   depends_on = [
     aws_api_gateway_integration.post_feedback,
-    aws_api_gateway_integration.options_feedback
+    aws_api_gateway_integration.options_feedback,
+    aws_api_gateway_integration.mcp_servers,
+    aws_api_gateway_integration.options_mcp_servers
   ]
 }
 
