@@ -55,7 +55,27 @@ export interface AppConfig {
      * Maps to the relevance_score parameter of RetrievalConfig. Defaults to 0.3.
      */
     ltm_relevance_score: number
+    /**
+     * Discover and auto-connect MCP servers from an AWS Agent Registry.
+     * Lightweight: no DynamoDB, no UI, no per-user preferences. Defaults to disabled.
+     */
+    mcp_registry: McpRegistryConfig
   }
+}
+
+/**
+ * Runtime MCP-server discovery from an AWS Agent Registry.
+ *
+ * When enabled, the agent lists the registry's Approved `recordType=MCP`
+ * records and auto-connects to each public streamable-HTTP server as a live
+ * MCP client. Discovery happens at agent runtime, so no servers are declared
+ * at deploy time and no gateway targets are created.
+ */
+export interface McpRegistryConfig {
+  /** Master switch. When false (default) the feature is completely inert. */
+  enabled: boolean
+  /** ARN or id of the AWS Agent Registry to discover records from. Required when enabled. */
+  registry_id: string
 }
 
 export class ConfigManager {
@@ -137,6 +157,16 @@ export class ConfigManager {
         }
       }
 
+      // Validate MCP registry discovery configuration.
+      // Fail loud: enabling discovery without a registry id is a deploy-time mistake.
+      const mcpRegistryEnabled = parsedConfig.backend?.mcp_registry?.enabled === true
+      const mcpRegistryId = (parsedConfig.backend?.mcp_registry?.registry_id ?? "").trim()
+      if (mcpRegistryEnabled && !mcpRegistryId) {
+        throw new Error(
+          `backend.mcp_registry.registry_id is required in ${configPath} when backend.mcp_registry.enabled is true.`
+        )
+      }
+
       return {
         stack_name_base: stackNameBase,
         admin_user_email: parsedConfig.admin_user_email || null,
@@ -149,6 +179,10 @@ export class ConfigManager {
           use_long_term_memory: parsedConfig.backend?.use_long_term_memory === true,
           ltm_top_k: parsedConfig.backend?.ltm_top_k ?? 10,
           ltm_relevance_score: parsedConfig.backend?.ltm_relevance_score ?? 0.3,
+          mcp_registry: {
+            enabled: mcpRegistryEnabled,
+            registry_id: mcpRegistryId,
+          },
         },
       }
     } catch (error) {

@@ -24,6 +24,15 @@ backend:
   ltm_top_k: 10             # Number of facts to retrieve per turn (default: 10)
   ltm_relevance_score: 0.3  # Minimum similarity threshold for retrieval (default: 0.3)
 
+  # MCP server discovery + auto-connect from an AWS Agent Registry.
+  # Lightweight: no DynamoDB, no UI, no per-user preferences. When enabled, the
+  # agent lists the registry's Approved MCP records at runtime and connects to
+  # each public streamable-HTTP server as a live MCP client (their tools become
+  # directly callable). See docs/MCP_REGISTRY_DISCOVERY.md.
+  mcp_registry:
+    enabled: false        # Default off. Set true to activate discovery + auto-connect.
+    registry_id: ""       # ARN or id of the AWS Agent Registry. Required when enabled.
+
   # VPC configuration - required when network_mode is VPC
   # Your VPC must have the necessary VPC endpoints for AWS services.
   # See docs/DEPLOYMENT.md for the full list of required VPC endpoints.

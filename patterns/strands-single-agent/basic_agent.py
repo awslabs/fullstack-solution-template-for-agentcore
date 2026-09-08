@@ -15,6 +15,7 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp, RequestContext
 from strands import Agent
 from strands.models import BedrockModel
 from tools.gateway import create_gateway_mcp_client
+from tools.mcp_registry import build_registry_mcp_clients, is_discovery_enabled
 from utils.auth import extract_user_id_from_context
 
 from tools.code_interpreter import StrandsCodeInterpreterTools
@@ -95,10 +96,28 @@ def create_strands_agent(user_id: str, session_id: str) -> Agent:
 
     gateway_client = create_gateway_mcp_client(user_id)
 
+    # Base tools: Gateway MCP client + secure Code Interpreter.
+    tools: list = [gateway_client, code_tools.execute_python_securely]
+
+    # Auto-connect MCP servers discovered from the AWS Agent Registry (opt-in via
+    # MCP_REGISTRY_DISCOVERY_ENABLED). Each discovered public streamable-HTTP
+    # server becomes a live MCPClient tool provider on the agent. Fail-soft: any
+    # discovery/config error yields zero extra clients and the agent still runs
+    # on its built-in and gateway tools. (Misconfiguration is caught loudly at
+    # deploy time by the CDK config-manager / Terraform variable validation, so
+    # this runtime guard is defense-in-depth, not the primary check.)
+    if is_discovery_enabled():
+        try:
+            tools.extend(build_registry_mcp_clients())
+        except Exception:
+            logger.exception(
+                "[MCP-REGISTRY] Registry discovery failed; continuing without registry tools"
+            )
+
     return Agent(
         name="strands_agent",
         system_prompt=SYSTEM_PROMPT,
-        tools=[gateway_client, code_tools.execute_python_securely],
+        tools=tools,
         model=bedrock_model,
         session_manager=session_manager,
         trace_attributes={"user.id": user_id, "session.id": session_id},

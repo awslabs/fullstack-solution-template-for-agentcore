@@ -62,3 +62,17 @@ backend_network_mode = "PUBLIC"
 # backend_vpc_id                 = "vpc-xxxxxxxxxxxxxxxxx"
 # backend_vpc_subnet_ids         = ["subnet-xxxxxxxxxxxxxxxxx", "subnet-yyyyyyyyyyyyyyyyy"]
 # backend_vpc_security_group_ids = ["sg-xxxxxxxxxxxxxxxxx"]  # Optional
+
+# -----------------------------------------------------------------------------
+# MCP Registry Discovery + Auto-Connect (optional, lightweight)
+# -----------------------------------------------------------------------------
+# Discover MCP servers from an AWS Agent Registry at agent runtime and connect
+# to each public streamable-HTTP server as a live MCP client (their tools become
+# directly callable). No DynamoDB, no UI, no per-user preferences.
+# See docs/MCP_REGISTRY_DISCOVERY.md. registry_id is required when enabled.
+#
+# mcp_registry = {
+#   enabled     = true
+#   registry_id = "arn:aws:agent-registry:us-east-1:123456789012:registry/my-registry"
+# }
+

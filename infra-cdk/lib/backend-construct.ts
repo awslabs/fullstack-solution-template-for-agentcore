@@ -366,6 +366,50 @@ export class BackendConstruct extends Construct {
       })
     )
 
+    // Add AWS Agent Registry discovery access (only when the feature is enabled).
+    // Grants read-only discovery of the registry's Approved MCP records so the
+    // agent can list them and fetch their descriptors to auto-connect at runtime.
+    // Namespace note: the data-plane discovery APIs live under `agent-registry`
+    // (the older `bedrock-agentcore` namespace is deprecated after 2026-09-17).
+    if (config.backend.mcp_registry.enabled) {
+      const registryId = config.backend.mcp_registry.registry_id
+      // Resource ARNs differ by action per the AWS Agent Registry authorization
+      // reference: List/Search authorize on the *registry* resource, while the
+      // BatchGetDiscoverableRegistryRecord API is authorized by the permission-
+      // only action agent-registry:GetDiscoverableRegistryRecord on the *record*
+      // resource (registry/<id>/record/*). Note the API name and the IAM action
+      // name differ — granting "BatchGetDiscoverableRegistryRecord" is a no-op
+      // and yields AccessDenied on record reads.
+      const registryArn = registryId.startsWith("arn:")
+        ? registryId
+        : `arn:aws:agent-registry:${this.region}:${this.account}:registry/*`
+      const recordArn = registryId.startsWith("arn:")
+        ? `${registryId}/record/*`
+        : `arn:aws:agent-registry:${this.region}:${this.account}:registry/*/record/*`
+      // Registry-level: enumerate + natural-language search.
+      agentRole.addToPolicy(
+        new iam.PolicyStatement({
+          sid: "AgentRegistryDiscoveryList",
+          effect: iam.Effect.ALLOW,
+          actions: [
+            "agent-registry:ListDiscoverableRegistryRecords",
+            "agent-registry:SearchDiscoverableRegistryRecords",
+          ],
+          resources: [registryArn],
+        })
+      )
+      // Record-level: read full descriptors via BatchGet (authorized by the
+      // permission-only GetDiscoverableRegistryRecord action on the record ARN).
+      agentRole.addToPolicy(
+        new iam.PolicyStatement({
+          sid: "AgentRegistryDiscoveryGetRecord",
+          effect: iam.Effect.ALLOW,
+          actions: ["agent-registry:GetDiscoverableRegistryRecord"],
+          resources: [recordArn],
+        })
+      )
+    }
+
     // Environment variables for the runtime
     const envVars: { [key: string]: string } = {
       AWS_REGION: stack.region,
@@ -381,6 +425,12 @@ export class BackendConstruct extends Construct {
       // See config.yaml: ltm_top_k and ltm_relevance_score.
       LTM_TOP_K: String(config.backend.ltm_top_k),
       LTM_RELEVANCE_SCORE: String(config.backend.ltm_relevance_score),
+      // Discover + auto-connect MCP servers from an AWS Agent Registry (opt-in).
+      // When enabled, the agent lists the registry's Approved MCP records and
+      // connects to each public streamable-HTTP server at runtime. See
+      // config.yaml: mcp_registry and docs/MCP_REGISTRY_DISCOVERY.md.
+      MCP_REGISTRY_DISCOVERY_ENABLED: config.backend.mcp_registry.enabled ? "true" : "false",
+      MCP_REGISTRY_ID: config.backend.mcp_registry.registry_id,
     }
 
     // Add claude-agent-sdk specific environment variable
