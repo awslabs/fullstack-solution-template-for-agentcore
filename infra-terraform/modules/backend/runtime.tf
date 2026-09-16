@@ -532,6 +532,8 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
       # See modules/backend/variables.tf: mcp_registry and docs/MCP_REGISTRY_DISCOVERY.md.
       MCP_REGISTRY_DISCOVERY_ENABLED = var.mcp_registry.enabled ? "true" : "false"
       MCP_REGISTRY_ID                = var.mcp_registry.registry_id
+      # Per-user default for discovered registry servers before a preference is set.
+      MCP_REGISTRY_DEFAULT_ENABLED = var.mcp_registry.default_enabled ? "true" : "false"
     },
     # claude-agent-sdk patterns require CLAUDE_CODE_USE_BEDROCK=1
     local.is_claude_agent_sdk ? { CLAUDE_CODE_USE_BEDROCK = "1" } : {},

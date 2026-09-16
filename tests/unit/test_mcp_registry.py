@@ -183,7 +183,7 @@ def test_happy_path_discovers_and_builds_clients(mcp_registry, monkeypatch):
             "https://docs.example/mcp",
         ]
 
-        clients = mcp_registry.build_registry_mcp_clients()
+        clients = mcp_registry.build_registry_mcp_clients(default_enabled=True)
 
     assert len(clients) == 2
     # Prefixes are slugified and namespaced.
@@ -221,7 +221,7 @@ def test_duplicate_names_get_distinct_prefixes(mcp_registry, monkeypatch):
     }
     client = _fake_client(list_pages, batch_response)
     with mock.patch.object(mcp_registry, "_registry_client", return_value=client):
-        clients = mcp_registry.build_registry_mcp_clients()
+        clients = mcp_registry.build_registry_mcp_clients(default_enabled=True)
     prefixes = [c.prefix for c in clients]
     assert len(prefixes) == 2
     assert len(set(prefixes)) == 2, f"prefixes collided: {prefixes}"
@@ -241,7 +241,7 @@ def test_long_name_prefix_is_capped(mcp_registry, monkeypatch):
     }
     client = _fake_client(list_pages, batch_response)
     with mock.patch.object(mcp_registry, "_registry_client", return_value=client):
-        clients = mcp_registry.build_registry_mcp_clients()
+        clients = mcp_registry.build_registry_mcp_clients(default_enabled=True)
     # prefix = "registry_" (9) + capped slug (<=24) => <= 33 chars, leaving room
     # for "_<tool_name>" within Bedrock's 64-char tool-name limit.
     assert len(clients) == 1
@@ -249,6 +249,32 @@ def test_long_name_prefix_is_capped(mcp_registry, monkeypatch):
     assert (
         len(clients[0].prefix) <= len("registry_") + mcp_registry._MAX_PREFIX_SLUG_LEN
     )
+
+
+def test_enabled_ids_filters_clients(mcp_registry, monkeypatch):
+    """Only servers whose prefix is in enabled_ids get a client (per-user opt-in)."""
+    monkeypatch.setenv("MCP_REGISTRY_DISCOVERY_ENABLED", "true")
+    monkeypatch.setenv("MCP_REGISTRY_ID", "my-registry")
+    list_pages = [
+        {
+            "registryRecords": [
+                {"recordId": "r1", "name": "Weather"},
+                {"recordId": "r2", "name": "Docs Server"},
+            ]
+        }
+    ]
+    batch_response = {
+        "registryRecords": [
+            _mcp_record("r1", "Weather", "https://weather.example/mcp"),
+            _mcp_record("r2", "Docs Server", "https://docs.example/mcp"),
+        ],
+        "errors": [],
+    }
+    client = _fake_client(list_pages, batch_response)
+    with mock.patch.object(mcp_registry, "_registry_client", return_value=client):
+        clients = mcp_registry.build_registry_mcp_clients(enabled_ids={"registry_weather"})
+    # default_enabled is ignored when enabled_ids is provided.
+    assert [c.prefix for c in clients] == ["registry_weather"]
 
 
 def test_empty_registry_returns_nothing(mcp_registry, monkeypatch):

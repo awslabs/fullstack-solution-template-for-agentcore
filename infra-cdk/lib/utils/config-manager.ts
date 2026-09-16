@@ -116,6 +116,12 @@ export interface McpRegistryConfig {
   enabled: boolean
   /** ARN or id of the AWS Agent Registry to discover records from. Required when enabled. */
   registry_id: string
+  /**
+   * Per-user default on/off state for discovered registry servers before the
+   * user sets a preference. Defaults to false (opt-in) so discovery is visible
+   * in the UI but connects nothing until a user enables it.
+   */
+  default_enabled: boolean
 }
 
 const MCP_SERVER_ID_PATTERN = /^[0-9a-zA-Z][0-9a-zA-Z-]*$/
@@ -270,6 +276,7 @@ export class ConfigManager {
           mcp_registry: {
             enabled: mcpRegistryEnabled,
             registry_id: mcpRegistryId,
+            default_enabled: parsedConfig.backend?.mcp_registry?.default_enabled === true,
           },
           mcp_servers: validateMcpServers(parsedConfig.backend?.mcp_servers, configPath),
         },

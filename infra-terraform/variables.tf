@@ -101,12 +101,14 @@ variable "mcp_registry" {
     registry_id (ARN or id) is required when enabled.
   EOT
   type = object({
-    enabled     = bool
-    registry_id = string
+    enabled         = bool
+    registry_id     = string
+    default_enabled = optional(bool, false)
   })
   default = {
-    enabled     = false
-    registry_id = ""
+    enabled         = false
+    registry_id     = ""
+    default_enabled = false
   }
 
   validation {

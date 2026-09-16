@@ -19,7 +19,10 @@ locals {
   mcp_servers_enabled = [for s in var.mcp_servers : s if s.enabled]
   mcp_servers_by_id   = { for s in local.mcp_servers_enabled : s.id => s }
   mcp_oauth_servers   = { for s in local.mcp_servers_enabled : s.id => s if try(s.auth.type, "NONE") == "OAUTH" }
-  mcp_feature_enabled = length(local.mcp_servers_enabled) > 0
+  # Per-user preferences plane (table + prefs Lambda + API) exists when config
+  # declares servers OR registry discovery is on — both are shown in one catalog
+  # and toggled per user.
+  mcp_feature_enabled = length(local.mcp_servers_enabled) > 0 || var.mcp_registry.enabled
 
   # Deploy-time catalog shared by the prefs Lambda and the agent runtime.
   # Contains no secrets.
@@ -183,6 +186,33 @@ data "aws_iam_policy_document" "mcp_prefs_lambda_policy" {
     ]
     resources = [aws_dynamodb_table.mcp_prefs[0].arn]
   }
+
+  # Registry discovery read (only when enabled) so the Lambda can list the
+  # registry's approved MCP records for the settings catalog. Same authorization
+  # model as the runtime role in runtime.tf.
+  dynamic "statement" {
+    for_each = var.mcp_registry.enabled ? [1] : []
+    content {
+      effect = "Allow"
+      actions = [
+        "agent-registry:ListDiscoverableRegistryRecords",
+        "agent-registry:SearchDiscoverableRegistryRecords"
+      ]
+      resources = [
+        startswith(var.mcp_registry.registry_id, "arn:") ? var.mcp_registry.registry_id : "arn:aws:agent-registry:${local.region}:${local.account_id}:registry/*"
+      ]
+    }
+  }
+  dynamic "statement" {
+    for_each = var.mcp_registry.enabled ? [1] : []
+    content {
+      effect  = "Allow"
+      actions = ["agent-registry:GetDiscoverableRegistryRecord"]
+      resources = [
+        startswith(var.mcp_registry.registry_id, "arn:") ? "${var.mcp_registry.registry_id}/record/*" : "arn:aws:agent-registry:${local.region}:${local.account_id}:registry/*/record/*"
+      ]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "mcp_prefs_lambda" {
@@ -224,6 +254,11 @@ resource "aws_lambda_function" "mcp_prefs" {
       TABLE_NAME           = aws_dynamodb_table.mcp_prefs[0].name
       MCP_SERVERS_CATALOG  = local.mcp_servers_catalog
       CORS_ALLOWED_ORIGINS = "${var.frontend_url},http://localhost:3000"
+      # Registry discovery: Lambda lists approved MCP records and merges them
+      # into the catalog shown in the settings UI.
+      MCP_REGISTRY_DISCOVERY_ENABLED = var.mcp_registry.enabled ? "true" : "false"
+      MCP_REGISTRY_ID                = var.mcp_registry.registry_id
+      MCP_REGISTRY_DEFAULT_ENABLED   = var.mcp_registry.default_enabled ? "true" : "false"
     }
   }
 

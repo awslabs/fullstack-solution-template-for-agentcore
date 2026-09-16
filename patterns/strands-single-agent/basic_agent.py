@@ -15,6 +15,7 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp, RequestContext
 from strands import Agent
 from strands.models import BedrockModel
 from tools.gateway import create_gateway_mcp_client
+from tools.mcp_prefs import get_saved_enabled_ids
 from tools.mcp_registry import build_registry_mcp_clients, is_discovery_enabled
 from utils.auth import extract_user_id_from_context
 
@@ -108,7 +109,17 @@ def create_strands_agent(user_id: str, session_id: str) -> Agent:
     # this runtime guard is defense-in-depth, not the primary check.)
     if is_discovery_enabled():
         try:
-            tools.extend(build_registry_mcp_clients())
+            # Per-user filtering: connect only the discovered servers this user
+            # enabled. No saved preference -> fall back to the deploy-time default.
+            enabled_ids = get_saved_enabled_ids(user_id)
+            default_enabled = (
+                os.environ.get("MCP_REGISTRY_DEFAULT_ENABLED", "false").lower() == "true"
+            )
+            tools.extend(
+                build_registry_mcp_clients(
+                    enabled_ids=enabled_ids, default_enabled=default_enabled
+                )
+            )
         except Exception:
             logger.exception(
                 "[MCP-REGISTRY] Registry discovery failed; continuing without registry tools"

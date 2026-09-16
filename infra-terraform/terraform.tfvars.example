@@ -72,8 +72,9 @@ backend_network_mode = "PUBLIC"
 # See docs/MCP_REGISTRY_DISCOVERY.md. registry_id is required when enabled.
 #
 # mcp_registry = {
-#   enabled     = true
-#   registry_id = "arn:aws:agent-registry:us-east-1:123456789012:registry/my-registry"
+#   enabled         = true
+#   registry_id     = "arn:aws:agent-registry:us-east-1:123456789012:registry/my-registry"
+#   default_enabled = false # per-user default before a user toggles (false = opt-in)
 # }
 
 # -----------------------------------------------------------------------------

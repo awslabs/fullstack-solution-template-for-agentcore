@@ -25,6 +25,8 @@ export interface McpServer {
   name: string
   description: string
   enabled: boolean
+  /** Origin of the server: "config" (config.yaml) or "registry" (AWS Agent Registry discovery). */
+  source?: "config" | "registry"
 }
 
 /**

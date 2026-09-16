@@ -89,7 +89,14 @@ export function McpServersDialog({ isOpen, onClose }: McpServersDialogProps) {
                 className="mt-1 h-4 w-4 accent-primary"
               />
               <span>
-                <span className="block text-sm font-medium">{server.name}</span>
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  {server.name}
+                  {server.source === "registry" && (
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal uppercase tracking-wide text-muted-foreground">
+                      Registry
+                    </span>
+                  )}
+                </span>
                 {server.description && (
                   <span className="block text-xs text-muted-foreground">{server.description}</span>
                 )}

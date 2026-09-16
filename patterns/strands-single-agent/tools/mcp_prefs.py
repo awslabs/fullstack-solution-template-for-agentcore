@@ -33,6 +33,28 @@ def _default_enabled_ids(catalog: list[dict]) -> set[str]:
     return {s["id"] for s in catalog if s.get("default_enabled", True)}
 
 
+def get_saved_enabled_ids(user_id: str) -> set[str] | None:
+    """The user's saved enabled-server ids, or None when they have no preference.
+
+    Used to filter registry-discovered servers (which are not in the gateway
+    catalog): the caller connects a discovered server only when its id is in this
+    set, or — when None — falls back to the registry's default_enabled flag.
+    Fail-soft: on any DynamoDB error returns None so defaults apply.
+    """
+    table_name = os.environ.get("MCP_PREFS_TABLE")
+    if not table_name:
+        return None
+    try:
+        table = boto3.resource("dynamodb").Table(table_name)
+        item = table.get_item(Key={"userId": user_id}).get("Item")
+    except Exception:
+        logger.exception("Failed to read MCP preferences; applying defaults")
+        return None
+    if item is None:
+        return None
+    return set(item.get("enabled", []))
+
+
 def get_disabled_server_ids(user_id: str) -> set[str]:
     """Ids of catalog MCP servers the user has disabled (empty when feature off)."""
     catalog = _catalog()

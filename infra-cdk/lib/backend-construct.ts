@@ -122,10 +122,54 @@ export class BackendConstruct extends Construct {
     )
   }
 
+  /**
+   * Whether the per-user MCP preferences plane (table + API + runtime filter)
+   * should exist: true when config declares servers OR registry discovery is on.
+   * Both sources are shown in one catalog and toggled per user.
+   */
+  private mcpFeatureEnabled(config: AppConfig): boolean {
+    const hasConfigServers = (config.backend.mcp_servers ?? []).some(s => s.enabled !== false)
+    return hasConfigServers || config.backend.mcp_registry.enabled
+  }
+
+  /**
+   * Read-only AWS Agent Registry discovery statements (empty when disabled).
+   * Shared by the agent runtime role and the mcp-prefs Lambda role — the runtime
+   * connects to discovered servers, the Lambda lists them for the settings UI.
+   */
+  private registryDiscoveryStatements(config: AppConfig): iam.PolicyStatement[] {
+    if (!config.backend.mcp_registry.enabled) return []
+    const registryId = config.backend.mcp_registry.registry_id
+    const registryArn = registryId.startsWith("arn:")
+      ? registryId
+      : `arn:aws:agent-registry:${this.region}:${this.account}:registry/*`
+    const recordArn = registryId.startsWith("arn:")
+      ? `${registryId}/record/*`
+      : `arn:aws:agent-registry:${this.region}:${this.account}:registry/*/record/*`
+    return [
+      new iam.PolicyStatement({
+        sid: "AgentRegistryDiscoveryList",
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "agent-registry:ListDiscoverableRegistryRecords",
+          "agent-registry:SearchDiscoverableRegistryRecords",
+        ],
+        resources: [registryArn],
+      }),
+      // BatchGet is authorized by the permission-only GetDiscoverableRegistryRecord
+      // action on the record ARN (the IAM action name differs from the API name).
+      new iam.PolicyStatement({
+        sid: "AgentRegistryDiscoveryGetRecord",
+        effect: iam.Effect.ALLOW,
+        actions: ["agent-registry:GetDiscoverableRegistryRecord"],
+        resources: [recordArn],
+      }),
+    ]
+  }
+
   /** DynamoDB table holding each user's enabled-MCP-servers list. */
   private createMcpPrefsTable(config: AppConfig): dynamodb.Table | undefined {
-    const hasServers = (config.backend.mcp_servers ?? []).some(s => s.enabled !== false)
-    if (!hasServers) return undefined
+    if (!this.mcpFeatureEnabled(config)) return undefined
     return new dynamodb.Table(this, "McpPrefsTable", {
       tableName: `${config.stack_name_base}-mcp-prefs`,
       partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
@@ -406,43 +450,8 @@ export class BackendConstruct extends Construct {
     // agent can list them and fetch their descriptors to auto-connect at runtime.
     // Namespace note: the data-plane discovery APIs live under `agent-registry`
     // (the older `bedrock-agentcore` namespace is deprecated after 2026-09-17).
-    if (config.backend.mcp_registry.enabled) {
-      const registryId = config.backend.mcp_registry.registry_id
-      // Resource ARNs differ by action per the AWS Agent Registry authorization
-      // reference: List/Search authorize on the *registry* resource, while the
-      // BatchGetDiscoverableRegistryRecord API is authorized by the permission-
-      // only action agent-registry:GetDiscoverableRegistryRecord on the *record*
-      // resource (registry/<id>/record/*). Note the API name and the IAM action
-      // name differ — granting "BatchGetDiscoverableRegistryRecord" is a no-op
-      // and yields AccessDenied on record reads.
-      const registryArn = registryId.startsWith("arn:")
-        ? registryId
-        : `arn:aws:agent-registry:${this.region}:${this.account}:registry/*`
-      const recordArn = registryId.startsWith("arn:")
-        ? `${registryId}/record/*`
-        : `arn:aws:agent-registry:${this.region}:${this.account}:registry/*/record/*`
-      // Registry-level: enumerate + natural-language search.
-      agentRole.addToPolicy(
-        new iam.PolicyStatement({
-          sid: "AgentRegistryDiscoveryList",
-          effect: iam.Effect.ALLOW,
-          actions: [
-            "agent-registry:ListDiscoverableRegistryRecords",
-            "agent-registry:SearchDiscoverableRegistryRecords",
-          ],
-          resources: [registryArn],
-        })
-      )
-      // Record-level: read full descriptors via BatchGet (authorized by the
-      // permission-only GetDiscoverableRegistryRecord action on the record ARN).
-      agentRole.addToPolicy(
-        new iam.PolicyStatement({
-          sid: "AgentRegistryDiscoveryGetRecord",
-          effect: iam.Effect.ALLOW,
-          actions: ["agent-registry:GetDiscoverableRegistryRecord"],
-          resources: [recordArn],
-        })
-      )
+    for (const statement of this.registryDiscoveryStatements(config)) {
+      agentRole.addToPolicy(statement)
     }
 
     // Environment variables for the runtime
@@ -466,6 +475,8 @@ export class BackendConstruct extends Construct {
       // config.yaml: mcp_registry and docs/MCP_REGISTRY_DISCOVERY.md.
       MCP_REGISTRY_DISCOVERY_ENABLED: config.backend.mcp_registry.enabled ? "true" : "false",
       MCP_REGISTRY_ID: config.backend.mcp_registry.registry_id,
+      // Per-user default for discovered registry servers before a preference is set.
+      MCP_REGISTRY_DEFAULT_ENABLED: config.backend.mcp_registry.default_enabled ? "true" : "false",
     }
 
     // Add claude-agent-sdk specific environment variable
@@ -748,6 +759,11 @@ export class BackendConstruct extends Construct {
           TABLE_NAME: mcpPrefsTable.tableName,
           MCP_SERVERS_CATALOG: this.mcpServersCatalogJson(config),
           CORS_ALLOWED_ORIGINS: `${frontendUrl},http://localhost:3000`,
+          // Registry discovery: the Lambda lists the registry's approved MCP
+          // records and merges them into the catalog shown in the settings UI.
+          MCP_REGISTRY_DISCOVERY_ENABLED: config.backend.mcp_registry.enabled ? "true" : "false",
+          MCP_REGISTRY_ID: config.backend.mcp_registry.registry_id,
+          MCP_REGISTRY_DEFAULT_ENABLED: config.backend.mcp_registry.default_enabled ? "true" : "false",
         },
         timeout: cdk.Duration.seconds(30),
         layers: [
@@ -766,6 +782,9 @@ export class BackendConstruct extends Construct {
         }),
       })
       mcpPrefsTable.grantReadWriteData(mcpPrefsLambda)
+      for (const statement of this.registryDiscoveryStatements(config)) {
+        mcpPrefsLambda.addToRolePolicy(statement)
+      }
 
       const mcpServersResource = api.root.addResource("mcp-servers")
       const mcpPrefsIntegration = new apigateway.LambdaIntegration(mcpPrefsLambda)

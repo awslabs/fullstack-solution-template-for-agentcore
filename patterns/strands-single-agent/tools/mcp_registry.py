@@ -316,8 +316,11 @@ def _to_discovered_server(record: dict) -> DiscoveredMcpServer | None:
     )
 
 
-def build_registry_mcp_clients() -> list[MCPClient]:
-    """Build live Strands MCP clients for every discovered registry server.
+def build_registry_mcp_clients(
+    enabled_ids: set[str] | None = None,
+    default_enabled: bool = False,
+) -> list[MCPClient]:
+    """Build live Strands MCP clients for discovered registry servers the user enabled.
 
     Each returned client can be dropped directly into a Strands ``Agent``'s
     ``tools=[...]`` list (a ``MCPClient`` is a tool provider), exactly like the
@@ -325,9 +328,20 @@ def build_registry_mcp_clients() -> list[MCPClient]:
     created lazily inside the client's factory lambda so a fresh transport is
     established on each (re)connection.
 
+    Per-user filtering happens here (not via tool_filters): a discovered server
+    connects only when the user enabled it. Each server's catalog id is
+    ``_safe_prefix(name)`` — identical to the id the preferences API/UI shows —
+    so the ids in ``enabled_ids`` line up with the servers here.
+
+    Args:
+        enabled_ids: The user's saved enabled-server ids, or None when the user
+            has set no preference (fall back to ``default_enabled``).
+        default_enabled: On/off state for discovered servers when the user has no
+            saved preference. Comes from ``MCP_REGISTRY_DEFAULT_ENABLED``.
+
     Returns:
-        list[MCPClient]: One client per connectable discovered server. Empty
-        when discovery is disabled or nothing connectable was found.
+        list[MCPClient]: One client per enabled, connectable discovered server.
+        Empty when discovery is disabled or nothing enabled/connectable was found.
 
     Raises:
         ValueError: If discovery is enabled but ``MCP_REGISTRY_ID`` is unset.
@@ -337,6 +351,13 @@ def build_registry_mcp_clients() -> list[MCPClient]:
     clients: list[MCPClient] = []
     used_prefixes: set[str] = set()
     for server in servers:
+        # Per-user enablement: connect only servers the user turned on (or, when
+        # the user has no saved preference, only when discovery defaults to on).
+        server_id = _safe_prefix(server.name)
+        is_enabled = server_id in enabled_ids if enabled_ids is not None else default_enabled
+        if not is_enabled:
+            logger.info("[MCP-REGISTRY] Skipping disabled server '%s'", server.name)
+            continue
         # De-duplicate prefixes: two records whose names slugify identically would
         # otherwise produce colliding tool-name namespaces. Suffix -2, -3, ... on
         # collision so each connected server keeps a distinct prefix.
