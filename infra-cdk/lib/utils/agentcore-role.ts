@@ -6,6 +6,20 @@ export interface AgentCoreRoleProps extends iam.RoleProps {
   // Additional props can be added here if needed
 }
 
+/**
+ * AgentCore service principal restricted to this account's AgentCore resources,
+ * preventing cross-account confused-deputy use of the role.
+ */
+export function agentCoreServicePrincipal(region: string, accountId: string): iam.IPrincipal {
+  return new iam.PrincipalWithConditions(
+    new iam.ServicePrincipal("bedrock-agentcore.amazonaws.com"),
+    {
+      StringEquals: { "aws:SourceAccount": accountId },
+      ArnLike: { "aws:SourceArn": `arn:aws:bedrock-agentcore:${region}:${accountId}:*` },
+    }
+  )
+}
+
 export class AgentCoreRole extends iam.Role {
   constructor(scope: Construct, id: string, props?: AgentCoreRoleProps) {
     const stack = cdk.Stack.of(scope)
@@ -13,7 +27,7 @@ export class AgentCoreRole extends iam.Role {
     const accountId = stack.account
 
     super(scope, id, {
-      assumedBy: new iam.ServicePrincipal("bedrock-agentcore.amazonaws.com"),
+      assumedBy: agentCoreServicePrincipal(region, accountId),
       inlinePolicies: {
         AgentCorePolicy: new iam.PolicyDocument({
           statements: [

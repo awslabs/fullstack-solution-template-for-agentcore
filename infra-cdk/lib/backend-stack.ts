@@ -15,7 +15,7 @@ import * as ecr_assets from "aws-cdk-lib/aws-ecr-assets"
 import * as cr from "aws-cdk-lib/custom-resources"
 import { Construct } from "constructs"
 import { AppConfig } from "./utils/config-manager"
-import { AgentCoreRole } from "./utils/agentcore-role"
+import { AgentCoreRole, agentCoreServicePrincipal } from "./utils/agentcore-role"
 import * as path from "path"
 import * as fs from "fs"
 
@@ -35,7 +35,6 @@ export class BackendStack extends cdk.NestedStack {
   public runtimeArn: string
   public memoryArn: string
   private agentName: cdk.CfnParameter
-  private networkMode: cdk.CfnParameter
   private userPool: cognito.IUserPool
   private machineClient: cognito.UserPoolClient
   private agentRuntime: agentcore.Runtime
@@ -102,13 +101,6 @@ export class BackendStack extends cdk.NestedStack {
       type: "String",
       default: "StrandsAgent",
       description: "Name for the agent runtime",
-    })
-
-    this.networkMode = new cdk.CfnParameter(this, "NetworkMode", {
-      type: "String",
-      default: "PUBLIC",
-      description: "Network mode for AgentCore resources",
-      allowedValues: ["PUBLIC", "PRIVATE"],
     })
 
     const stack = cdk.Stack.of(this)
@@ -215,11 +207,10 @@ export class BackendStack extends cdk.NestedStack {
       )
     }
 
-    // Configure network mode
-    const networkConfiguration =
-      this.networkMode.valueAsString === "PRIVATE"
-        ? undefined // For private mode, you would need to configure VPC settings
-        : agentcore.RuntimeNetworkConfiguration.usingPublicNetwork()
+    // Public network only. A CfnParameter cannot drive this choice because its value is a
+    // deploy-time token, so a PRIVATE option would silently never apply. To run in a VPC, use
+    // agentcore.RuntimeNetworkConfiguration.usingVpc() with explicit VPC settings instead.
+    const networkConfiguration = agentcore.RuntimeNetworkConfiguration.usingPublicNetwork()
 
     // Configure JWT authorizer with Cognito
     const authorizerConfiguration = agentcore.RuntimeAuthorizerConfiguration.usingJWT(
@@ -230,6 +221,24 @@ export class BackendStack extends cdk.NestedStack {
     // Create AgentCore execution role
     const agentRole = new AgentCoreRole(this, "AgentCoreRole")
 
+    // Dedicated execution role for the Memory service. It only needs model invocation (used by
+    // long-term strategies), so it must not share the broader agent runtime role.
+    const memoryRole = new iam.Role(this, "MemoryExecutionRole", {
+      assumedBy: agentCoreServicePrincipal(stack.region, stack.account),
+      description: "Execution role for AgentCore Memory",
+    })
+    memoryRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "BedrockModelInvocation",
+        effect: iam.Effect.ALLOW,
+        actions: ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
+        resources: [
+          "arn:aws:bedrock:*::foundation-model/*",
+          `arn:aws:bedrock:*:${stack.account}:inference-profile/*`,
+        ],
+      })
+    )
+
     // Create memory resource with short-term memory (conversation history) as default
     // To enable long-term strategies (summaries, preferences, facts), see docs/MEMORY_INTEGRATION.md
     const memory = new cdk.CfnResource(this, "AgentMemory", {
@@ -239,7 +248,7 @@ export class BackendStack extends cdk.NestedStack {
         EventExpiryDuration: 30,
         Description: `Short-term memory for ${config.stack_name_base} agent`,
         MemoryStrategies: [], // Empty array = short-term only (conversation history)
-        MemoryExecutionRoleArn: agentRole.roleArn,
+        MemoryExecutionRoleArn: memoryRole.roleArn,
         Tags: {
           Name: `${config.stack_name_base}_Memory`,
           ManagedBy: "CDK",
@@ -375,7 +384,7 @@ export class BackendStack extends cdk.NestedStack {
 
     new secretsmanager.Secret(this, "MachineClientSecret", {
       secretName: `/${config.stack_name_base}/machine_client_secret`,
-      secretStringValue: cdk.SecretValue.unsafePlainText(this.machineClient.userPoolClientSecret.unsafeUnwrap()),
+      secretStringValue: this.machineClient.userPoolClientSecret,
       description: "Machine Client Secret for M2M authentication",
     })
 
@@ -501,7 +510,7 @@ export class BackendStack extends cdk.NestedStack {
         cacheClusterSize: "0.5",
         cacheTtl: cdk.Duration.minutes(5),
         loggingLevel: apigateway.MethodLoggingLevel.INFO,
-        dataTraceEnabled: true,
+        dataTraceEnabled: false, // true would log full request/response bodies (user comments) to CloudWatch
         metricsEnabled: true,
         accessLogDestination: new apigateway.LogGroupLogDestination(
           new logs.LogGroup(this, "FeedbackApiAccessLogGroup", {
@@ -565,7 +574,7 @@ export class BackendStack extends cdk.NestedStack {
 
     // Create comprehensive IAM role for gateway
     const gatewayRole = new iam.Role(this, "GatewayRole", {
-      assumedBy: new iam.ServicePrincipal("bedrock-agentcore.amazonaws.com"),
+      assumedBy: agentCoreServicePrincipal(this.region, this.account),
       description: "Role for AgentCore Gateway with comprehensive permissions",
     })
 
