@@ -1,0 +1,4 @@
+# Pydantic AI AG-UI agent dependencies
+pydantic-ai-slim[ag-ui,bedrock,mcp]==2.62.0
+bedrock-agentcore==1.18.1
+PyJWT[crypto]==2.15.0
