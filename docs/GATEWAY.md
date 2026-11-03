@@ -446,6 +446,7 @@ const gateway = new bedrockagentcore.CfnGateway(this, "AgentCoreGateway", {
 
 - [Identity Propagation & Cedar Policy Guide](IDENTITY_POLICY.md) - User-level access control for Gateway tools
 - [Cedar Policy Guide](CEDAR_POLICY_GUIDE.md) - Cedar policy syntax, capabilities, and reference
+- [Gateway Interceptors](GATEWAY_INTERCEPTORS.md) - Request/response interceptors for custom authorization, transformation, and dynamic access control
 - [Replacing Cognito](REPLACING_COGNITO.md) - Identity provider swap and Gateway interceptors guide
 - [Runtime-Gateway Authentication](RUNTIME_GATEWAY_AUTH.md) - M2M token flow between Runtime and Gateway
 - [Deployment Guide](DEPLOYMENT.md) - How to deploy FAST infrastructure

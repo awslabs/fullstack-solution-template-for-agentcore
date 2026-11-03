@@ -173,7 +173,7 @@ For the full Cedar policy reference — including claims, action format, schema 
 
 FAST provides two approaches for Gateway authentication in each pattern's `tools/gateway.py`:
 
-> **Replacing Cognito?** For swapping Cognito with another Identity Provider (Okta, Auth0, Entra ID, etc.) or using Gateway Interceptors for dynamic access control, see [Replacing Cognito](REPLACING_COGNITO.md).
+> **Replacing Cognito?** For swapping Cognito with another Identity Provider (Okta, Auth0, Entra ID, etc.), see [Replacing Cognito](REPLACING_COGNITO.md). For Gateway Interceptors as a dynamic, code-based alternative or complement to Cedar Policy, see [Gateway Interceptors](GATEWAY_INTERCEPTORS.md).
 
 ### Approach 1 (Active): Direct Cognito Call
 
