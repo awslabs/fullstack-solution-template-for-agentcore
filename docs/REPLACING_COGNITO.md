@@ -79,6 +79,8 @@ Use Approach B (Gateway Interceptors) described in the next section.
 
 **For:** Any OIDC-compliant IdP, even those without token enrichment hooks. Also useful when fully dynamic access control is needed (e.g., permissions stored in a database that change at runtime).
 
+> This section covers how interceptors fit the IdP-swap story. For the interceptor capability itself — the REQUEST/RESPONSE contract, allow/deny patterns, request/response transformation, resolve-and-inject, the CDK wiring, and the Cedar-vs-interceptor comparison — see [Gateway Interceptors](GATEWAY_INTERCEPTORS.md). This section links to it rather than repeating the mechanics.
+
 ### 3a. How It Works
 
 Instead of enriching the M2M token with user claims, the Runtime passes user identity as a **separate custom header**. The Gateway Interceptor Lambda reads this header and makes access control decisions.
@@ -107,37 +109,9 @@ User JWT → Runtime (validates user JWT via any IdP's OIDC)
   → Target receives tool input only (no tokens, no headers)
 ```
 
-**Runtime code:**
-
-```python
-# In the agent code (runs in AgentCore Runtime)
-user_id = extract_user_id_from_context(context)  # from validated user JWT
-m2m_token = await get_m2m_token()  # plain M2M, no user claims
-
-mcp_client = MCPClient(
-    gateway_url=GATEWAY_URL,
-    headers={
-        "Authorization": f"Bearer {m2m_token}",  # machine trust
-        "X-User-Id": user_id,                     # user identity (plain string)
-    }
-)
-```
-
-**Interceptor reads it:**
-
-```python
-def lambda_handler(event, context):
-    """Request interceptor: reads user identity from plain string header."""
-    gateway_request = event['mcp']['gatewayRequest']
-    headers = gateway_request.get('headers', {})
-    
-    # Simple string extraction — no JWT decoding needed
-    user_id = headers.get('X-User-Id', '')
-    
-    # Look up permissions for this user (from DB, YAML, IdP API, etc.)
-    permissions = get_user_permissions(user_id)
-    # ... allow or deny based on permissions
-```
+The Runtime sets `X-User-Id` from the validated user JWT; the interceptor reads that header
+and looks up the user's permissions. For the interceptor code and the header-reading helper,
+see [Gateway Interceptors](GATEWAY_INTERCEPTORS.md) (the "M2M token + header" identity model).
 
 | Pros | Cons |
 |------|------|
@@ -172,274 +146,50 @@ User JWT → Runtime (validates user JWT via any IdP's OIDC)
   → Target receives tool input only (no tokens, no headers)
 ```
 
-**Runtime code:**
-
-```python
-# In the agent code (runs in AgentCore Runtime)
-user_jwt = get_user_jwt_from_request(context)  # the original user JWT (already validated by Runtime's authorizer)
-m2m_token = await get_m2m_token()  # plain M2M, no user claims
-
-mcp_client = MCPClient(
-    gateway_url=GATEWAY_URL,
-    headers={
-        "Authorization": f"Bearer {m2m_token}",    # machine trust
-        "X-User-Token": user_jwt,                   # full user JWT (verifiable)
-    }
-)
-```
-
-**Interceptor reads and verifies it:**
-
-```python
-import jwt
-import requests
-from functools import lru_cache
-
-# Cache the JWKS (public keys) from the IdP
-@lru_cache(maxsize=1)
-def get_jwks(jwks_url):
-    """Fetch and cache JWKS public keys from the IdP."""
-    response = requests.get(jwks_url)
-    return response.json()
-
-def lambda_handler(event, context):
-    """Request interceptor: verifies user JWT and extracts claims."""
-    gateway_request = event['mcp']['gatewayRequest']
-    headers = gateway_request.get('headers', {})
-    
-    # Extract the full user JWT
-    user_token = headers.get('X-User-Token', '')
-    
-    if not user_token:
-        return deny_request("No user token provided")
-    
-    # Verify JWT signature and extract claims
-    try:
-        # Get public keys from the IdP's JWKS endpoint
-        jwks = get_jwks(IDP_JWKS_URL)  # e.g., https://the-idp/.well-known/jwks.json
-        
-        # Decode and verify the JWT
-        claims = jwt.decode(
-            user_token,
-            jwks,
-            algorithms=["RS256"],
-            audience=EXPECTED_AUDIENCE,
-            issuer=EXPECTED_ISSUER
-        )
-    except jwt.ExpiredSignatureError:
-        return deny_request("User token expired")
-    except jwt.InvalidTokenError as e:
-        return deny_request(f"Invalid user token: {e}")
-    
-    # Extract user attributes directly from verified claims
-    user_id = claims.get('sub', '')
-    department = claims.get('department', '')
-    groups = claims.get('groups', [])  # or 'cognito:groups' for Cognito
-    role = claims.get('role', 'viewer')
-    
-    # Make access control decision based on verified claims
-    tool_name = gateway_request['body'].get('params', {}).get('name', '')
-    
-    if not is_authorized(user_id, department, groups, role, tool_name):
-        return deny_request(f"User {user_id} ({department}) not authorized for {tool_name}")
-    
-    # Authorized — pass through
-    return {
-        "interceptorOutputVersion": "1.0",
-        "mcp": {
-            "transformedGatewayRequest": gateway_request
-        }
-    }
-```
+The Runtime sets `X-User-Token` to the original user JWT; the interceptor verifies that JWT's
+signature against the IdP's JWKS and reads claims directly from it, so no external lookup is
+needed. Because the gateway authorizer validates only the M2M token, the interceptor is the
+component that must verify the user JWT here. For the verification pattern, see
+[Gateway Interceptors](GATEWAY_INTERCEPTORS.md).
 
 | Pros | Cons |
 |------|------|
 | Cryptographically verifiable — interceptor can prove the JWT is authentic | More complex — requires JWT library and JWKS fetching in the interceptor |
 | All user claims available directly (no external lookup needed) | Slightly higher latency (signature verification + JWKS cache) |
 | Defense-in-depth — even if M2M token is compromised, user JWT must also be valid | Larger header size (full JWT vs. simple string) |
-| Works even when the Runtime boundary is not fully trusted | Must handle token expiry (user JWT may expire before M2M token) |
+| User identity is independently verifiable, not dependent on the M2M token alone | Must handle token expiry (user JWT may expire before M2M token) |
 
 **When to use:** When defense-in-depth is needed (two independent verifications), when multiple user claims are needed in the interceptor without calling an external service, or when security requirements demand cryptographic proof of user identity at the Gateway level.
 
 ---
 
-#### Comparison: Option 1 vs. Option 2
-
-| Aspect | Option 1: X-User-Id (string) | Option 2: X-User-Token (full JWT) |
-|--------|---|---|
-| **Security model** | Trust the Gateway boundary (M2M token proves caller is legitimate) | Verify independently (JWT signature proves user identity) |
-| **What interceptor receives** | Plain user_id string | Full JWT with all claims |
-| **Interceptor complexity** | Simple — just read header, look up permissions | More complex — verify JWT, extract claims |
-| **External lookups needed** | Yes — must query DB/IdP for user attributes | No — claims are in the JWT |
-| **Latency** | Lower (no crypto) + lookup time | Higher (crypto verification) but no lookup needed |
-| **Token expiry concern** | None (it's just a string) | Must handle — user JWT may expire |
-| **Spoofing risk** | Low (only valid Runtimes can reach Gateway) | None (JWT signature is cryptographic proof) |
-| **Best for** | Internal systems with trusted Runtime boundary | High-security environments, zero-trust architectures |
-
----
+Choose Option 1 when the Gateway boundary is the trust boundary and an external permission
+lookup is acceptable; choose Option 2 when you need cryptographic proof of the user identity
+at the Gateway or want claims available without an external call.
 
 **Key insight (applies to both options):** The M2M token and user identity are **separate concerns**:
 - **M2M token** (in `Authorization` header) → proves the Runtime is a legitimate caller → validated by Gateway authorizer
 - **User identity** (in `X-User-Id` or `X-User-Token` header) → tells the interceptor WHO the request is for → used for access control decisions
 
-The interceptor replaces BOTH the Pre-Token Lambda AND the Cedar Policy Engine's role in checking user identity. The Gateway authorizer still validates the M2M token (to ensure the call is legitimate), but the access control decision moves from Cedar Policy to the Interceptor Lambda.
+In this header-based approach the interceptor takes over the user-identity check that the
+Pre-Token Lambda and Cedar Policy perform in the current architecture. Interceptors and Cedar
+can also coexist (see [Gateway Interceptors](GATEWAY_INTERCEPTORS.md)); the Gateway authorizer
+still validates the M2M token either way.
 
 > **Note:** In both options, the LLM never has access to either token or header. They exist only in the HTTP transport layer managed by the agent's Python code and MCP client library. The LLM only interacts with tool schemas and tool results.
 
-### 3b. Request Interceptor (Controls `tools/call`)
+### 3b. Request and response interceptors, and CDK wiring
 
-The request interceptor fires **BEFORE** the target Lambda executes. It decides whether to allow or deny the tool invocation.
+A **REQUEST** interceptor fires before the target and controls `tools/call` (allow, deny, or
+transform). A **RESPONSE** interceptor fires after the target and filters `tools/list` so the
+agent only sees tools the user may use. You attach them in the `agentcore.Gateway` constructor
+via `interceptorConfigurations`, with `passRequestHeaders: true` when the interceptor needs to
+read request headers.
 
-**Flow:**
-```
-Agent calls tools/call → Gateway → Request Interceptor Lambda → (if allowed) → Target
-```
-
-**What it does:**
-1. Extracts the user identity from the custom header (e.g., `X-User-Id`)
-2. Identifies which tool is being invoked
-3. Checks if the user has permission (via scopes, DB lookup, YAML, etc.)
-4. **If authorized** → passes request through to the target
-5. **If unauthorized** → returns a structured MCP error, target never executes
-
-**Example code:**
-
-```python
-def lambda_handler(event, context):
-    """Request interceptor: controls tools/call access."""
-    gateway_request = event['mcp']['gatewayRequest']
-    
-    # Extract user identity from custom header
-    headers = gateway_request.get('headers', {})
-    user_id = headers.get('X-User-Id', '')
-    
-    # Identify which tool is being called
-    tool_name = gateway_request['body'].get('params', {}).get('name', '')
-    target = gateway_request.get('target', '')
-    
-    # Look up permissions (from DB, YAML, IdP groups, etc.)
-    if not check_tool_authorization(user_id, tool_name, target):
-        return {
-            "interceptorOutputVersion": "1.0",
-            "mcp": {
-                "transformedGatewayRequest": {
-                    "statusCode": 403,
-                    "body": {
-                        "error": {
-                            "code": "UNAUTHORIZED",
-                            "message": f"User {user_id} is not authorized to call {tool_name}"
-                        }
-                    }
-                }
-            }
-        }
-    
-    # Authorized — pass through to target
-    return {
-        "interceptorOutputVersion": "1.0",
-        "mcp": {
-            "transformedGatewayRequest": gateway_request
-        }
-    }
-
-
-def check_tool_authorization(user_id, tool, target):
-    """Check if user has permission to call this tool.
-
-    This can query a database, read a YAML config, call an IdP API, etc.
-    """
-    user_scopes = get_user_scopes(user_id)  # from DB or IdP
-    if target in user_scopes:
-        return True
-    return f"{target}:{tool}" in user_scopes
-```
-
-### 3c. Response Interceptor (Controls `tools/list`)
-
-The response interceptor fires **AFTER** the target responds. It filters the tool list so the agent only sees tools the user is authorized to use.
-
-**Flow:**
-```
-Agent calls tools/list → Gateway → Target returns ALL tools → Response Interceptor → Filtered list
-```
-
-**What it does:**
-1. Receives the full tool list from the target
-2. Extracts user identity from the response payload headers
-3. For each tool, checks if the user is authorized
-4. Returns a transformed response with only permitted tools
-
-**Example code:**
-
-```python
-def lambda_handler(event, context):
-    """Response interceptor: filters tools/list results."""
-    # Extract gateway response and authorization header
-    gateway_response = event['mcp']['gatewayResponse']
-    auth_header = gateway_response['headers'].get('Authorization', '')
-    
-    # Extract user identity (from custom header passed through)
-    user_id = gateway_response['headers'].get('X-User-Id', '')
-    
-    # Get tools from gateway response
-    tools = gateway_response['body']['result'].get('tools', [])
-    # Also check structuredContent (for semantic search responses)
-    if not tools:
-        tools = gateway_response['body']['result'].get('structuredContent', {}).get('tools', [])
-    
-    # Look up user permissions and filter tools
-    user_scopes = get_user_scopes(user_id)  # from DB, YAML, IdP, etc.
-    filtered_tools = filter_tools_by_scope(tools, user_scopes)
-    
-    # Return transformed response with filtered tools
-    return {
-        "interceptorOutputVersion": "1.0",
-        "mcp": {
-            "transformedGatewayResponse": {
-                "statusCode": 200,
-                "headers": {"Authorization": auth_header},
-                "body": {
-                    "result": {"tools": filtered_tools}
-                }
-            }
-        }
-    }
-
-
-def filter_tools_by_scope(tools, allowed_scopes):
-    """Filter tools based on user's allowed scopes."""
-    filtered_tools = []
-    for tool in tools:
-        target, action = tool['name'].split('___')
-        # Check if user has full target access or specific tool access
-        if target in allowed_scopes or f"{target}:{action}" in allowed_scopes:
-            filtered_tools.append(tool)
-    return filtered_tools
-```
-
-### 3d. CDK Configuration
-
-```typescript
-import { LambdaInterceptor } from '@aws-cdk/aws-bedrock-agentcore-alpha';
-
-// Request interceptor — fires BEFORE target
-const requestInterceptor = LambdaInterceptor.forRequest(requestInterceptorLambda, {
-  passRequestHeaders: true  // Required: enables reading custom headers (X-User-Id, etc.)
-});
-
-// Response interceptor — fires AFTER target responds
-const responseInterceptor = LambdaInterceptor.forResponse(responseInterceptorLambda, {
-  passRequestHeaders: true  // Required: enables reading headers in the response payload
-});
-
-// Attach to Gateway
-const gateway = new Gateway(this, 'MyGateway', {
-  // ... other config
-  interceptors: [requestInterceptor, responseInterceptor],
-});
-```
-
-**Important:** `passRequestHeaders: true` is required. By default, headers are NOT forwarded to interceptors for security reasons (headers may contain sensitive credentials). This must be explicitly opted in.
+For the full mechanics — the REQUEST/RESPONSE input and output contract, the hard-deny vs
+soft-deny patterns, `tools/list` filtering, request/response transformation, the
+resolve-and-inject pattern, and the CDK configuration — see
+[Gateway Interceptors](GATEWAY_INTERCEPTORS.md).
 
 ### 3e. Security & Common Concerns
 
@@ -501,18 +251,11 @@ A request must pass ALL checks to succeed.
 
 ## 4. Cedar Policy vs. Interceptors — When to Use Which
 
-| Feature | Cedar Policy | Gateway Interceptors |
-|---------|-------------|---------------------|
-| Where filtering happens | Policy Engine (built-in, managed) | Lambda code |
-| What it checks | JWT claims (tags) + context.input | User identity (from header) + any external source (DB, YAML, IdP API) |
-| Dynamic? | Static rules (redeploy policy to change) | Fully dynamic (Lambda can query anything at runtime) |
-| Tool filtering (tools/list) | Automatic via PartiallyAuthorizeActions | Implemented in response interceptor |
-| Tool execution (tools/call) | Automatic via AuthorizeAction | Implemented in request interceptor |
-| Requires token enrichment? | Yes — claims must be in the JWT | No — can read headers, query external sources |
-| Input validation | Yes — `context.input.amount < 1000` | Yes — Lambda has access to the full request payload |
-| Schema translation / PII redaction | No | Yes — interceptor can transform request/response |
-| Multi-tenant isolation | Limited (claim-based only) | Full flexibility (can query tenant DB) |
-| No code needed | Yes — declarative Cedar policies | No — requires Lambda code |
+For a full feature-by-feature comparison of Cedar Policy and Gateway interceptors (where
+filtering happens, static vs. dynamic, token-enrichment requirements, transformation, and
+multi-tenant isolation), see the comparison in
+[Gateway Interceptors](GATEWAY_INTERCEPTORS.md). The guidance below summarizes the choice in
+the context of swapping IdPs.
 
 ### Guidance
 
@@ -843,6 +586,6 @@ Not directly in M2M tokens. The `cognito:groups` claim only appears in user auth
 Yes, because:
 1. The Gateway authorizer validates the M2M token first (proving the caller is a legitimate Runtime)
 2. The custom header (`X-User-Id`) is only readable by the interceptor Lambda (with `passRequestHeaders: true`)
-3. The LLM do not have access to HTTP headers — they exist only in the transport layer
+3. The LLM does not have access to HTTP headers — they exist only in the transport layer
 
 The security boundary is enforced at the Gateway level. If someone tries to call the Gateway directly (without a valid M2M token), the authorizer rejects them before the interceptor even fires.
