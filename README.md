@@ -155,6 +155,7 @@ fullstack-agentcore-solution-template/
 │   ├── AGENT_CONFIGURATION.md # Agent setup guide
 │   ├── MEMORY_INTEGRATION.md # Memory integration guide
 │   ├── GATEWAY.md          # Gateway integration guide
+│   ├── GATEWAY_INTERCEPTORS.md # Gateway interceptors: custom authz, transformation & dynamic access control
 │   ├── IDENTITY_POLICY.md  # Identity propagation & Cedar policy guide
 │   ├── CEDAR_POLICY_GUIDE.md # Cedar policy syntax, capabilities & reference
 │   ├── REPLACING_COGNITO.md # Identity provider swap & Gateway interceptors guide
