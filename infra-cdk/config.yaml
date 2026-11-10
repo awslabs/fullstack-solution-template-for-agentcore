@@ -8,7 +8,7 @@ backend:
   agent_name: FASTAgent # Name for the agent runtime (a-z, A-Z, 0-9, _)
   pattern: strands-single-agent # See patterns/ for available options
   # Pattern prefix determines the frontend parser:
-  #   agui-*      → AG-UI parser      (e.g. agui-strands-agent)
+  #   agui-*      → AG-UI parser      (e.g. agui-strands-agent, agui-pydantic-agent)
   #   strands-*   → Strands parser    (e.g. strands-single-agent)
   #   langgraph-* → LangGraph parser  (e.g. langgraph-single-agent)
   #   claude-*    → Claude parser     (e.g. claude-agent-sdk-single-agent)

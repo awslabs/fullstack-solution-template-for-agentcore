@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- AG-UI agent pattern for Pydantic AI (`patterns/agui-pydantic-agent/`) using the framework's native `AGUIAdapter`, with Gateway MCP tools and Code Interpreter
+
 ## [0.4.2] - 2026-06-12
 
 ### Added

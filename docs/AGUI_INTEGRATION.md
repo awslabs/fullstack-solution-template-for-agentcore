@@ -8,14 +8,15 @@ Guide for using the AG-UI (Agent-User Interaction) protocol patterns in FAST.
 
 [AG-UI](https://docs.ag-ui.com/concepts/overview) is an open protocol that defines a standard SSE event format for agent-to-frontend communication. Instead of each framework emitting its own event schema (Strands events, LangChain message chunks, etc.), AG-UI provides a unified event vocabulary: `TEXT_MESSAGE_CONTENT`, `TOOL_CALL_START`, `TOOL_CALL_ARGS`, `TOOL_CALL_RESULT`, `RUN_FINISHED`, and so on.
 
-FAST includes two AG-UI agent patterns:
+FAST includes three AG-UI agent patterns:
 
 | Pattern | Framework | Location |
 |---------|-----------|----------|
 | `agui-strands-agent` | Strands + `ag-ui-strands` | `agent_patterns/agui-strands-agent/` |
 | `agui-langgraph-agent` | LangGraph + `copilotkit` | `agent_patterns/agui-langgraph-agent/` |
+| `agui-pydantic-agent` | Pydantic AI + `pydantic_ai.ui.ag_ui` | `agent_patterns/agui-pydantic-agent/` |
 
-Both patterns use `BedrockAgentCoreApp` as the entrypoint (same as the HTTP patterns), which means AgentCore Runtime headers (WorkloadAccessToken, Authorization, Session-Id) are available for Gateway auth, Memory, and secure user identity extraction.
+All three patterns use `BedrockAgentCoreApp` as the entrypoint (same as the HTTP patterns), which means AgentCore Runtime headers (WorkloadAccessToken, Authorization, Session-Id) are available for Gateway auth, Memory, and secure user identity extraction.
 
 ---
 
@@ -38,7 +39,7 @@ Agent Container
   │  BedrockAgentCoreApp reads headers → sets ContextVars
   │  @entrypoint handler creates agent, runs it
   ▼
-AG-UI Wrapper (StrandsAgent / LangGraphAGUIAgent)
+AG-UI Wrapper (StrandsAgent / LangGraphAGUIAgent / AGUIAdapter)
   │
   │  Translates framework events → AG-UI SSE events
   ▼
@@ -84,6 +85,16 @@ Uses the `copilotkit` python library (`LangGraphAGUIAgent`) to wrap a LangGraph 
 
 **Includes**: AgentCore Memory (checkpointer), Gateway MCP tools, Code Interpreter, CopilotKit middleware, AG-UI SSE streaming.
 
+### AG-UI Pydantic AI (`agui-pydantic-agent`)
+
+**Location**: `agent_patterns/agui-pydantic-agent/`
+
+Uses Pydantic AI's built-in AG-UI adapter (`pydantic_ai.ui.ag_ui.AGUIAdapter`), so no separate bridge package is needed. The agent is created per-request inside the `@entrypoint` handler with a fresh Gateway MCP toolset (`MCPToolset` over streamable HTTP, tools prefixed `gateway_`) and a Code Interpreter tool; `AGUIAdapter.run_stream()` turns the Pydantic AI run into AG-UI events.
+
+Conversation history travels in the AG-UI payload (`messages`), which the adapter replays into the model on every run, so this pattern does not attach AgentCore Memory. See [Session Management](SESSION_MANAGEMENT.md) if you want to add it.
+
+**Includes**: Gateway MCP tools, Code Interpreter, AG-UI SSE streaming.
+
 ---
 
 ## Frontend
@@ -106,7 +117,7 @@ Set the pattern in `infra-cdk/config.yaml`:
 
 ```yaml
 backend:
-  pattern: agui-strands-agent    # or agui-langgraph-agent
+  pattern: agui-strands-agent    # or agui-langgraph-agent, agui-pydantic-agent
   deployment_type: docker
 ```
 
