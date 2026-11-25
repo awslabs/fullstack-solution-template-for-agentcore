@@ -4,13 +4,30 @@
 import type { ChunkParser } from "../types"
 
 /**
- * Parses SSE chunks from AG-UI (ag-ui-strands) agents.
+ * Parses SSE chunks from AG-UI 1.0 agents (ag-ui-strands, ag-ui-langgraph).
  *
  * AG-UI events arrive as `data: <JSON>` where each JSON object has a `type` field:
  *   RUN_STARTED, STATE_SNAPSHOT, TEXT_MESSAGE_START, TEXT_MESSAGE_CONTENT,
  *   TEXT_MESSAGE_END, TOOL_CALL_START, TOOL_CALL_ARGS, TOOL_CALL_END,
- *   TOOL_CALL_RESULT, RUN_FINISHED
+ *   TOOL_CALL_RESULT, RUN_FINISHED, RUN_ERROR
  */
+
+/**
+ * AG-UI 1.0 tool results are either a string or a list of content parts
+ * (text, image, ...). The chat UI shows text, so keep the text parts.
+ */
+function toolResultToText(content: unknown): string {
+  if (typeof content === "string") return content
+  if (!Array.isArray(content)) return ""
+  return content
+    .map(part =>
+      part && typeof part === "object" && (part as { type?: string }).type === "text"
+        ? String((part as { text?: unknown }).text ?? "")
+        : ""
+    )
+    .join("")
+}
+
 export const parseAguiChunk: ChunkParser = (line, callback) => {
   if (!line.startsWith("data: ")) return
 
@@ -46,7 +63,7 @@ export const parseAguiChunk: ChunkParser = (line, callback) => {
         callback({
           type: "tool_result",
           toolUseId: json.toolCallId,
-          result: json.content ?? "",
+          result: toolResultToText(json.content),
         })
         break
 
@@ -67,9 +84,30 @@ export const parseAguiChunk: ChunkParser = (line, callback) => {
         callback({ type: "lifecycle", event: "message_end" })
         break
 
+      case "RUN_ERROR":
+        // The run failed inside the agent. Surface the reason in the chat and
+        // close the turn so the UI does not wait for a RUN_FINISHED that never comes.
+        callback({ type: "text", content: `\n\nError: ${json.message ?? "The agent run failed."}` })
+        callback({ type: "result", stopReason: "error" })
+        callback({ type: "lifecycle", event: "run_error" })
+        break
+
       case "STATE_SNAPSHOT":
+      case "STATE_DELTA":
+      case "MESSAGES_SNAPSHOT":
       case "TOOL_CALL_END":
-        // Informational — no action needed
+      case "STEP_STARTED":
+      case "STEP_FINISHED":
+      case "REASONING_START":
+      case "REASONING_MESSAGE_START":
+      case "REASONING_MESSAGE_CONTENT":
+      case "REASONING_MESSAGE_END":
+      case "REASONING_END":
+      case "ACTIVITY_SNAPSHOT":
+      case "ACTIVITY_DELTA":
+      case "CUSTOM":
+      case "RAW":
+        // Not rendered by this lightweight chat UI — no action needed
         break
 
       default:
