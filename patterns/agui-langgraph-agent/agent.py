@@ -28,8 +28,7 @@ SYSTEM_PROMPT = (
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 MEMORY_ID = os.environ.get("MEMORY_ID")
 MODEL = ChatBedrock(
-    model_id="us.anthropic.claude-sonnet-4-5-20250929-v1:0",
-    temperature=0.1,
+    model_id="us.anthropic.claude-sonnet-5-5",
     streaming=True,
     beta_use_converse_api=True,
 )

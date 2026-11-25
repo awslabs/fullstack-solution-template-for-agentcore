@@ -31,8 +31,7 @@ SYSTEM_PROMPT = (
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 MEMORY_ID = os.environ.get("MEMORY_ID")
 MODEL = BedrockModel(
-    model_id="us.anthropic.claude-sonnet-4-5-20250929-v1:0",
-    temperature=0.1,
+    model_id="us.anthropic.claude-sonnet-5-5",
 )
 CODE_INTERPRETER = StrandsCodeInterpreterTools(REGION).execute_python_securely
 
