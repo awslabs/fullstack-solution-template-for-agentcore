@@ -1,5 +1,7 @@
-# LangGraph AG-UI agent dependencies
-copilotkit>=0.1.84
+# LangGraph AG-UI agent dependencies (AG-UI 1.0)
+ag-ui-protocol==1.0.0
+ag-ui-langgraph==0.0.47
+copilotkit==0.1.97
 langchain>=1.2.10
 langgraph>=1.1.5
 langchain-aws==1.4.1
