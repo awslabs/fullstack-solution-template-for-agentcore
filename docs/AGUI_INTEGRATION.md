@@ -15,6 +15,15 @@ FAST includes two AG-UI agent patterns:
 | `agui-strands-agent` | Strands + `ag-ui-strands` | `agent_patterns/agui-strands-agent/` |
 | `agui-langgraph-agent` | LangGraph + `copilotkit` | `agent_patterns/agui-langgraph-agent/` |
 
+Both patterns target **AG-UI 1.0**:
+
+| Pattern | AG-UI packages |
+|---------|----------------|
+| `agui-strands-agent` | `ag-ui-protocol` 1.0.0, `ag-ui-strands` 1.0.x (requires `strands-agents` 1.55+) |
+| `agui-langgraph-agent` | `ag-ui-protocol` 1.0.0, `ag-ui-langgraph` 0.0.47+, `copilotkit` 0.1.97+ |
+
+Upgrade these as a set. A 1.0 client rejects malformed events instead of ignoring them, and `RUN_STARTED` now carries `protocolVersion: "1.0"`, so mixing a 1.0 client with a pre-1.0 adapter (or the reverse) is not supported. See the [AG-UI 1.0 migration guide](https://docs.ag-ui.com/migrating-to-1-0).
+
 Both patterns use `BedrockAgentCoreApp` as the entrypoint (same as the HTTP patterns), which means AgentCore Runtime headers (WorkloadAccessToken, Authorization, Session-Id) are available for Gateway auth, Memory, and secure user identity extraction.
 
 ---
@@ -72,7 +81,7 @@ The AG-UI patterns in FAST deploy with `HTTP` protocol, which works correctly be
 
 **Location**: `agent_patterns/agui-strands-agent/`
 
-Uses `ag-ui-strands` (`StrandsAgent`) to wrap a Strands `Agent`. The agent is created per-request inside the `@entrypoint` handler, ensuring each request gets a fresh `Agent` with the correct `session_manager` and fresh MCP client connections.
+Uses `ag-ui-strands` (`StrandsAgent`) to wrap a Strands `Agent`. The agent is created per-request inside the `@entrypoint` handler, ensuring each request gets fresh MCP client connections. AgentCore Memory is attached through `StrandsAgentConfig.session_manager_provider`, with `replay_history_into_strands=False` so that Memory owns the conversation history. A `session_manager` set directly on the wrapped `Agent` is ignored by the adapter.
 
 **Includes**: AgentCore Memory, Gateway MCP tools, Code Interpreter, AG-UI SSE streaming.
 
@@ -116,13 +125,38 @@ No CDK changes are required. The AG-UI patterns deploy as standard HTTP containe
 
 ## CopilotKit Integration
 
-[CopilotKit](https://www.copilotkit.ai/) is a React UI library that natively understands the AG-UI protocol. While FAST's built-in frontend includes a lightweight AG-UI parser for basic chat streaming, CopilotKit provides a richer set of capabilities for building agent-powered applications. Fullstack FAST applications with deeper CopilotKit integration can be found in the FAST samples repository (coming soon).
+[CopilotKit](https://www.copilotkit.ai/) is a React UI library that natively understands the AG-UI protocol. While FAST's built-in frontend includes a lightweight AG-UI parser for basic chat streaming, CopilotKit provides a richer set of capabilities for building agent-powered applications: generative UI, shared state, human-in-the-loop, and MCP Apps.
+
+A fullstack FAST application with CopilotKit is available in the FAST samples repository: [`copilotkit-generative-ui`](https://github.com/aws-samples/sample-FAST-applications/tree/main/samples/copilotkit-generative-ui). It adds a CopilotKit Runtime Lambda between the browser and AgentCore and works with both AG-UI patterns.
+
+### Generative UI with the default component catalog
+
+With CopilotKit, the agent composes UI in the chat from a component catalog declared in the browser. `standardUI` is CopilotKit's default catalog (layout, text, inputs, tables, charts, media); your own components are added on top of it:
+
+```tsx
+import { CopilotKitProvider } from "@copilotkit/react-core/v2"
+import { createGenerativeUI, standardUI } from "@copilotkit/react-core/v2/generative-ui"
+
+const ui = createGenerativeUI({
+  id: "my-app@1",
+  extends: [standardUI],
+  components: {
+    MetricCard: { component: MetricCard, description: "A KPI tile.", props: metricCardSchema },
+  },
+})
+
+<CopilotKitProvider runtimeUrl={runtimeUrl} generativeUI={{ ui }}>
+```
+
+The CopilotKit Runtime then adds a `render_ui` tool and a guide to the catalog to each run, validates what the agent renders against the catalog, and streams it to the browser. The AG-UI patterns in this template need no changes for this: `ag-ui-strands` registers the tools and context of the run on the Strands agent, and `CopilotKitMiddleware` does the same for LangGraph. The component catalog API is marked experimental in CopilotKit 1.89.
 
 ---
 
 ## Additional Resources
 
 - [AG-UI Protocol Documentation](https://docs.ag-ui.com/concepts/overview)
+- [AG-UI 1.0 Migration Guide](https://docs.ag-ui.com/migrating-to-1-0)
+- [CopilotKit Generative UI](https://docs.copilotkit.ai/generative-ui/components)
 - [ag-ui-strands on PyPI](https://pypi.org/project/ag-ui-strands/)
 - [CopilotKit Documentation](https://docs.copilotkit.ai/)
 - [Strands AG-UI Integration Guide](https://strandsagents.com/docs/community/integrations/ag-ui/)

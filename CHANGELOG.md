@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **AG-UI 1.0** — AG-UI agent patterns upgraded to the 1.0 protocol: `ag-ui-protocol==1.0.0`, `ag-ui-strands==1.0.4` (requires `strands-agents>=1.55.0`, pinned to `1.65.0`) for `agui-strands-agent`, and `ag-ui-langgraph==0.0.47` with `copilotkit==0.1.97` for `agui-langgraph-agent`. No changes to agent logic were needed
+- AG-UI agent patterns use Claude Sonnet 5.5 (`us.anthropic.claude-sonnet-5-5`) and no longer set `temperature`, which that model does not accept. Bedrock marks Sonnet 4.5 as legacy and blocks it for accounts that have not used it recently
+- `agui-langgraph-agent` pins `mcp==1.30.0` (`langchain-mcp-adapters` 0.2.2 does not work with `mcp` 2.x) and moves to `langchain-aws==1.10.0`, which streams text from Claude 5 models
+- AG-UI frontend parser (`frontend/src/lib/agentcore-client/parsers/agui.ts`) handles AG-UI 1.0 tool results that carry content parts, surfaces `RUN_ERROR` in the chat, and ignores the 1.0 event types the lightweight chat does not render
+- `docs/AGUI_INTEGRATION.md` documents the AG-UI 1.0 versions and the CopilotKit generative UI component catalog
+
 ## [0.4.2] - 2026-06-12
 
 ### Added
